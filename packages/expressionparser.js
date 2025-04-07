@@ -1,6 +1,9 @@
+import FinData from "./financial/FinData";
+
 export default class ExpressionParser {
     constructor(data) {
         this.data = data; // Spreadsheet data
+        this.finData = new FinData();
     }
 
     // Tokenize the input expression
@@ -136,6 +139,9 @@ export default class ExpressionParser {
                 const values = args.flat();
                 return values.reduce((sum, val) => sum + val, 0) / values.length;
             default:
+                if (this.finData.get('YA', ast.name)) {
+                    return this.finData.get('YA', ast.name).price;
+                }
                 throw new Error(`Unknown function: ${ast.name}`);
         }
     }

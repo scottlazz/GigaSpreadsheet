@@ -6,21 +6,24 @@ import ExpressionParser from 'packages/expressionparser';
 import { launchFormatMenu } from './windows/format';
 // @ts-ignore
 import { createLineChart } from './graphs/linechart.js';
+// @ts-ignore
+import FinancialSubscriber from 'packages/financial/index';
 // "noImplicitAny": false
 
 
 interface GigaSheetTypeOptions {
-    cellWidth: number | null,
-    cellHeight: number | null,
-    blockRows: number | null,
-    blockCols: number | null,
-    paddingBlocks: number | null,
-    heightOverrides: any,
-    widthOverrides: any,
-    gridlinesOn: boolean | null,
-    mergedCells: any,
-    padding: number | null,
-    initialCells: any,
+    cellWidth?: number,
+    cellHeight?: number,
+    blockRows?: number,
+    blockCols?: number,
+    paddingBlocks?: number,
+    heightOverrides?: any,
+    widthOverrides?: any,
+    gridlinesOn?: boolean,
+    mergedCells?: any,
+    padding?: number,
+    initialCells?: any,
+    subscribeFinance?: boolean,
 }
 export default class GigaSpreadsheet {
     wrapper: HTMLElement;
@@ -152,6 +155,9 @@ export default class GigaSpreadsheet {
         this.rowNumberContainer.style.lineHeight = `${this.headerRowHeight}px`;
         this.cornerCell.style.width = `${this.rowNumberWidth}px`;
         this.cornerCell.style.height = `${this.headerRowHeight}px`;
+        if (options.subscribeFinance) {
+            this.subscribeFinance();
+        }
 
         // State
         // this.data = [];
@@ -216,6 +222,11 @@ export default class GigaSpreadsheet {
             _overrides[key] = overrides[key];
         }
         return _overrides;
+    }
+
+    subscribeFinance() {
+        const f = new FinancialSubscriber();
+        f.listenYA(["NVDA", "GME"]);
     }
 
     initEventListeners() {
