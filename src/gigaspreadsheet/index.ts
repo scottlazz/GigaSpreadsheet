@@ -8,8 +8,10 @@ import { launchFormatMenu } from './windows/format';
 import { createLineChart } from './graphs/linechart.js';
 // @ts-ignore
 import FinancialSubscriber from 'packages/financial/index';
-// "noImplicitAny": false
+// @ts-ignore
+import { dependencyTree, tickerReg } from "packages/dependencytracker";
 
+// "noImplicitAny": false
 
 interface GigaSheetTypeOptions {
     cellWidth?: number,
@@ -205,7 +207,14 @@ export default class GigaSpreadsheet {
         this.initRender();
         this.data = null;
         this.parser = null;
-        this.setData(new SparseGrid(), options.initialCells);
+        const _data = localStorage.getItem('data-save');
+        if (_data) {
+            const g = new SparseGrid();
+            g.restore(_data);
+            this.setData(g);
+        } else {
+            this.setData(new SparseGrid(), options.initialCells);
+        }
     }
 
     initRender() {
@@ -226,7 +235,15 @@ export default class GigaSpreadsheet {
 
     subscribeFinance() {
         const f = new FinancialSubscriber();
-        f.listenYA(["NVDA", "GME"]);
+        f.listenYA(["API", "^GSPC", "^DJI", "^IXIC", "^RUT", "CL=F", "GC=F", "NVDA", "GME", "RKT", "GAP", "BLD", "IBP"]);
+        f.onTick((data: any) => {
+            const cells = tickerReg[data.id] || {};
+            for (let key in cells) {
+                const [row,col] = key.split(',');
+                this.renderCell(row,col);
+            }
+            console.log('gigasheet::ontick', data)
+        });
     }
 
     initEventListeners() {
@@ -349,6 +366,7 @@ export default class GigaSpreadsheet {
             this.hideContextMenu();
         });
         document.addEventListener('paste', (e) => {
+            if (this.editingCell) return;
             this.handlePaste(e.clipboardData!.getData('text/plain'));
             e.preventDefault();
         });
@@ -891,34 +909,11 @@ export default class GigaSpreadsheet {
             });
         }
     }
-    setCell(row: number, col: number, field: string, value: any) {
-        const cell = this.getCell(row, col);
-        if (!cell) return;
-        cell[field] = value;
-        if (!this.data.has(row, col)) {
-            this.data.set(row, col, cell);
-        }
-    }
-    mergeInCell(row: number, col: number, data: any) {
-        const cell = this.getCell(row, col);
-        if (!cell) return;
-        Object.assign(cell, data);
-    }
     getSelectedCells() {
         if (!this.selectionBoundRect) return [];
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
         const cells = this.data.getCells(startRow, startCol, endRow, endCol);
         return cells;
-    }
-    setCells(cells: any, field: string, value: any) {
-        for (let cell of cells) {
-            this.setCell(cell.row, cell.col, field, value);
-            this.renderCell(cell.row, cell.col);
-        }
-        if (field === 'cellType') {
-            console.log('forcing rerender')
-            this.forceRerender();
-        }
     }
     getTotalRows() {
         return this.totalRows;
@@ -992,7 +987,29 @@ export default class GigaSpreadsheet {
     setText(row: number, col: number, text: string) {
         this.data?.setCellProperty(row, col, 'text', text);
     }
-
+    setCell(row: number, col: number, field: string, value: any) {
+        const cell = this.getCell(row, col);
+        if (!cell) return;
+        cell[field] = value;
+        if (!this.data.has(row, col)) {
+            this.data.set(row, col, cell);
+        }
+    }
+    setCells(cells: any, field: string, value: any) {
+        for (let cell of cells) {
+            this.setCell(cell.row, cell.col, field, value);
+            this.renderCell(cell.row, cell.col);
+        }
+        if (field === 'cellType') {
+            console.log('forcing rerender')
+            this.forceRerender();
+        }
+    }
+    // mergeInCell(row: number, col: number, data: any) {
+    //     const cell = this.getCell(row, col);
+    //     if (!cell) return;
+    //     Object.assign(cell, data);
+    // }
     finishCellEdit() {
         if (!this.editingCell) return;
 
@@ -1948,7 +1965,7 @@ export default class GigaSpreadsheet {
         return { left, top, width, height, row, col };
     }
 
-    renderCell(row: number, col: number) { // FIX BUG ON EDGE OF CANVAS EDIT
+    renderCell(row: any, col: any) { // FIX BUG ON EDGE OF CANVAS EDIT
         if (this.getMerge(row, col)) {
             this.forceRerender();
             return;
@@ -1961,6 +1978,13 @@ export default class GigaSpreadsheet {
         ctx.fillRect(left + 1, top + 1, width - 2, height - 2);
         ctx.fillStyle = '#333333';
         this.renderCellText(ctx, left, top, width, row, col);
+        if (dependencyTree[row]?.[col]) {
+            for(let childRow in dependencyTree[row][col]) {
+                for (let childCol in dependencyTree[row][col][childRow]) {
+                    this.renderCell(childRow, childCol)
+                }
+            }
+        }
     }
 
     renderBlock(block: any, calcDimensions = false) {
@@ -2241,7 +2265,7 @@ export default class GigaSpreadsheet {
         let text = value !== undefined && value !== null ? String(value) : '';
         if (_text !== '') text = _text;
         if (text === '') return;
-        text = this.parser.evaluateExpression(text);
+        text = this.parser.evaluateExpression(text, [row,col]);
         ctx.save(); // Save the current state
         if (this.getCellColor(row, col)) {
             ctx.fillStyle = this.getCellColor(row, col);

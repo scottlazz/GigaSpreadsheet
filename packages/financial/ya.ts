@@ -11,6 +11,7 @@ export default class YA {
     root: any;
     Yaticker: any;
     isOpen: boolean;
+    cbs: Function[];
     constructor() {
         this.tickers = new Set();
         this.connection = null;
@@ -18,6 +19,12 @@ export default class YA {
         this.isOpen = false;
         this.root = protobuf.Root.fromJSON(require("./YADATA.json"));
         this.Yaticker = this.root?.lookupType("yaticker");
+        this.cbs = [];
+        // setInterval(() => {
+        //     const dummydata = { id: 'GME', price: Math.random() * 100 };
+        //     this.data.store('YA', dummydata.id, dummydata);
+        //     this.updateListeners(dummydata)
+        // }, 1000)
     }
     /**
      * @returns something like '{"subscribe":["API","^GSPC","^DJI","^IXIC","^RUT","CL=F","GC=F","NVDA","GME","RKT","GAP","BLD","IBP"]}'
@@ -29,6 +36,9 @@ export default class YA {
     }
     hasSubs() {
         return this.tickers.size > 0;
+    }
+    addListener(cb) {
+        this.cbs.push(cb);
     }
     updateSubs() {
         if (this.connection) {
@@ -47,6 +57,11 @@ export default class YA {
         }
         return this.connection;
     }
+    updateListeners(data) {
+        for(let cb of this.cbs) {
+            cb(data);
+        }
+    }
     onmessage = (event: any) => {
         try {
             const messageData = event.data;
@@ -57,14 +72,25 @@ export default class YA {
                         .map((c) => c.charCodeAt(0)),
                 ),
             );
+            if (data.id.startsWith('^')) {
+                data._id = data.id;
+                data.id = data.id.slice(1);
+            }
             this.data.store('YA', data.id, data);
             console.log('tick data:', data);
+            this.updateListeners(data);
         } catch (e) {
             console.log(e)
         }
     }
+    async fetchTicker(symbol) {
+
+    }
     addSubs(subs: string[]) {
         for(let symbol of subs) {
+            if (!this.tickers.has(symbol)) {
+                this.fetchTicker(symbol);
+            }
             this.tickers.add(symbol);
         }
         if (this.hasSubs()) {

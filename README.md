@@ -9,13 +9,15 @@ A lightweight, canvas-based spreadsheet application written in TypeScript. Optim
 ## Features  
 🚀 **Smooth Scrolling** – Optimized rendering engine ensures buttery-smooth navigation, even with thousands of cells on screen
 
+📡 Real-Time Market Data - Live ticking stock prices (e.g., =GME displays real-time GameStop stock price)
+
 🎨 Basic cell formatting
 
 📱 Responsive design
 
 🔄 Undo/Redo functionality
 
-📊 Cell formulas and calculations (alpha)
+📊 Cell formulas and calculations
 
 ## Technologies Used
 

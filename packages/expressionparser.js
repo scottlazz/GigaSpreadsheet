@@ -1,9 +1,26 @@
 import FinData from "./financial/FinData";
+import { dependencyTree, tickerReg } from "./dependencytracker";
 
+window.deptree = dependencyTree;
 export default class ExpressionParser {
     constructor(data) {
         this.data = data; // Spreadsheet data
         this.finData = new FinData();
+    }
+
+    // Add a dependency relationship
+    addDependency(source, target) {
+        const sr = source[0], sc = source[1];
+        const tr = target[0], tc = target[1];
+        if (!dependencyTree[tr]) dependencyTree[tr] = {};
+        if (!dependencyTree[tr][tc]) dependencyTree[tr][tc] = {};
+        if (!dependencyTree[tr][tc][sr]) dependencyTree[tr][tc][sr] = {};
+        dependencyTree[tr][tc][sr][sc] = true;
+    }
+
+    // Remove all dependencies for a cell
+    removeDependencies(source) {
+
     }
 
     // Tokenize the input expression
@@ -92,27 +109,46 @@ export default class ExpressionParser {
     }
 
     // Evaluate the AST
-    evaluate(ast) {
+    evaluate(ast, source) {
+        // if (source) {
+        //     // Remove old dependencies before evaluating
+        //     this.removeDependencies(source);
+        // }
         switch (ast.type) {
             case 'Number':
                 return ast.value;
             case 'CellReference':
+                if (source) {
+                    const { row, col } = this.parseCellReference(ast.value);
+                    this.addDependency(source, [row, col]);
+                }
                 return this.getCellValue(ast.value);
             case 'RangeReference':
+                if (source) {
+                    const [startCell, endCell] = ast.value.split(':');
+                    const start = this.parseCellReference(startCell);
+                    const end = this.parseCellReference(endCell);
+
+                    for (let row = start.row; row <= end.row; row++) {
+                        for (let col = start.col; col <= end.col; col++) {
+                            this.addDependency(source, [row, col]);
+                        }
+                    }
+                }
                 return this.getRangeValues(ast.value);
             case 'BinaryExpression':
-                return this.evaluateBinaryExpression(ast);
+                return this.evaluateBinaryExpression(ast, source);
             case 'Function':
-                return this.evaluateFunction(ast);
+                return this.evaluateFunction(ast, source);
             default:
                 throw new Error(`Unknown AST node type: ${ast.type}`);
         }
     }
 
     // Evaluate binary expressions (e.g., +, -, *, /, ^)
-    evaluateBinaryExpression(ast) {
-        const left = this.evaluate(ast.left);
-        const right = this.evaluate(ast.right);
+    evaluateBinaryExpression(ast, source) {
+        const left = this.evaluate(ast.left, source);
+        const right = this.evaluate(ast.right, source);
         switch (ast.operator) {
             case '+':
                 return left + right;
@@ -130,7 +166,7 @@ export default class ExpressionParser {
     }
 
     // Evaluate functions (e.g., SUM, AVERAGE)
-    evaluateFunction(ast) {
+    evaluateFunction(ast, source) {
         const args = ast.args.map(arg => this.evaluate(arg));
         switch (ast.name.toUpperCase()) {
             case 'SUM':
@@ -139,10 +175,16 @@ export default class ExpressionParser {
                 const values = args.flat();
                 return values.reduce((sum, val) => sum + val, 0) / values.length;
             default:
+                // tickerReg[source[0]]
+                console.log('subbing', ast.name)
+                if (!tickerReg[ast.name]) tickerReg[ast.name] = {};
+                tickerReg[ast.name][`${source[0]},${source[1]}`] = true;
                 if (this.finData.get('YA', ast.name)) {
                     return this.finData.get('YA', ast.name).price;
+                } else {
+                    return '';
                 }
-                throw new Error(`Unknown function: ${ast.name}`);
+                // throw new Error(`Unknown function: ${ast.name}`);
         }
     }
 
@@ -153,14 +195,14 @@ export default class ExpressionParser {
     // Get the value of a cell reference (e.g., A1, B2)
     getCellValue(cellRef) {
         const { row, col } = this.parseCellReference(cellRef);
-        if (row < 0 || row >= this.bottomRow || col < 0 || col >= this.data.rightCol) {
+        if (row < 0 || row > this.bottomRow || col < 0 || col > this.data.rightCol) {
             throw new Error(`Invalid cell reference: ${cellRef}`);
         }
         const value = this.getCellText(row, col);
 
         // If the cell value is a formula (starts with '='), evaluate it recursively
         if (typeof value === 'string' && value.startsWith('=')) {
-            return this.evaluateExpression(value);
+            return this.evaluateExpression(value, [row, col]);
         }
 
         // Otherwise, treat it as a literal value
@@ -183,7 +225,7 @@ export default class ExpressionParser {
 
                 // If the cell value is a formula (starts with '='), evaluate it recursively
                 if (typeof value === 'string' && value.startsWith('=')) {
-                    values.push(this.evaluateExpression(value));
+                    values.push(this.evaluateExpression(value, [row,col]));
                 } else {
                     values.push(typeof value === 'number' ? value : parseFloat(value) || 0);
                 }
@@ -209,7 +251,7 @@ export default class ExpressionParser {
     }
 
     // Main function to parse and evaluate an expression
-    evaluateExpression(expression) {
+    evaluateExpression(expression, source) {
         if (typeof expression !== 'string') {
             return expression; // Return non-string values as-is
         }
@@ -218,7 +260,7 @@ export default class ExpressionParser {
         if (expression.startsWith('=')) {
             const tokens = this.tokenize(expression);
             const ast = this.parse(tokens);
-            return this.evaluate(ast);
+            return this.evaluate(ast, source);
         }
 
         // If the expression does not start with '=', treat it as a literal value
