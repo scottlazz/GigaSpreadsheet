@@ -55,10 +55,7 @@ export default class GigaSpreadsheet {
     padding: number; // number of adjacent blocks to render
     readonly MAX_HISTORY_SIZE: number;
 
-    columns: [];
     activeBlocks: Map<any, any>;
-    pool: [];
-    rowNumberPool: [];
     mergedCells: any;
     undoStack: any;
     redoStack: any;
@@ -142,9 +139,6 @@ export default class GigaSpreadsheet {
         this.blockRows = options.blockRows ?? 32;  // Max rows per canvas block
         this.blockCols = options.blockCols ?? 32;  // Max cols per canvas block
         this.paddingBlocks = options.paddingBlocks ?? 1; // Extra blocks to render around visible area
-        this.heightOverrides = this.buildOverrides(options.heightOverrides);
-        this.widthOverrides = this.buildOverrides(options.widthOverrides);
-        this.gridlinesOn = options.gridlinesOn ?? true;
         this.padding = options.padding || 1; // number of adjacent blocks to render
         this.MAX_HISTORY_SIZE = 100;
         this.rowNumberWidth = 42;
@@ -162,12 +156,11 @@ export default class GigaSpreadsheet {
         }
 
         // State
-        // this.data = [];
-        this.columns = [];
-        this.activeBlocks = new Map(); // Track active canvas blocks
-        this.pool = []; // Canvas pool for recycling
-        this.rowNumberPool = []; // Row number pool
         this.mergedCells = options.mergedCells || [];
+        this.heightOverrides = this.buildOverrides(options.heightOverrides);
+        this.widthOverrides = this.buildOverrides(options.widthOverrides);
+        this.gridlinesOn = options.gridlinesOn ?? true;
+        this.activeBlocks = new Map(); // Track active canvas blocks
         this.undoStack = [];
         this.redoStack = [];
         this.elRegistry = {};
@@ -207,12 +200,7 @@ export default class GigaSpreadsheet {
         this.initRender();
         this.data = null;
         this.parser = null;
-        const _data = localStorage.getItem('data-save');
-        if (_data) {
-            const g = new SparseGrid();
-            g.restore(_data);
-            this.setData(g);
-        } else {
+        if (!this.restoreSave()) {
             this.setData(new SparseGrid(), options.initialCells);
         }
     }
@@ -762,6 +750,7 @@ export default class GigaSpreadsheet {
             this.startCellEdit(this.selectionStart.row, this.selectionStart.col);
         }
         else if (key === 'f3') {
+            if (this.editingCell) return;
             this.openFormatMenu();
             e.preventDefault();
         }
@@ -770,24 +759,31 @@ export default class GigaSpreadsheet {
             this.cancelCellEdit();
         }
         else if (key === 'delete') {
+            if (this.editingCell) return;
             this.clearSelectedCells();
         }
         else if (key === 'x' && e.ctrlKey) {
+            if (this.editingCell) return;
             document.execCommand('copy');
             this.clearSelectedCells();
         }
         else if (key === 's' && e.ctrlKey) {
+            if (this.editingCell) return;
             const data = this.data.save();
-            localStorage.setItem('data-save', data)
+            const save = {
+                mergedCells: this.mergedCells,
+                heightOverrides: this.heightOverrides,
+                widthOverrides: this.widthOverrides,
+                gridlinesOn: this.gridlinesOn,
+                data
+            }
+            // localStorage.setItem('data-save', data)
+            localStorage.setItem('sheet-state', JSON.stringify(save))
             e.preventDefault();
         }
         else if (key === 'l' && e.ctrlKey) {
-            const data = localStorage.getItem('data-save');
-            if (data) {
-                const g = new SparseGrid();
-                g.restore(data);
-                this.setData(g);
-            }
+            if (this.editingCell) return;
+            this.restoreSave();
             e.preventDefault();
         }
         else if (e.ctrlKey || e.metaKey) { // Check for Ctrl (Windows/Linux) or Cmd (Mac)
@@ -804,6 +800,27 @@ export default class GigaSpreadsheet {
             e.preventDefault();
             this.handleArrowKeyDown(e);
         }
+    }
+    restoreSave() {
+        let save: any = localStorage.getItem('sheet-state');
+        if (save) {
+            try {
+                save = JSON.parse(save);
+                if (!save) return false;
+            } catch {
+                return false;
+            }
+            this.widthOverrides = save.widthOverrides;
+            this.heightOverrides = save.heightOverrides;
+            this.mergedCells = save.mergedCells;
+            this.gridlinesOn = save.gridlinesOn;
+            const g = new SparseGrid();
+            g.restore(save.data);
+            this.setData(g);
+            this.updateSelection();
+            return true;
+        }
+        return false;
     }
     handleArrowKeyDown(e: any) {
         if (!this.selectionEnd || !this.selectionStart) return;
