@@ -11,6 +11,8 @@ import FinancialSubscriber from 'packages/financial/index';
 // @ts-ignore
 import { dependencyTree, tickerReg } from "packages/dependencytracker";
 
+import { hasBorderStr } from "./utils";
+
 // "noImplicitAny": false
 
 interface GigaSheetTypeOptions {
@@ -1981,6 +1983,46 @@ export default class GigaSpreadsheet {
         }
         return { left, top, width, height, row, col };
     }
+    renderBorders(ctx: any, row: any, col: any) {
+        if (!this.getCell(row,col)?.border) return;
+        const border = this.getCell(row, col)?.border;
+        ctx.save();
+        ctx.strokeStyle = 'red';
+
+        // left border
+        if (hasBorderStr(border, 'left')) {
+            ctx.beginPath();
+            ctx.moveTo(this.getWidthOffset(col), this.getHeightOffset(row));
+            ctx.lineTo(this.getWidthOffset(col), this.getHeightOffset(row) + this.getCellHeight(row));
+            ctx.stroke();
+        }
+
+        // top border
+        if (hasBorderStr(border, 'top')) {
+            ctx.beginPath();
+            ctx.moveTo(this.getWidthOffset(col), this.getHeightOffset(row));
+            ctx.lineTo(this.getWidthOffset(col) + this.getCellWidth(col), this.getHeightOffset(row));
+            ctx.stroke();
+        }
+
+        // right border
+        if (hasBorderStr(border, 'right')) {
+            ctx.beginPath();
+            ctx.moveTo(this.getWidthOffset(col) + this.getCellWidth(col), this.getHeightOffset(row));
+            ctx.lineTo(this.getWidthOffset(col) + this.getCellWidth(col), this.getHeightOffset(row) + this.getCellHeight(row));
+            ctx.stroke();
+        }
+
+        // bottom border
+        if (hasBorderStr(border, 'bottom')) {
+            ctx.beginPath();
+            ctx.moveTo(this.getWidthOffset(col), this.getHeightOffset(row) + this.getCellHeight(row));
+            ctx.lineTo(this.getWidthOffset(col) + this.getCellWidth(col), this.getHeightOffset(row) + this.getCellHeight(row));
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    }
 
     renderCell(row: any, col: any) { // FIX BUG ON EDGE OF CANVAS EDIT
         if (this.getMerge(row, col)) {
@@ -1994,6 +2036,7 @@ export default class GigaSpreadsheet {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(left + 1, top + 1, width - 2, height - 2);
         ctx.fillStyle = '#333333';
+        this.renderBorders(ctx,row,col);
         this.renderCellText(ctx, left, top, width, row, col);
         if (dependencyTree[row]?.[col]) {
             for(let childRow in dependencyTree[row][col]) {
@@ -2121,6 +2164,7 @@ export default class GigaSpreadsheet {
                     const lineChart = this.getLineChart(row, col)?.el;
                     this.positionElement(lineChart, this.widthAccum[col], this.heightAccum[row], renderWidth, this.rowHeight(row));
                 } else {
+                    this.renderBorders(ctx,row,col);
                     this.renderCellText(ctx, x, y, renderWidth, row, col);
                 }
             }

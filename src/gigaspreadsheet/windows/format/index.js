@@ -59,11 +59,11 @@ export function launchFormatMenu() {
             .color-option:hover {
                 border-color: #999;
             }
-            .alignment-options {
+            .alignment-options,.border-options {
                 display: flex;
                 gap: 4px;
             }
-            .alignment-btn {
+            .alignment-btn,.border-btn {
                 flex: 1;
                 padding: 6px;
                 background: white;
@@ -72,10 +72,10 @@ export function launchFormatMenu() {
                 cursor: pointer;
                 text-align: center;
             }
-            .alignment-btn:hover {
+            .alignment-btn:hover,.border-btn:hover {
                 background: #f0f0f0;
             }
-            .alignment-btn.active {
+            .alignment-btn.active,.border-btn.active {
                 background: #999999;
                 border-color: #999;
             }
@@ -150,6 +150,15 @@ export function launchFormatMenu() {
                 </div>
             </div>
             <div class="menu-section">
+                <div class="menu-title">Borders</div>
+                <div class="border-options">
+                    <div class="border-btn" data-border="${(1 << 1)}" title="Border Left">Left</div>
+                    <div class="border-btn" data-border="${(1 << 2)}" title="Border Top">Top</div>
+                    <div class="border-btn" data-border="${(1 << 3)}" title="Border Right">Right</div>
+                    <div class="border-btn" data-border="${(1 << 4)}" title="Border Bottom">Bottom</div>
+                </div>
+            </div>
+            <div class="menu-section">
             <div class="menu-title">Text Baseline</div>
                 <div class="option-group">
                     <div class="format-btn" data-baseline="alphabetic" title="Alphabetic">A</div>
@@ -199,6 +208,20 @@ export function launchFormatMenu() {
             this.classList.add('active');
             const alignment = this.getAttribute('data-align');
             onChange('textAlign', alignment);
+        });
+    });
+    // Border buttons
+    formatWindow.document.querySelectorAll('.border-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            this.classList.toggle('active');
+            let border = 0;
+            formatWindow.document.querySelectorAll('.border-btn.active').forEach(function (b) {
+                const databorder = b.getAttribute('data-border');
+                border |= databorder;
+            });
+            // Remove active class from all buttons
+            // const border = this.getAttribute('data-border');
+            onChange('border', border);
         });
     });
     // Baseline buttons
