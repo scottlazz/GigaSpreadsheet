@@ -926,8 +926,8 @@ export default class GigaSpreadsheet {
             else if (e.key === 'ArrowLeft') { col = merge.startCol - 1; }
             else if (e.key === 'ArrowRight') { col = merge.endCol + 1; }
         }
-        row = Math.max(0, row); row = Math.min(row, this.getTotalRows());
-        col = Math.max(0, col); col = Math.min(col, this.getTotalCols());
+        row = Math.max(0, row); row = Math.min(row, this.totalRowBounds-1);
+        col = Math.max(0, col); col = Math.min(col, this.totalColBounds-1);
         if (e.shiftKey) this.selectionEnd = { row, col };
         this.selectCell({ row, col, continuation: e.shiftKey });
     }
