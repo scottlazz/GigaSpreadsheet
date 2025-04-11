@@ -1,7 +1,6 @@
 import FinData from "./financial/FinData";
-import { dependencyTree, tickerReg } from "./dependencytracker";
+import { dependencyTree, reverseDependencyTree, tickerReg } from "./dependencytracker";
 
-window.deptree = dependencyTree;
 export default class ExpressionParser {
     constructor(data) {
         this.data = data; // Spreadsheet data
@@ -16,11 +15,11 @@ export default class ExpressionParser {
         if (!dependencyTree[tr][tc]) dependencyTree[tr][tc] = {};
         if (!dependencyTree[tr][tc][sr]) dependencyTree[tr][tc][sr] = {};
         dependencyTree[tr][tc][sr][sc] = true;
-    }
 
-    // Remove all dependencies for a cell
-    removeDependencies(source) {
-
+        if (!reverseDependencyTree[sr]) reverseDependencyTree[sr] = {};
+        if (!reverseDependencyTree[sr][sc]) reverseDependencyTree[sr][sc] = {};
+        if (!reverseDependencyTree[sr][sc][tr]) reverseDependencyTree[sr][sc][tr] = {};
+        reverseDependencyTree[sr][sc][tr][tc] = true;
     }
 
     // Tokenize the input expression
@@ -35,6 +34,21 @@ export default class ExpressionParser {
         let match;
         while ((match = regex.exec(expression)) !== null) {
             tokens.push(match[1]);
+        }
+        return tokens;
+    }
+
+    static tokenizeWithIndex(expression) {
+        // Remove leading '=' if present
+        if (expression.startsWith('=')) {
+            expression = expression.slice(1);
+        }
+
+        const tokens = [];
+        const regex = /\s*(=>|[-+*/^()]|[A-Za-z_]\w*|\d*\.?\d+|\S)\s*/dg;
+        let match;
+        while ((match = regex.exec(expression)) !== null) {
+            tokens.push([match[1], match.indices[1]]);
         }
         return tokens;
     }
@@ -174,6 +188,10 @@ export default class ExpressionParser {
             case 'AVERAGE':
                 const values = args.flat();
                 return values.reduce((sum, val) => sum + val, 0) / values.length;
+            case 'ERROR':
+                return 'ERROR';
+            case 'REFERROR':
+                return 'REFERROR';
             default:
                 // tickerReg[source[0]]
                 console.log('subbing', ast.name)
@@ -196,6 +214,7 @@ export default class ExpressionParser {
     getCellValue(cellRef) {
         const { row, col } = this.parseCellReference(cellRef);
         if (row < 0 || row > this.bottomRow || col < 0 || col > this.data.rightCol) {
+            return '';
             throw new Error(`Invalid cell reference: ${cellRef}`);
         }
         const value = this.getCellText(row, col);
@@ -248,6 +267,28 @@ export default class ExpressionParser {
         const row = parseInt(rowNumber, 10) - 1;
 
         return { row, col };
+    }
+
+    static parseCellReference(cellRef) {
+        const colLetter = cellRef.match(/[A-Za-z]+/)?.[0];
+        const rowNumber = cellRef.match(/\d+/)?.[0];
+
+        if (!colLetter || !rowNumber) {
+            throw new Error(`Invalid cell reference: ${cellRef}`);
+        }
+
+        const col = colLetter.split('').reduce((acc, char) => acc * 26 + (char.toUpperCase().charCodeAt(0) - 64), 0) - 1;
+        const row = parseInt(rowNumber, 10) - 1;
+
+        return { row, col };
+    }
+
+    getAst(expression) {
+        if (expression.startsWith('=')) {
+            const tokens = this.tokenize(expression);
+            return this.parse(tokens);
+        }
+        return null;
     }
 
     // Main function to parse and evaluate an expression

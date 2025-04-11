@@ -138,6 +138,21 @@ html {
   box-sizing: border-box;
   flex-shrink: 0;
   user-select: none;
+  width: 100%;
+}
+.row-selected {
+  background-color: #d2d2d2;
+  border-right: 1px solid #1a73e8;
+  color: #074392;
+}
+.row-selected > div {
+  width: calc(100% + 1px);
+}
+
+.col-selected {
+  background-color: #d2d2d2;
+  border-bottom: 1px solid #1a73e8;
+  color: #074392;
 }
 
 .header-handle {
@@ -189,6 +204,11 @@ html {
 .header-cell {
   text-align: center;
   user-select: none;
+  box-sizing: border-box;
+}
+
+.header-cell:hover, .row-number:hover {
+  background-color: #1a73e81a;
 }
 
 .corner-cell {

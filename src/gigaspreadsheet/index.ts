@@ -9,9 +9,10 @@ import { createLineChart } from './graphs/linechart.js';
 // @ts-ignore
 import FinancialSubscriber from 'packages/financial/index';
 // @ts-ignore
-import { dependencyTree, tickerReg } from "packages/dependencytracker";
+import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "packages/dependencytracker";
 
 import { hasBorderStr } from "./utils";
+import { shiftTextRefs } from "./shiftops";
 
 // "noImplicitAny": false
 
@@ -79,6 +80,8 @@ export default class GigaSpreadsheet {
     selectionStart: {row: number, col: number} | null;
     selectionEnd: { row: number, col: number } | null;
     selectionHandle: HTMLElement | null;
+    selectedCols: Set<string|number>;
+    selectedRows: Set<string|number>;
 
     draggingHeader: any;
     draggingRow: any;
@@ -179,8 +182,9 @@ export default class GigaSpreadsheet {
         this.selectionStart = null;
         this.selectionEnd = null;
         this.selectionHandle = null;
-
         this.draggingHeader = null;
+        this.selectedCols = new Set();
+        this.selectedRows = new Set();
 
         // Metrics
         this.visibleStartRow = 0;
@@ -375,6 +379,11 @@ export default class GigaSpreadsheet {
     deleteRow(row: any = null, record = true) {
         row = row != null ? row : this.selectionStart?.row;
         if (row == null) return;
+        const cellsNeedingShift = shiftDependenciesUp(row);
+        for (let [row, col] of cellsNeedingShift) {
+            const newText = shiftTextRefs(this.getCellText(row, col), 'up');
+            this.setText(parseInt(row), parseInt(col), newText)
+        }
         const rowData = this.data.deleteRow(row);
         this.mergedCells.forEach((merge: any) => {
             if (merge.startRow >= row) {
@@ -386,15 +395,21 @@ export default class GigaSpreadsheet {
         delete this.heightOverrides[row];
         this.shiftHeightOverrides(row, -1);
         this.updateHeightAccum();
-        this.updateSelection();
         this.renderRowNumbers();
         record && this.recordChanges([{ changeKind: 'deleteEntireRow', row, rowData, heightOverride }]);
-        this.updateVisibleGrid(true);
+        this.forceRerender();
+        this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
+        this.updateSelection();
     }
 
     deleteCol(col: any = null, record = true) {
         col = col != null ? col : this.selectionStart?.col;
         if (col == null) return;
+        const cellsNeedingShift = shiftDependenciesLeft(col);
+        for (let [row, col] of cellsNeedingShift) {
+            const newText = shiftTextRefs(this.getCellText(row, col), 'left');
+            this.setText(parseInt(row), parseInt(col), newText)
+        }
         const colData = this.data.deleteCol(col);
         this.mergedCells.forEach((merge: any) => {
             if (merge.startCol >= col) {
@@ -406,30 +421,37 @@ export default class GigaSpreadsheet {
         delete this.widthOverrides[col];
         this.shiftWidthOverrides(col, -1);
         this.updateWidthAccum();
-        this.updateSelection();
         this.renderHeaders();
-
+        
         record && this.recordChanges([{ changeKind: 'deleteEntireCol', col, colData, widthOverride }]);
-        this.updateVisibleGrid(true);
+        this.forceRerender();
+        this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
+        this.updateSelection();
     }
 
-    insertRow(row: any = null, data = null, record = true, heightOverride = null) {
-        row = row != null ? row : this.selectionStart?.row;
-        if (row == null) return;
-        this.data.addRow(row, data);
-        this.mergedCells.forEach((merge: any) => {
-            if (merge.startRow >= row) {
-                merge.startRow++;
-                merge.endRow++;
-            }
-        });
-        this.shiftHeightOverrides(row, 1);
-        if (heightOverride != null) this.heightOverrides[row] = heightOverride;
-        this.updateHeightAccum();
-        this.updateSelection();
-        this.renderRowNumbers();
-        record && this.recordChanges([{ changeKind: 'insertEntireRow', row }]);
-        this.updateVisibleGrid(true);
+    refToRowCol(cellRef: string) {
+        // Extract the column letters and row number from the reference
+        const matches = cellRef.toUpperCase().match(/^([A-Z]+)(\d+)$/);
+
+        if (!matches) {
+            throw new Error('Invalid Excel cell reference format');
+        }
+
+        const colLetters = matches[1];
+        const rowNumber = parseInt(matches[2], 10);
+
+        // Convert column letters to 0-based index (A=0, B=1, ..., Z=25, AA=26, etc.)
+        let col = 0;
+        for (let i = 0; i < colLetters.length; i++) {
+            const charCode = colLetters.charCodeAt(i) - 65; // 'A' is 65 in ASCII
+            col = col * 26 + charCode + 1;
+        }
+        col--; // Make it 0-based
+
+        // Convert row number to 0-based index
+        const row = rowNumber - 1;
+
+        return { row, col };
     }
 
     shiftHeightOverrides(pivot: any, amount = 1) {
@@ -450,9 +472,40 @@ export default class GigaSpreadsheet {
         }
     }
 
+    insertRow(row: any = null, data = null, record = true, heightOverride = null) {
+        row = row != null ? row : this.selectionStart?.row;
+        if (row == null) return;
+        const cellsNeedingShift = shiftDependenciesDown(row);
+        for (let [row, col] of cellsNeedingShift) {
+            const newText = shiftTextRefs(this.getCellText(row, col), 'down');
+            this.setText(parseInt(row), parseInt(col), newText)
+        }
+        this.data.addRow(row, data);
+        this.mergedCells.forEach((merge: any) => {
+            if (merge.startRow >= row) {
+                merge.startRow++;
+                merge.endRow++;
+            }
+        });
+        this.shiftHeightOverrides(row, 1);
+        if (heightOverride != null) this.heightOverrides[row] = heightOverride;
+        this.updateHeightAccum();
+        this.renderRowNumbers();
+        record && this.recordChanges([{ changeKind: 'insertEntireRow', row }]);
+        this.forceRerender();
+        this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
+        this.updateSelection();
+    }
+
     insertCol(col: any = null, data = null, record = true, widthOverride = null) {
         col = col != null ? col : this.selectionStart?.col;
         if (col == null) return;
+        const cellsNeedingShift = shiftDependenciesRight(col);
+        for (let [row, col] of cellsNeedingShift) {
+            const newText = shiftTextRefs(this.getCellText(row, col), 'right');
+            console.log('old:', this.getCellText(row, col), 'newText:', newText)
+            this.setText(parseInt(row), parseInt(col), newText)
+        }
         this.data.addCol(col, data);
         this.mergedCells.forEach((merge: any) => {
             if (merge.startCol >= col) {
@@ -463,16 +516,17 @@ export default class GigaSpreadsheet {
         this.shiftWidthOverrides(col, 1);
         if (widthOverride != null) this.widthOverrides[col] = widthOverride;
         this.updateWidthAccum();
-        this.updateSelection();
         this.renderHeaders();
-
+        
         record && this.recordChanges([{ changeKind: 'insertEntireCol', col }]);
-        this.updateVisibleGrid(true);
+        this.forceRerender();
+        this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
+        this.updateSelection();
     }
 
     toggleGridlines() {
         this.gridlinesOn = !this.gridlinesOn;
-        this.updateVisibleGrid(true);
+        this.forceRerender();
     }
 
     scaler() {
@@ -609,17 +663,15 @@ export default class GigaSpreadsheet {
                 const prev = this.widthOverrides[change.col];
                 this.setWidthOverride(change.col, change.value);
                 this.updateWidthAccum();
-                this.updateSelection();
                 this.renderHeaders();
-                this.updateVisibleGrid(true);
+                rerender = true;
                 redoChanges.push({ changeKind: 'widthOverrideUpdate', col: change.col, value: prev });
             } else if (changeKind === 'heightOverrideUpdate') {
                 const prev = this.heightOverrides[change.row];
                 this.setHeightOverride(change.row, change.value);
                 this.updateHeightAccum();
-                this.updateSelection();
                 this.renderRowNumbers();
-                this.updateVisibleGrid(true);
+                rerender = true;
                 redoChanges.push({ changeKind: 'heightOverrideUpdate', row: change.row, value: prev });
             } else if (changeKind === 'valchange') {
                 // Record the current value for redo
@@ -638,6 +690,7 @@ export default class GigaSpreadsheet {
         } else {
             this.rerenderCells(updatedCells);
         }
+        this.updateSelection();
     }
 
     rerenderCells(arr: any = []) {
@@ -672,23 +725,21 @@ export default class GigaSpreadsheet {
                 this.insertRow(change.row, null, false); rerender = true;
                 undoChanges.push({ changeKind: 'insertEntireRow', row: change.row });
             } else if (changeKind === 'insertEntireCol') {
-                this.insertCol(change.col, null); rerender = true;
+                this.insertCol(change.col, null, false); rerender = true;
                 undoChanges.push({ changeKind: 'insertEntireCol', col: change.col });
             } else if (changeKind === 'widthOverrideUpdate') {
                 const prev = this.widthOverrides[change.col];
                 this.setWidthOverride(change.col, change.value);
                 this.updateWidthAccum();
-                this.updateSelection();
                 this.renderHeaders();
-                this.updateVisibleGrid(true);
+                rerender = true;
                 undoChanges.push({ changeKind: 'widthOverrideUpdate', col: change.col, value: prev });
             } else if (changeKind === 'heightOverrideUpdate') {
                 const prev = this.heightOverrides[change.row];
                 this.setHeightOverride(change.row, change.value);
                 this.updateHeightAccum();
-                this.updateSelection();
                 this.renderRowNumbers();
-                this.updateVisibleGrid(true);
+                rerender = true;
                 undoChanges.push({ changeKind: 'heightOverrideUpdate', row: change.row, value: prev });
             } else if (changeKind === 'valchange') {
                 // Record the current value for undo
@@ -707,6 +758,7 @@ export default class GigaSpreadsheet {
         } else {
             this.rerenderCells(updatedCells);
         }
+        this.updateSelection();
     }
 
     rowColInBounds(row: number, col: number, bounds: any) {
@@ -1249,9 +1301,9 @@ export default class GigaSpreadsheet {
             this.setWidthOverride(col, change);
             this.recordChanges([{ changeKind: 'widthOverrideUpdate', col, value: prevOverride }]);
             this.updateWidthAccum();
-            this.updateSelection();
             this.renderHeaders();
-            this.updateVisibleGrid(true);
+            this.forceRerender();
+            this.updateSelection();
             e.stopPropagation();
         } else if (this.draggingRow) {
             const row = this.draggingRow.row;
@@ -1263,9 +1315,9 @@ export default class GigaSpreadsheet {
             this.setHeightOverride(row, change);
             this.recordChanges([{ changeKind: 'heightOverrideUpdate', row, value: prevOverride }]);
             this.updateHeightAccum();
-            this.updateSelection();
             this.renderRowNumbers();
-            this.updateVisibleGrid(true);
+            this.forceRerender();
+            this.updateSelection();
             e.stopPropagation();
         }
     }
@@ -1459,6 +1511,41 @@ export default class GigaSpreadsheet {
         // Add resize handle
         this.positionSelectionHandle();
         this.selectionHandle.style.display = 'block';
+
+        for(let col of this.selectedCols) {
+            if (col < startCol || col > endCol) {
+                this.selectedCols.delete(col);
+                const el: HTMLDivElement | null = this.headerContainer.querySelector(`[data-hccol='${col}']`);
+                if (!el) continue;
+                el.classList.remove('col-selected');
+            }
+        }
+        for(let i = startCol; i <= endCol; i++) {
+            if (i in this.selectedCols) {
+                continue;
+            }
+            this.selectedCols.add(i);
+            const el: HTMLDivElement | null = this.headerContainer.querySelector(`[data-hccol='${i}']`);
+            if (!el) continue;
+            el.classList.add('col-selected');
+        }
+        for (let row of this.selectedRows) {
+            if (row < startRow || row > endRow) {
+                this.selectedRows.delete(row);
+                const el: HTMLDivElement | null = this.rowNumberContainer.querySelector(`[data-rnrow='${row}']`);
+                if (!el) continue;
+                el.classList.remove('row-selected');
+            }
+        }
+        for (let i = startRow; i <= endRow; i++) {
+            if (i in this.selectedRows) {
+                continue;
+            }
+            this.selectedRows.add(i);
+            const el: HTMLDivElement | null = this.rowNumberContainer.querySelector(`[data-rnrow='${i}']`);
+            if (!el) continue;
+            el.classList.add('row-selected');
+        }
     }
 
     positionSelectionHandle() {
@@ -1509,6 +1596,7 @@ export default class GigaSpreadsheet {
 
             const headerCell = document.createElement('div');
             headerCell.className = 'header-cell';
+            headerCell.setAttribute('data-hccol', col);
             headerCell.textContent = this.getColumnName(col);
             headerCell.style.width = `${width}px`;
 
@@ -1525,9 +1613,11 @@ export default class GigaSpreadsheet {
         this.headerContainer.style.width = `${totalWidth + 10}px`;
     }
 
-    createRowNumber(row: number) {
+    createRowNumber(label: string) {
         const el = document.createElement('div');
         el.className = 'row-number';
+        // el.textContent = label;
+        el.innerHTML = `<div>${label}</div>`
         return el;
     }
 
@@ -1546,11 +1636,12 @@ export default class GigaSpreadsheet {
         for (let row: any = 0; row <= this.totalRowBounds; row++) {
             // if (row >= this.totalRows) break;
 
-            const rowNumberEl: any = this.createRowNumber(row);
-            rowNumberEl.textContent = row + 1;
+            const rowNumberEl: any = this.createRowNumber(row + 1);
+            // rowNumberEl.textContent = row + 1;
             totalHeight += this.rowHeight(row);
             rowNumberEl.style.height = `${this.rowHeight(row)}px`;
             rowNumberEl.style.lineHeight = `${this.rowHeight(row)}px`;
+            rowNumberEl.setAttribute('data-rnrow', row);
             this.rowNumberContainer.appendChild(rowNumberEl);
 
             const rowNumberHandle = document.createElement('div');
@@ -2098,6 +2189,7 @@ export default class GigaSpreadsheet {
             const colWidth = this.getColWidth(col);
 
             for (let row = block.startRow; row < block.endRow; row++) {
+                if (!this.getCell(row, col)) continue;
                 // Check if the cell is part of a merged range
                 const merged = this.getMerge(row, col);
                 const y = this.heightAccum[row] - this.heightAccum[block.startRow];
@@ -2155,6 +2247,7 @@ export default class GigaSpreadsheet {
                 }
 
                 const renderWidth = merged ? this.getWidthBetweenColumns(merged.startCol, merged.endCol) : colWidth;
+
                 if (this.getCell(row, col).cellType === 'button') {
                     if (!merged) {
                         const button = this.getButton(row, col).el;
@@ -2325,8 +2418,15 @@ export default class GigaSpreadsheet {
         const value = this.getCellText(row, col);
         let text = value !== undefined && value !== null ? String(value) : '';
         if (_text !== '') text = _text;
+        // if (text === '') return;
+        try {
+            removeDependents(row,col);
+            text = this.parser.evaluateExpression(text, [row,col]);
+        } catch (e) {
+            console.warn(e);
+            text = text;
+        }
         if (text === '') return;
-        text = this.parser.evaluateExpression(text, [row,col]);
         ctx.save(); // Save the current state
         if (this.getCellColor(row, col)) {
             ctx.fillStyle = this.getCellColor(row, col);
