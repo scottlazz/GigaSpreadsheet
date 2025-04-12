@@ -84,18 +84,14 @@ html {
 }
 
 .grid-container {
-  /* position: relative;
-            overflow: auto; */
-  /* border: 1px solid #ccc; */
-  /* width: 100%;
-            height: 500px; */
   font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .canvas-block-container {
   position: absolute;
-  /* border: 1px solid #eee; */
-  /* box-sizing: border-box; */
 }
 
 .canvas-block {
@@ -110,35 +106,24 @@ html {
   /* box-sizing: border-box; */
 }
 
-.header-container {
-  position: sticky;
-  top: 0;
-  left: 0;
-  background: #e6e6e6;
-  z-index: 202;
-  display: flex;
-  font-size: 12px;
-  border-bottom: 1px solid #999999;
-  box-sizing: border-box;
-}
-
 .row-number-container {
   position: sticky;
   top: 0;
   left: 0;
   background: #e6e6e6;
-  z-index: 202;
+  z-index: 100;
   font-size: 12px;
-  border-right: 1px solid #999999;
-  box-sizing: border-box;
+  flex-shrink: 0;
+  /* margin-top:0.5px; */
 }
 
 .row-number {
   text-align: center;
-  box-sizing: border-box;
+  /* box-sizing: border-box; */
   flex-shrink: 0;
   user-select: none;
   width: 100%;
+  border-right: 1px solid rgb(153, 153, 153, 0.5);
 }
 .row-selected {
   background-color: #d2d2d2;
@@ -146,71 +131,92 @@ html {
   color: #074392;
 }
 .row-selected > div {
-  width: calc(100% + 1px);
+  /* width: calc(100% + 1px); */
 }
 
-.col-selected {
-  background-color: #d2d2d2;
-  border-bottom: 1px solid #1a73e8;
-  color: #074392;
+.row-handle {
+  cursor: ns-resize;
+  position: absolute;
+  /* box-sizing: border-box; */
+  height: 10px;
+  z-index: 1;
+  width: 100%;
+}
+
+.row-handle::after {
+  content: "";
+  height: 1px;
+  background-color: rgb(153, 153, 153, 0.5);
+  width: 100%;
+  display: inline-block;
+  /* box-sizing: border-box; */
+  position: absolute;
+  top: 5px;
+}
+
+.row-handle:hover::after {
+  background-color: rgb(153, 153, 153, 0.8);
 }
 
 .header-handle {
-  opacity: .5;
   cursor: ew-resize;
   position: absolute;
   width: 16px;
   z-index: 1;
 }
 
-.header-handle:hover {
-  opacity: .8;
+.header-handle:hover::after {
+  background-color: rgb(153, 153, 153, 0.8);
 }
 
 .header-handle::after {
   content: "";
   height: 100%;
-  background-color: #999999;
+  background-color: rgb(153, 153, 153, 0.5);
   width: 1px;
   display: inline-block;
   position: absolute;
   left: 8px;
 }
 
-.row-handle {
-  opacity: .5;
-  /* background-color: #999999; */
-  cursor: ns-resize;
-  position: absolute;
-  height: 10px;
-  z-index: 1;
-  width: 100%;
+.handle-row-selected::after {
+  border-right: 1px solid #1a73e8;
 }
 
-.row-handle:hover {
-  opacity: .8;
-}
-
-.row-handle::after {
-  content: "";
-  height: 1px;
-  background-color: #999999;
-  width: 100%;
-  display: inline-block;
-  position: absolute;
-  top: 5px;
+.header-container {
+  position: sticky;
+  top: 0;
+  left: 0;
+  background: #e6e6e6;
+  z-index: 100;
+  display: flex;
+  font-size: 12px;
+  flex-shrink: 0;
+  /* border-bottom: 1px solid #999999; */
+  /* box-sizing: border-box; */
 }
 
 .header-cell {
   text-align: center;
   user-select: none;
-  box-sizing: border-box;
+  /* box-sizing: border-box; */
+  border-bottom: 1px solid rgb(153, 153, 153, 0.5);
+}
+
+.header-cell.col-selected {
+  background-color: #d2d2d2;
+  border-bottom: 1px solid #1a73e8;
+  color: #074392;
+}
+
+.handle-col-selected::after {
+  border-bottom: 1px solid #1a73e8;
 }
 
 .header-cell:hover, .row-number:hover {
   background-color: #1a73e81a;
 }
-
+/* 
 .corner-cell {
   position: sticky;
   top: 0;
@@ -220,23 +226,45 @@ html {
   border-right: 1px solid #999999;
   border-bottom: 1px solid #999999;
   flex-shrink: 0;
-}
+} */
 
-.blank-corner {
-  position: fixed;
+.corner-cell {
+  position: sticky;
   top: 0;
   left: 0;
   z-index: 205;
   background-color: #f0f0f0;
-  border-right: 1px solid #999999;
-  border-bottom: 1px solid #999999;
-  box-sizing: border-box;
+  flex-shrink: 0;
+  /* border-right: 1px solid rgb(153, 153, 153, 0.5); */
+  /* border-bottom: 1px solid rgb(153, 153, 153, 0.5); */
+  /* box-sizing: border-box; */
+}
+
+.corner-cell::after {
+  content: "";
+  height: 1px;
+  background-color: rgb(190, 190, 190);
+  width: 100%;
+  display: inline-block;
+  position: absolute;
+  bottom: -1px;
+  z-index: 350;
+}
+.corner-cell::before {
+  content: "";
+  height: 100%;
+  background-color: rgb(190, 190, 190);
+  width: 1px;
+  display: inline-block;
+  position: absolute;
+  right: -1px;
+  z-index: 350;
 }
 
 .selection-layer {
   position: absolute;
   pointer-events: none;
-  z-index: 200;
+  z-index: 90;
 }
 
 .selected-cell {

@@ -1,6 +1,6 @@
 export const header = `
 <style>
-    .excel-header {
+    .header-bar {
         font-family: Arial, sans-serif;
         background-color: #f3f3f3;
         padding: 5px;
@@ -56,14 +56,15 @@ export const header = `
         display: none;
         position: absolute;
         background-color: #f9f9f9;
-        min-width: 160px;
+        min-width: 130px;
         box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
         z-index: 1;
-        border: 1px solid black;
+        font-size: 14px;
+        border: 1px solid #d4d4d4;
     }
     .dropdown-content > div {
-        border-bottom: 1px solid black;
-        padding: 5px;
+        border-bottom: 1px solid #d4d4d4;
+        padding: 2px;
         cursor: pointer;
     }
 
@@ -76,15 +77,15 @@ export const header = `
         z-index: 300;
     }
 </style>
-<div class="excel-header">
+<div class="header-bar">
     <!-- Clipboard Group -->
-    <div class="button-group">
-        <button class="button" title="Paste">📋</button>
-        <button class="button" title="Cut">✂️</button>
-        <button class="button" title="Copy">📄</button>
+    <div class="button-group quick-text-actions-buttons">
+        <button class="button" data-action="paste" title="Paste">📋</button>
+        <button class="button" data-action="cut" title="Cut">✂️</button>
+        <button class="button" data-action="copy" title="Copy">📄</button>
         <div class="separator"></div>
         <div class="dropdown">
-            <button class="button" title="Format Painter">🖌️</button>
+            <button id="format-button" class="button" title="Format Painter">🖌️</button>
         </div>
     </div>
 
@@ -115,12 +116,12 @@ export const header = `
     </div>
 
     <!-- Alignment Group -->
-    <div class="button-group">
-        <button class="button" title="Align Left">≡</button>
-        <button class="button" title="Align Center">≡</button>
-        <button class="button" title="Align Right">≡</button>
+    <div class="button-group align-button-group">
+        <button class="button" data-align="left" title="Align Left">≡</button>
+        <button class="button" data-align="center" title="Align Center">≡</button>
+        <button class="button" data-align="right" title="Align Right">≡</button>
         <div class="separator"></div>
-        <button class="button" title="Merge & Center">⧉ M</button>
+        <button class="button" title="Merge & Center" id="merge-button">⧉ M</button>
     </div>
 
     <!-- Editing Group -->
