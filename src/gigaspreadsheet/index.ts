@@ -13,6 +13,7 @@ import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRigh
 
 import { hasBorderStr } from "./utils";
 import { shiftTextRefs } from "./shiftops";
+import { header } from './templates';
 
 // "noImplicitAny": false
 
@@ -93,7 +94,10 @@ export default class GigaSpreadsheet {
         const _container = document.createElement('div');
         _container.style.width = '100%';
         _container.style.height = '100%';
+        _container.style.display = 'flex';
+        _container.style.flexDirection = 'column';
         _container.innerHTML = `
+        ${header}
         <div id="grid-container" class="grid-container">
             <div id="corner-cell" class="blank-corner"></div>
             <div id="header-container" class="header-container"></div>
@@ -124,9 +128,9 @@ export default class GigaSpreadsheet {
         this.container = _container.querySelector('.grid-container')!;
         this.wrapper.appendChild(_container);
         this.contextMenu = document.getElementById('context-menu')!;
-        this.container.style.minHeight = '100%';
+        // this.container.style.minHeight = '100%';
         this.container.style.width = '100%';
-        this.container.style.height = '100%';
+        // this.container.style.height = '100%';
         this.container.style.position = 'relative';
         this.container.style.overflow = 'auto';
         this.container.scrollLeft = 0;
@@ -137,6 +141,8 @@ export default class GigaSpreadsheet {
         this.selectionLayer = document.getElementById('selection-layer')!;
         this.lastDevicePixelRatio = window.devicePixelRatio;
         this.lastBlockCanvases = this.blockCanvases();
+        const rect = this.container.getBoundingClientRect();
+        this.cornerCell.style.top = `${rect.y}px`;
 
         // Configuration
         this.cellWidth = options.cellWidth ?? 65;
