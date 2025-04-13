@@ -466,7 +466,7 @@ body {
 }
 
 .gigasheet-icon .gigasheet-icon-img {
-  background-image: url('./gigaspreadsheet/images/icons.svg');
+  background-image: url('./sheet/images/icons.svg');
   position: absolute;
   width: 262px;
   height: 444px;

@@ -99,6 +99,7 @@ export default class Sheet {
         _container.style.height = '100%';
         _container.style.display = 'flex';
         _container.style.flexDirection = 'column';
+        _container.style.maxHeight = 'calc(100vh - 40px)';
         _container.innerHTML = `
         ${header}
         <div id="grid-container" class="grid-container">
@@ -150,10 +151,10 @@ export default class Sheet {
         // this.cornerCell.style.top = `${rect.y}px`;
 
         // Configuration
-        this.cellWidth = options.cellWidth ?? 65;
-        this.cellHeight = options.cellHeight ?? 21;
-        this.blockRows = options.blockRows ?? 32;  // Max rows per canvas block
-        this.blockCols = options.blockCols ?? 32;  // Max cols per canvas block
+        this.cellWidth = options.cellWidth ?? 64;
+        this.cellHeight = options.cellHeight ?? 20;
+        this.blockRows = options.blockRows ?? 28;  // Max rows per canvas block
+        this.blockCols = options.blockCols ?? 30;  // Max cols per canvas block
         this.paddingBlocks = options.paddingBlocks ?? 1; // Extra blocks to render around visible area
         this.padding = options.padding || 1; // number of adjacent blocks to render
         this.MAX_HISTORY_SIZE = 100;
@@ -178,6 +179,8 @@ export default class Sheet {
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
         this.gridlinesOn = options.gridlinesOn ?? true;
         this.activeBlocks = new Map(); // Track active canvas blocks
+        // window.activeBlocks = this.activeBlocks;
+        // window.renderBlock = this.renderBlock.bind(this);
         this.undoStack = [];
         this.redoStack = [];
         this.elRegistry = {};
@@ -376,7 +379,6 @@ export default class Sheet {
         this._container.querySelector('.quick-text-actions-buttons')?.addEventListener('click', async (e: any) => {
             // console.log('clicked align buttons', e.target?.getAttribute('data-align'))
             const action = e.target?.getAttribute('data-action');
-            console.log(action)
             if (action === 'copy') {
                 document.execCommand('copy');
             } else if (action === 'paste') {
@@ -546,7 +548,6 @@ export default class Sheet {
         const cellsNeedingShift = shiftDependenciesRight(col);
         for (let [row, col] of cellsNeedingShift) {
             const newText = shiftTextRefs(this.getCellText(row, col), 'right');
-            console.log('old:', this.getCellText(row, col), 'newText:', newText)
             this.setText(parseInt(row), parseInt(col), newText)
         }
         this.data.addCol(col, data);
@@ -829,7 +830,6 @@ export default class Sheet {
     openFormatMenu() {
         const { win, addListener } = launchFormatMenu();
         addListener((type: string, value: string) => {
-            console.log('formatmenu', type, value)
             const selectedCells = this.getSelectedCells();
             this.setCells(selectedCells, type, value);
         });
@@ -1156,6 +1156,7 @@ export default class Sheet {
         } else if (Math.abs(window.devicePixelRatio - this.lastDevicePixelRatio) > 0.00) {
             // Only update if scale changed significantly
             this.lastDevicePixelRatio = window.devicePixelRatio;
+            console.log('update render quality')
             requestAnimationFrame(() => {
                 if (this.busy) return;
                 const createTimeout = () =>
@@ -1866,10 +1867,10 @@ export default class Sheet {
 
         // Calculate vertical position (top)
         if (i === 1 || i === 3) {
-            block.canvas.style.left = `${block.parentBlock.subBlocks[0].width}px`;
+            block.canvas.style.left = `${block.parentBlock.subBlocks[0].styleWidth}px`;
         }
         if (i >= 2) {
-            block.canvas.style.top = `${block.parentBlock.subBlocks[0].height}px`;
+            block.canvas.style.top = `${block.parentBlock.subBlocks[0].styleHeight}px`;
         }
         // block.blockContainer.style.top = `${top}px`;
         // block.blockContainer.style.display = 'block';
@@ -1952,44 +1953,64 @@ export default class Sheet {
     }
 
     calculateBlockDimensions(block: any) {
+        let scaleFactor = this.effectiveDevicePixelRatio();
+        // scaleFactor = scaleFactor * scaleFactor;
+        // Calculate block width based on columns
+        block.width = 0;
+        let styleWidth = 0;
+        for (let col = block.startCol; col < block.endCol; col++) {
+            block.width += this.getColWidth(col) * scaleFactor;
+            // styleWidth += this.getColWidth(col);
+        }
+        block.width = Math.round(block.width);
+        styleWidth = block.width / scaleFactor;
+
+        // Calculate block height based on rows
+        block.height = (this.heightAccum[block.endRow] - this.heightAccum[block.startRow]) * scaleFactor;
+        block.height = Math.round(block.height)
+        let styleHeight = block.height / scaleFactor;
+
+        // Set canvas dimensions
+        block.canvas.width = block.width;
+        block.canvas.height = block.height;
+        block.canvas.style.width = `${styleWidth}px`;
+        block.canvas.style.height = `${styleHeight}px`;
+
+        const ctx = block.canvas.getContext('2d', { alpha: false });
+        // const ctx = block.canvas.getContext('2d');
+        // ctx.scale(scaleFactor, scaleFactor);
+        block.styleHeight = styleHeight;
+        block.styleWidth = styleWidth;
+        ctx.scale(1,1);
+    }
+
+    calculateBlockDimensionsContainer(block: any) {
         const scaleFactor = this.effectiveDevicePixelRatio();
         // Calculate block width based on columns
         block.width = 0;
         for (let col = block.startCol; col < block.endCol; col++) {
-            block.width += this.getColWidth(col);
+            block.width += this.getColWidth(col) * scaleFactor;
         }
+        block.width = Math.round(block.width);
+        block.width = block.width / scaleFactor;
 
         // Calculate block height based on rows
-        block.height = (this.heightAccum[block.endRow] - this.heightAccum[block.startRow]);
-
-        // Set canvas dimensions
-        block.canvas.width = block.width * scaleFactor;
-        block.canvas.height = block.height * scaleFactor;
-        block.canvas.style.width = `${block.width}px`;
-        block.canvas.style.height = `${block.height}px`;
-
-        const ctx = block.canvas.getContext('2d', { alpha: false });
-        ctx.scale(scaleFactor, scaleFactor);
-    }
-
-    calculateBlockDimensionsContainer(block: any) {
-        // const scaleFactor = this.effectiveDevicePixelRatio();
-        // Calculate block width based on columns
-        block.width = 0;
-        for (let col = block.startCol; col < block.endCol; col++) {
-            block.width += this.getColWidth(col);
-        }
-
-        // Calculate block height based on rows
-        block.height = (this.heightAccum[block.endRow] - this.heightAccum[block.startRow]);
+        block.height = (this.heightAccum[block.endRow] - this.heightAccum[block.startRow]) * scaleFactor;
+        block.height = Math.round(block.height)
+        block.height = block.height / scaleFactor;
         // block.height = (block.endRow - block.startRow) * this.cellHeight;
         block.blockContainer.style.width = `${block.width}px`;
         block.blockContainer.style.height = `${block.height}px`;
+        block.styleWidth = block.width;
+        block.styleHeight = block.height;
     }
 
     effectiveDevicePixelRatio() {
+        return devicePixelRatio;
+        // return devicePixelRatio * devicePixelRatio;
         if (this.blockCanvases() > 2) {
-            return Math.min(window.devicePixelRatio || 1, 3.6);
+            return Math.min(window.devicePixelRatio || 1, 4);
+            // return Math.min(window.devicePixelRatio || 1, 3.6);
         }
         if (this.blockCanvases() == 2) {
             return Math.min(window.devicePixelRatio || 1, 3);
@@ -2189,7 +2210,7 @@ export default class Sheet {
         const { left, top, width, height }: any = this.getCellCoordsCanvas(row, col);
         const ctx = block.canvas.getContext('2d', { alpha: false });
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(left + 1, top + 1, width - 2, height - 2);
+        ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
         ctx.fillStyle = '#333333';
         this.renderBorders(ctx,row,col);
         this.renderCellText(ctx, left, top, width, row, col);
@@ -2202,14 +2223,19 @@ export default class Sheet {
         }
     }
 
+    scalerZoom() {
+        return devicePixelRatio;
+    }
+
     renderBlock(block: any, calcDimensions = false) {
-        const key = `${block.blockRow},${block.blockCol}`;
+        // const key = `${block.blockRow},${block.blockCol}`;
         if (calcDimensions) {
             this.calculateBlockDimensions(block);
         }
         const ctx = block.canvas.getContext('2d', { alpha: false });
+        // const ctx = block.canvas.getContext('2d');
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, block.canvas.clientWidth, block.canvas.clientHeight);
+        ctx.fillRect(0, 0, block.canvas.width, block.canvas.height);
 
         // Set rendering quality based on zoom
         this.applyRenderingQuality(ctx);
@@ -2219,19 +2245,22 @@ export default class Sheet {
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#333333';
-        // ctx.strokeStyle = '#d4d4d4';
-        ctx.strokeStyle = '#d4d4d4';
+        // const scaler = 88 - ((devicePixelRatio - 1) * 18);
+        const scaler = 88;
+        ctx.strokeStyle = `hsl(0,0%,${scaler}%)`;
+        ctx.lineWidth = 1;
         ctx.font = this.getFontString();
 
         ctx.translate(0.5, 0.5); // thick gridlines fix
 
         // draw row gridlines
+        let y;
         if (this.gridlinesOn && this.quality() !== 'performance') {
             for (let row = block.startRow; row < block.endRow; row++) {
-                const y = this.heightAccum[row] - this.heightAccum[block.startRow];
+                y = Math.round((this.heightAccum[row] - this.heightAccum[block.startRow])*devicePixelRatio);
                 ctx.beginPath();
                 ctx.moveTo(0, y);
-                ctx.lineTo(block.canvas.clientWidth, y);
+                ctx.lineTo(block.canvas.width, y);
                 ctx.stroke();
             }
         }
@@ -2241,8 +2270,8 @@ export default class Sheet {
                 const colWidth = this.getColWidth(col);
                 // draw col gridlines
                 ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, block.canvas.clientHeight);
+                ctx.moveTo(Math.round(x * devicePixelRatio), 0);
+                ctx.lineTo(Math.round(x * devicePixelRatio), block.canvas.height);
                 ctx.stroke();
                 x += colWidth;
             }
@@ -2263,7 +2292,7 @@ export default class Sheet {
                     seenMerges.add(merged);
                     ctx.save();
                     ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(x, y, this.getWidthBetweenColumns(merged.startCol, merged.endCol), this.getHeightBetweenRows(merged.startRow, merged.endRow));
+                    ctx.fillRect(x * devicePixelRatio, y * devicePixelRatio, this.getWidthBetweenColumns(merged.startCol, merged.endCol) * devicePixelRatio, this.getHeightBetweenRows(merged.startRow, merged.endRow) * devicePixelRatio);
                     ctx.restore();
                     if (this.getCell(row, col).cellType === 'button') {
                         const button = this.getButton(row, col).el;
@@ -2479,6 +2508,8 @@ export default class Sheet {
     }
 
     renderCellText(ctx: any, x: number, y: number, width: number, row: number, col: number, _text = '') {
+        // x = Math.round(x*devicePixelRatio);
+        // y = Math.round(y*devicePixelRatio);
         const value = this.getCellText(row, col);
         let text = value !== undefined && value !== null ? String(value) : '';
         if (_text !== '') text = _text;
@@ -2503,9 +2534,9 @@ export default class Sheet {
         }
         ctx.beginPath();
         if (this.getCellTextAlign(row, col)) ctx.textAlign = this.getCellTextAlign(row, col);
-        ctx.rect(x, y, width, this.rowHeight(row)); // Adjust y position based on your text baseline
+        ctx.rect(x * devicePixelRatio, y * devicePixelRatio, width * devicePixelRatio, this.rowHeight(row) * devicePixelRatio); // Adjust y position based on your text baseline
         ctx.clip();
-        ctx.fillText(text, x + 4, y + this.rowHeight(row) / 2);
+        ctx.fillText(text, (x + 4) * devicePixelRatio, (y + this.rowHeight(row) / 2) * devicePixelRatio);
         ctx.restore(); // Restore the state to remove clipping
     }
 
@@ -2521,7 +2552,7 @@ export default class Sheet {
     }
 
     getFontString(row: number | null = null, col: number | null = null) {
-        let fontSize = 12;
+        let fontSize = 12*devicePixelRatio;
         if (row != null && col != null && this.getCell(row, col).fontSize != null) {
             fontSize = this.getCell(row, col).fontSize;
         }
