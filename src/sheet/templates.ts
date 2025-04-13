@@ -85,7 +85,7 @@ export const header = `
         <button class="button" data-action="copy" title="Copy">📄</button>
         <div class="separator"></div>
         <div class="dropdown">
-            <button id="format-button" class="button" title="Format Painter">🖌️</button>
+            <button id="format-button" class="button format-button" title="Format Painter">🖌️</button>
         </div>
     </div>
 
@@ -121,7 +121,7 @@ export const header = `
         <button class="button" data-align="center" title="Align Center">≡</button>
         <button class="button" data-align="right" title="Align Right">≡</button>
         <div class="separator"></div>
-        <button class="button" title="Merge & Center" id="merge-button">⧉ M</button>
+        <button class="button merge-button" title="Merge & Center" id="merge-button">⧉ M</button>
     </div>
 
     <!-- Editing Group -->
