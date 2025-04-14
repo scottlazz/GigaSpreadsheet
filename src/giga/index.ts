@@ -59,7 +59,7 @@ export default class Giga {
     getDefaultOptions () {
         return {
             gridlinesOn: true,
-            initialCells: [{row: 1, col: 1, text: 'foo'}]
+            // initialCells: [{row: 1, col: 1, text: 'foo'}]
         };
     }
 

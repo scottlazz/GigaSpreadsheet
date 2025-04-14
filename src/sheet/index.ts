@@ -14,23 +14,9 @@ import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRigh
 import { hasBorderStr } from "./utils";
 import { shiftTextRefs } from "./shiftops";
 import { header } from './templates';
-
+import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
 // "noImplicitAny": false
 
-interface GigaSheetTypeOptions {
-    cellWidth?: number,
-    cellHeight?: number,
-    blockRows?: number,
-    blockCols?: number,
-    paddingBlocks?: number,
-    heightOverrides?: any,
-    widthOverrides?: any,
-    gridlinesOn?: boolean,
-    mergedCells?: any,
-    padding?: number,
-    initialCells?: any,
-    subscribeFinance?: boolean,
-}
 export default class Sheet {
     wrapper: HTMLElement;
     container: HTMLElement;
@@ -60,7 +46,7 @@ export default class Sheet {
     readonly MAX_HISTORY_SIZE: number;
 
     activeBlocks: Map<any, any>;
-    mergedCells: any;
+    mergedCells: Rect[];
     undoStack: any;
     redoStack: any;
     elRegistry: any;
@@ -474,31 +460,6 @@ export default class Sheet {
         this.updateSelection();
     }
 
-    refToRowCol(cellRef: string) {
-        // Extract the column letters and row number from the reference
-        const matches = cellRef.toUpperCase().match(/^([A-Z]+)(\d+)$/);
-
-        if (!matches) {
-            throw new Error('Invalid Excel cell reference format');
-        }
-
-        const colLetters = matches[1];
-        const rowNumber = parseInt(matches[2], 10);
-
-        // Convert column letters to 0-based index (A=0, B=1, ..., Z=25, AA=26, etc.)
-        let col = 0;
-        for (let i = 0; i < colLetters.length; i++) {
-            const charCode = colLetters.charCodeAt(i) - 65; // 'A' is 65 in ASCII
-            col = col * 26 + charCode + 1;
-        }
-        col--; // Make it 0-based
-
-        // Convert row number to 0-based index
-        const row = rowNumber - 1;
-
-        return { row, col };
-    }
-
     shiftHeightOverrides(pivot: any, amount = 1) {
         if (amount === -1) {
             this.heightOverrides.splice(pivot, 1);
@@ -597,7 +558,6 @@ export default class Sheet {
         for (let [row, col] of deletions) {
             this.renderCell(row, col);
         }
-        // this.updateVisibleGrid(true);
     }
 
     getColumnName(columnNumber: number) {
@@ -740,6 +700,18 @@ export default class Sheet {
     rerenderCells(arr: any = []) {
         for (let [row, col] of arr) {
             this.renderCell(row, col);
+        }
+        this.rerenderMerges(arr);
+    }
+    rerenderMerges(arr: any = []) {
+        const mergeSet = new Set();
+        for (let [row, col] of arr) {
+            const merge = this.getMerge(row, col);
+            if (!merge) continue;
+            mergeSet.add(merge);
+            for (let block of this.getBlocksInMerge(merge)) {
+                this.renderCell(merge.startRow, merge.startCol, block);
+            }
         }
     }
 
@@ -1052,10 +1024,10 @@ export default class Sheet {
     }
 
     getMergeWidth(merge: any) {
-        return this.getWidthBetweenColumns(merge.startCol, merge.endCol);
+        return this.getWidthBetweenColumns(merge.startCol, merge.endCol+1);
     }
     getMergeHeight(merge: any) {
-        return this.getHeightBetweenRows(merge.startRow, merge.endRow);
+        return this.getHeightBetweenRows(merge.startRow, merge.endRow+1);
     }
     startCellEdit(row: number, col: number) {
         if (row < 0 || row > this.totalRowBounds || col < 0 || col > this.totalColBounds) return;
@@ -1136,7 +1108,27 @@ export default class Sheet {
         this.setText(row, col, this.editInput.value);
         // Hide input and redraw cell
         this.cancelCellEdit();
-        this.renderCell(row, col);
+        const merge = this.getMerge(row,col);
+        if (merge) {
+            for (let block of this.getBlocksInMerge(merge)) {
+                this.renderCell(merge.startRow,merge.startCol,block);
+            }
+        } else {
+            this.renderCell(row, col);
+        }
+    }
+
+    getBlocksInMerge(merge: any): Set<any> {
+        const blockSet = new Set();
+        for (let i = merge.startRow; i <= merge.endRow; i++) {
+            for (let j = merge.startCol; j <= merge.endCol; j++) {
+                const block = this.getBlockOrSubBlock(i, j);
+                if (!block) continue;
+                if (blockSet.has(block)) continue;
+                blockSet.add(block);
+            }
+        }
+        return blockSet;
     }
 
     cancelCellEdit() {
@@ -1257,8 +1249,8 @@ export default class Sheet {
         return cells;
     }
 
-    getMergesInRange({ startRow, startCol, endRow, endCol }: { startRow: number, startCol: number, endRow: number, endCol: number }) {
-        const merges = new Set();
+    getMergesInRange({ startRow, startCol, endRow, endCol }: Rect): Rect[] {
+        const merges: Set<Rect> = new Set();
         for (let i = startRow; i <= endRow; i++) {
             for (let j = startCol; j <= endCol; j++) {
                 const merge = this.getMerge(i, j);
@@ -1525,6 +1517,7 @@ export default class Sheet {
                 this.mergedCells.splice(i, 1);
             }
         }
+        if (!merged) return;
         recordChanges && this.recordChanges([{
             changeKind: 'unmerge', bounds: { startRow: merged.startRow, endRow: merged.endRow, startCol: merged.startCol, endCol: merged.endCol }
         }])
@@ -1550,10 +1543,10 @@ export default class Sheet {
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
 
         let left = this.getWidthOffset(startCol);
-        let width = this.getWidthBetweenColumns(startCol, endCol);
+        let width = this.getWidthBetweenColumns(startCol, endCol+1);
 
         const top = this.getHeightOffset(startRow); // Below header
-        const height = this.getHeightBetweenRows(startRow, endRow);
+        const height = this.getHeightBetweenRows(startRow, endRow+1);
 
         // Create selection element
         this.selectedCell = document.createElement('div');
@@ -1872,17 +1865,13 @@ export default class Sheet {
         if (i >= 2) {
             block.canvas.style.top = `${block.parentBlock.subBlocks[0].styleHeight}px`;
         }
-        // block.blockContainer.style.top = `${top}px`;
-        // block.blockContainer.style.display = 'block';
     }
 
     createBlock(blockRow: number, blockCol: number) {
         // Calculate block boundaries
         const startRow = blockRow * this.blockRows;
-        // const endRow = Math.min(startRow + this.blockRows, this.totalRows);
         const endRow = Math.min(startRow + this.blockRows);
         const startCol = blockCol * this.blockCols;
-        // const endCol = Math.min(startCol + this.blockCols, this.totalCols);
         const endCol = Math.min(startCol + this.blockCols);
 
         const blockContainer = document.createElement('div');
@@ -1911,9 +1900,9 @@ export default class Sheet {
         const key = `${blockRow},${blockCol}`;
         this.activeBlocks.set(key, block);
 
-        const subBlockTemplate = () => {
-            return { startRow, startCol, endRow, endCol, canvas: createCanvas(), parentBlock: block, isSubBlock: true, index: 0 };
-        }
+        // const subBlockTemplate = () => {
+        //     return { startRow, startCol, endRow, endCol, canvas: createCanvas(), parentBlock: block, isSubBlock: true, index: 0 };
+        // }
 
         this.calculateBlockDimensionsContainer(block);
         this.positionBlock(block);
@@ -1954,13 +1943,10 @@ export default class Sheet {
 
     calculateBlockDimensions(block: any) {
         let scaleFactor = this.effectiveDevicePixelRatio();
-        // scaleFactor = scaleFactor * scaleFactor;
-        // Calculate block width based on columns
         block.width = 0;
         let styleWidth = 0;
         for (let col = block.startCol; col < block.endCol; col++) {
             block.width += this.getColWidth(col) * scaleFactor;
-            // styleWidth += this.getColWidth(col);
         }
         block.width = Math.round(block.width);
         styleWidth = block.width / scaleFactor;
@@ -1977,8 +1963,6 @@ export default class Sheet {
         block.canvas.style.height = `${styleHeight}px`;
 
         const ctx = block.canvas.getContext('2d', { alpha: false });
-        // const ctx = block.canvas.getContext('2d');
-        // ctx.scale(scaleFactor, scaleFactor);
         block.styleHeight = styleHeight;
         block.styleWidth = styleWidth;
         ctx.scale(1,1);
@@ -2122,7 +2106,7 @@ export default class Sheet {
         return null;
     }
 
-    getCellCoordsContainer(row: number, col: number) {
+    getCellCoordsContainer(row: number, col: number): CellCoordsRect {
         const merge = this.getMerge(row, col);
         let left, top, width, height, value;
         if (merge) {
@@ -2139,11 +2123,11 @@ export default class Sheet {
         }
         return { left, top, width, height, row, col };
     }
-    getCellCoordsCanvas(row: number, col: number) {
+    getCellCoordsCanvas(row: number, col: number): CellCoordsRect {
         const block = this.getBlockOrSubBlock(row, col);
-        if (!block) return null;
+        // if (!block) return null;
         const merge = this.getMerge(row, col);
-        let left, top, width, height, value;
+        let left, top, width, height;
         if (merge) {
             left = this.getWidthBetweenColumns(block.startCol, merge.startCol);
             top = this.getHeightBetweenRows(block.startRow, merge.startRow);
@@ -2151,9 +2135,8 @@ export default class Sheet {
             height = this.getMergeHeight(merge);
             row = merge.startRow, col = merge.startCol;
         } else {
-            left = this.getWidthBetweenColumns(block.startCol, col - 1);
-            // top = this.getHeightBetweenRows(block.startRow, row-1);
-            top = this.heightAccum[row] - this.heightAccum[block.startRow]
+            left = this.getWidthBetweenColumns(block.startCol, col);
+            top = this.getHeightBetweenRows(block.startRow, row);
             width = this.getCellWidth(row, col);
             height = this.rowHeight(row);
         }
@@ -2168,56 +2151,81 @@ export default class Sheet {
         // left border
         if (hasBorderStr(border, 'left')) {
             ctx.beginPath();
-            ctx.moveTo(this.getWidthOffset(col), this.getHeightOffset(row));
-            ctx.lineTo(this.getWidthOffset(col), this.getHeightOffset(row) + this.getCellHeight(row));
+            ctx.moveTo(this.getWidthOffset(col) * devicePixelRatio, this.getHeightOffset(row) * devicePixelRatio);
+            ctx.lineTo(this.getWidthOffset(col) * devicePixelRatio, (this.getHeightOffset(row) + this.getCellHeight(row)) * devicePixelRatio);
             ctx.stroke();
         }
 
         // top border
         if (hasBorderStr(border, 'top')) {
             ctx.beginPath();
-            ctx.moveTo(this.getWidthOffset(col), this.getHeightOffset(row));
-            ctx.lineTo(this.getWidthOffset(col) + this.getCellWidth(col), this.getHeightOffset(row));
+            ctx.moveTo(this.getWidthOffset(col) * devicePixelRatio, this.getHeightOffset(row) * devicePixelRatio);
+            ctx.lineTo((this.getWidthOffset(col) + this.getCellWidth(col)) * devicePixelRatio, this.getHeightOffset(row) * devicePixelRatio);
             ctx.stroke();
         }
 
         // right border
         if (hasBorderStr(border, 'right')) {
             ctx.beginPath();
-            ctx.moveTo(this.getWidthOffset(col) + this.getCellWidth(col), this.getHeightOffset(row));
-            ctx.lineTo(this.getWidthOffset(col) + this.getCellWidth(col), this.getHeightOffset(row) + this.getCellHeight(row));
+            ctx.moveTo((this.getWidthOffset(col) + this.getCellWidth(col)) * devicePixelRatio, this.getHeightOffset(row) * devicePixelRatio);
+            ctx.lineTo((this.getWidthOffset(col) + this.getCellWidth(col)) * devicePixelRatio, (this.getHeightOffset(row) + this.getCellHeight(row)) * devicePixelRatio);
             ctx.stroke();
         }
 
         // bottom border
         if (hasBorderStr(border, 'bottom')) {
             ctx.beginPath();
-            ctx.moveTo(this.getWidthOffset(col), this.getHeightOffset(row) + this.getCellHeight(row));
-            ctx.lineTo(this.getWidthOffset(col) + this.getCellWidth(col), this.getHeightOffset(row) + this.getCellHeight(row));
+            ctx.moveTo(this.getWidthOffset(col) * devicePixelRatio, (this.getHeightOffset(row) + this.getCellHeight(row)) * devicePixelRatio);
+            ctx.lineTo((this.getWidthOffset(col) + this.getCellWidth(col)) * devicePixelRatio, (this.getHeightOffset(row) + this.getCellHeight(row)) * devicePixelRatio);
             ctx.stroke();
         }
 
         ctx.restore();
     }
 
-    renderCell(row: any, col: any) { // FIX BUG ON EDGE OF CANVAS EDIT
-        if (this.getMerge(row, col)) {
-            this.forceRerender();
-            return;
-        }
-        const block = this.getBlockOrSubBlock(row, col);
-        if (!block) return null;
-        const { left, top, width, height }: any = this.getCellCoordsCanvas(row, col);
-        const ctx = block.canvas.getContext('2d', { alpha: false });
+    renderCell(row: any, col: any, srcblock?: any, ctx?: any) { // FIX BUG ON EDGE OF CANVAS EDIT
+        // if (this.getMerge(row, col)) {
+        //     // this.forceRerender();
+        //     return;
+        // }
+        if (!ctx) {
+            let block = srcblock;
+            if (!block) block = this.getBlockOrSubBlock(row,col);
+            ctx = block.canvas.getContext('2d', { alpha: false });
+        } 
+        let { left, top, width, height }: any = this.getCellCoordsCanvas(row, col);
         ctx.fillStyle = '#ffffff';
-        ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
+        if (!srcblock || this.rowColInBounds(row,col,srcblock)) {
+            // console.log('inbounds::', row,col)
+            ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
+        } else {
+            const ssr = srcblock.startRow, sec = srcblock.endCol;
+            const merge = this.getMerge(row,col);
+            if (!merge) return;
+            row = merge.startRow, col = merge.startCol;
+            const _width = this.getWidthBetweenColumns(srcblock.startCol,merge.endCol+1);
+            const _height = this.getHeightBetweenRows(srcblock.startRow,merge.endRow+1);
+            left = _width - width;
+            top = _height - height;
+            ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
+        }
         ctx.fillStyle = '#333333';
         this.renderBorders(ctx,row,col);
-        this.renderCellText(ctx, left, top, width, row, col);
-        if (dependencyTree[row]?.[col]) {
-            for(let childRow in dependencyTree[row][col]) {
-                for (let childCol in dependencyTree[row][col][childRow]) {
-                    this.renderCell(childRow, childCol)
+        if (this.getCell(row, col).cellType === 'button') {
+            const button = this.getButton(row, col).el;
+            ({ left, top, width, height } = this.getCellCoordsContainer(row, col));
+            this.positionElement(button, left, top, width*devicePixelRatio, this.rowHeight(row));
+        } else if (this.getCell(row, col).cellType === 'chart') {
+            const lineChart = this.getLineChart(row, col)?.el;
+            ({ left, top, width, height } = this.getCellCoordsContainer(row, col));
+            this.positionElement(lineChart, left, top, width * devicePixelRatio, this.rowHeight(row));
+        } else {
+            this.renderCellText(ctx, left, top, width, row, col);
+            if (dependencyTree[row]?.[col]) {
+                for (let childRow in dependencyTree[row][col]) {
+                    for (let childCol in dependencyTree[row][col][childRow]) {
+                        this.renderCell(childRow, childCol)
+                    }
                 }
             }
         }
@@ -2228,12 +2236,10 @@ export default class Sheet {
     }
 
     renderBlock(block: any, calcDimensions = false) {
-        // const key = `${block.blockRow},${block.blockCol}`;
         if (calcDimensions) {
             this.calculateBlockDimensions(block);
         }
         const ctx = block.canvas.getContext('2d', { alpha: false });
-        // const ctx = block.canvas.getContext('2d');
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, block.canvas.width, block.canvas.height);
 
@@ -2245,7 +2251,6 @@ export default class Sheet {
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#333333';
-        // const scaler = 88 - ((devicePixelRatio - 1) * 18);
         const scaler = 88;
         ctx.strokeStyle = `hsl(0,0%,${scaler}%)`;
         ctx.lineWidth = 1;
@@ -2285,61 +2290,12 @@ export default class Sheet {
                 if (!this.getCell(row, col)) continue;
                 // Check if the cell is part of a merged range
                 const merged = this.getMerge(row, col);
+                if (merged) continue;
                 const y = this.heightAccum[row] - this.heightAccum[block.startRow];
 
                 // Skip rendering if the cell is part of a merged range (except the top-left cell)
-                if (merged && row === merged.startRow && col === merged.startCol) {
-                    seenMerges.add(merged);
-                    ctx.save();
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(x * devicePixelRatio, y * devicePixelRatio, this.getWidthBetweenColumns(merged.startCol, merged.endCol) * devicePixelRatio, this.getHeightBetweenRows(merged.startRow, merged.endRow) * devicePixelRatio);
-                    ctx.restore();
-                    if (this.getCell(row, col).cellType === 'button') {
-                        const button = this.getButton(row, col).el;
-                        this.positionElement(button, this.widthAccum[col], this.heightAccum[row], this.getWidthBetweenColumns(merged.startCol, merged.endCol), this.getHeightBetweenRows(merged.startRow, merged.endRow));
-                    } else if (this.getCell(row, col).cellType === 'linechart') {
-                        const lineChart = this.getLineChart(row, col)?.el;
-                        this.positionElement(lineChart, this.widthAccum[col], this.heightAccum[row], this.getWidthBetweenColumns(merged.startCol, merged.endCol), this.getHeightBetweenRows(merged.startRow, merged.endRow));
-                    } else {
-                        this.clearElRegistry(row, col);
-                        this.renderCellText(ctx, this.widthAccum[col] - this.widthAccum[block.startCol], y, this.getWidthBetweenColumns(merged.startCol, merged.endCol), merged.startRow, merged.startCol);
-                    }
-                    continue;
-                }
-                else if (merged && (row !== merged.startRow || col !== merged.startCol)) {
-                    const originBlock = this.blockFromRc(merged.startRow, merged.startCol);
-                    // todo: left block might be pruned because not in view
-                    if (block === originBlock) continue;
-                    if (seenMerges.has(merged)) continue;
-                    seenMerges.add(merged);
-                    const leftBlock = this.leftBlock(block);
-                    let accumulatedWidth;
-                    let width;
-                    if (!leftBlock) {
-                        accumulatedWidth = this.widthAccum[merged.startCol] - this.rowNumberWidth;
-                        width = 0;
-                    } else {
-                        accumulatedWidth = this.widthAccum[merged.startCol] - this.widthAccum[leftBlock.startCol];
-                        width = leftBlock.width;
-                    }
 
-                    // clear gridlines
-                    const renderWidth = merged ? this.getWidthBetweenColumns(merged.startCol, merged.endCol) : colWidth;
-                    const mergeWidth = this.getWidthBetweenColumns(merged.startCol, merged.endCol);
-                    const mergeHeight = this.getHeightBetweenRows(merged.startRow, merged.endRow);
-                    ctx.save();
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(accumulatedWidth - width, y, renderWidth, mergeHeight);
-                    ctx.restore();
-                    if (row !== merged.startRow) continue; // ok until we add vertical alignment
-
-                    // handle text overflow of mergedcell between two blocks
-                    if (this.getCell(merged.startRow, merged.startCol)?.cellType === 'button') continue;
-                    this.renderCellText(ctx, accumulatedWidth - width, y, this.getWidthBetweenColumns(merged.startCol, merged.endCol), merged.startRow, merged.startCol);
-                    continue;
-                }
-
-                const renderWidth = merged ? this.getWidthBetweenColumns(merged.startCol, merged.endCol) : colWidth;
+                const renderWidth = colWidth;
 
                 if (this.getCell(row, col).cellType === 'button') {
                     if (!merged) {
@@ -2358,10 +2314,14 @@ export default class Sheet {
             x += colWidth;
         }
 
-        // if (this.activePlaceholders.has(key)) {
-        //     this.releasePlaceholder(this.activePlaceholders.get(key));
-        //     this.activePlaceholders.delete(key);
-        // }
+        this.renderMergesOnBlock(block, ctx);
+    }
+    renderMergesOnBlock(block: any, ctx: any) {
+        const merges: Array<Rect> = this.getMergesInRange(block);
+        for(let merge of merges) {
+            const row = merge.startRow, col = merge.startCol;
+            this.renderCell(row,col,block,ctx);
+        }
     }
     clearElRegistry(row: number, col: number) {
         const _id = this.getCellId(row, col);
@@ -2459,7 +2419,7 @@ export default class Sheet {
     }
     getWidthBetweenColumns(col1: number, col2: number) {
         let accumulatedWidth = 0;
-        for (let _col = col1; _col <= col2; _col++) {
+        for (let _col = col1; _col < col2; _col++) {
             const colWidth = this.getColWidth(_col);
             accumulatedWidth += colWidth;
         }
@@ -2467,7 +2427,7 @@ export default class Sheet {
     }
     getHeightBetweenRows(startRow: number, endRow: number) {
         if (endRow < startRow) { let tmp = endRow; endRow = startRow; startRow = tmp; }
-        return this.heightAccum[endRow + 1] - this.heightAccum[startRow]; // needs +1?
+        return this.heightAccum[endRow] - this.heightAccum[startRow];
     }
     quality() {
         const devicePixelRatio = window.devicePixelRatio;
@@ -2508,8 +2468,6 @@ export default class Sheet {
     }
 
     renderCellText(ctx: any, x: number, y: number, width: number, row: number, col: number, _text = '') {
-        // x = Math.round(x*devicePixelRatio);
-        // y = Math.round(y*devicePixelRatio);
         const value = this.getCellText(row, col);
         let text = value !== undefined && value !== null ? String(value) : '';
         if (_text !== '') text = _text;
