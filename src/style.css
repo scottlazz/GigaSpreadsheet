@@ -412,8 +412,13 @@ body {
   width: 260px;
   pointer-events: auto;
   overflow: auto;
+  font-size: 13px;
 }
-
+.label {
+  float: right;
+  opacity: .65;
+  font-size: 1em;
+}
 .gigasheet-item {
   user-select: none;
   background: 0;

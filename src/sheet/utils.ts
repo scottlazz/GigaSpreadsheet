@@ -26,3 +26,11 @@ export function hasBorderStr(curBorder: number | null, borderStr: string) {
     else { return 0 };
     return border === (border&curBorder);
 }
+export function mkel(tag='div', className='', children?: string) {
+    const el = document.createElement(tag);
+    el.className = className;
+    if (children) {
+        el.innerHTML = children;
+    }
+    return el;
+}

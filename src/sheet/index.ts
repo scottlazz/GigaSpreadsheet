@@ -15,12 +15,12 @@ import { hasBorderStr } from "./utils";
 import { shiftTextRefs } from "./shiftops";
 import { header } from './templates';
 import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
+import ContextMenu from './components/contextmenu';
 // "noImplicitAny": false
 
 export default class Sheet {
     wrapper: HTMLElement;
     container: HTMLElement;
-    contextMenu: HTMLElement;
     headerContainer: HTMLElement;
     rowNumberContainer: HTMLElement;
     cornerCell: HTMLElement;
@@ -77,6 +77,7 @@ export default class Sheet {
     mergeButton: HTMLElement;
     formatButton: HTMLElement;
     _container: HTMLDivElement;
+    ctxmenu: ContextMenu;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.wrapper = wrapper || document.createElement('div');
         const _container = document.createElement('div');
@@ -94,30 +95,11 @@ export default class Sheet {
             <div id="row-number-container" class="row-number-container"></div>
             <div id="selection-layer" class="selection-layer"></div>
         </div>
-        <div id="context-menu" class="context-menu">
-            <ul>
-                <!-- <li id="context-cut">Cut</li> -->
-                <li id="context-copy">Copy</li>
-                <li id="context-paste">Paste</li>
-                <li id="context-clear">Clear</li>
-                <li class="separator"></li>
-                <li id="context-undo">Undo</li>
-                <li id="context-redo">Redo</li>
-                <li class="separator"></li>
-                <li id="merge-cells">Merge</li>
-                <li id="unmerge-cells">Unmerge</li>
-                <li id="insert-row">Insert Row</li>
-                <li id="insert-col">Insert Col</li>
-                <li id="delete-row">Delete Row</li>
-                <li id="delete-col">Delete Col</li>
-                <li class="separator"></li>
-                <li id="toggle-gridlines">Toggle Gridlines</li>
-            </ul>
-        </div>
         `;
         this.container = _container.querySelector('.grid-container')!;
         this.wrapper.appendChild(_container);
-        this.contextMenu = _container.querySelector('.context-menu')!;
+        this.ctxmenu = new ContextMenu();
+        _container.append(this.ctxmenu.container)
         // this.container.style.minHeight = '100%';
         this.container.style.width = '100%';
         // this.container.style.height = '100%';
@@ -251,8 +233,8 @@ export default class Sheet {
             this.updateVisibleGrid();
             this.updateSelection();
             this.updateRenderingQuality();
-            this.contextMenu.style.width = `${130 * this.scaler()}px`;
-            this.contextMenu.style.fontSize = `${14 * this.scaler()}px`;
+            // this.contextMenu.style.width = `${130 * this.scaler()}px`;
+            // this.contextMenu.style.fontSize = `${14 * this.scaler()}px`;
         });
         resizeObserver.observe(this.container);
 
@@ -285,75 +267,12 @@ export default class Sheet {
         });
 
         // Show context menu on right-click
-        this.container.addEventListener('contextmenu', (e) => {
+        this.container.addEventListener('contextmenu', (e: any) => {
             if ((e.target as HTMLElement).closest('.row-number-container')) return;
             if ((e.target as HTMLElement).closest('.header-container')) return;
             if ((e.target as HTMLElement).closest('.corner-cell')) return;
+            if (e.target.closest('.cell-edit-input')) return;
             e.preventDefault(); // Prevent the default browser context menu
-            const x = e.clientX;
-            const y = e.clientY;
-            const { row, col } = this.getCellFromEvent(e);
-            this.showContextMenu(x, y, row, col);
-        });
-        document.getElementById('merge-cells')!.addEventListener('click', () => {
-            // Trigger redo action
-            this.mergeSelectedCells();
-            this.hideContextMenu();
-        });
-        document.getElementById('unmerge-cells')!.addEventListener('click', () => {
-            // Trigger redo action
-            this.unmergeSelectedCells();
-            this.hideContextMenu();
-        });
-        document.getElementById('insert-row')!.addEventListener('click', () => {
-            // Trigger redo action
-            this.insertRow();
-            this.hideContextMenu();
-        });
-        document.getElementById('insert-col')!.addEventListener('click', () => {
-            // Trigger redo action
-            this.insertCol();
-            this.hideContextMenu();
-        });
-        document.getElementById('delete-row')!.addEventListener('click', () => {
-            // Trigger redo action
-            this.deleteRow();
-            this.hideContextMenu();
-        });
-        document.getElementById('delete-col')!.addEventListener('click', () => {
-            // Trigger redo action
-            this.deleteCol();
-            this.hideContextMenu();
-        });
-        document.getElementById('toggle-gridlines')!.addEventListener('click', () => {
-            this.toggleGridlines();
-            this.hideContextMenu();
-        });
-        document.getElementById('context-copy')!.addEventListener('click', () => {
-            // Trigger copy action
-            document.execCommand('copy');
-            this.hideContextMenu();
-        });
-        document.getElementById('context-paste')!.addEventListener('click', async () => {
-            try {
-                // Read text from the clipboard
-                const clipboardText = await navigator.clipboard.readText();
-                this.handlePaste(clipboardText);
-            } catch (error) {
-                console.error('Failed to read from clipboard:', error);
-                // alert('Failed to paste data. Please ensure clipboard access is allowed.');
-            }
-            this.hideContextMenu();
-        });
-        document.getElementById('context-clear')!.addEventListener('click', () => {
-            // Trigger clear action
-            this.clearSelectedCells();
-            this.hideContextMenu();
-        });
-        document.getElementById('context-undo')!.addEventListener('click', () => {
-            // Trigger undo action
-            this.undo();
-            this.hideContextMenu();
         });
 
         this._container.querySelector('.align-button-group')?.addEventListener('click', (e: any) => {
@@ -375,12 +294,6 @@ export default class Sheet {
                 this.clearSelectedCells();
             }
         })
-
-        document.getElementById('context-redo')!.addEventListener('click', () => {
-            // Trigger redo action
-            this.redo();
-            this.hideContextMenu();
-        });
         document.addEventListener('paste', (e) => {
             if (this.editingCell) return;
             this.handlePaste(e.clipboardData!.getData('text/plain'));
@@ -395,13 +308,40 @@ export default class Sheet {
             e.preventDefault();
             this.openFormatMenu();
         }
+        this.ctxmenu.onClick(async (action: string) => {
+            if (action === 'copy') {
+                document.execCommand('copy');
+            } else if (action === 'cut') {
+                document.execCommand('copy');
+                this.clearSelectedCells();
+            } else if (action === 'paste') {
+                if (this.editingCell) return;
+                const clipboardText = await navigator.clipboard.readText();
+                this.handlePaste(clipboardText);
+            } else if (action === 'insert-row') {
+                this.insertRow();
+            } else if (action === 'insert-column') {
+                this.insertCol();
+            } else if (action === 'delete-row') {
+                this.deleteRow();
+            } else if (action === 'delete-column') {
+                this.deleteCol();
+            } else if (action === 'clear') {
+                this.clearSelectedCells();
+            } else if (action === 'toggle-gridlines') {
+                this.toggleGridlines();
+                this.forceRerender();
+            } else if (action === 'merge') {
+                this.mergeSelectedCells();
+            } else if (action === 'unmerge') {
+                this.unmergeSelectedCells();
+            }
+        })
     }
 
     showContextMenu(x: number, y: number, row: number, col: number) {
-        this.contextMenu.style.display = 'block';
-        this.contextMenu.style.left = `${x}px`;
-        this.contextMenu.style.top = `${y}px`;
-        const rect = this.selectionBoundRect;
+        const rect = this.container.getBoundingClientRect();
+        this.ctxmenu.setPosition(x,y,rect)
         if (!this.rowColInBounds(row, col, this.selectionBoundRect)) {
             this.selectCell({ row, col });
         }
@@ -790,7 +730,7 @@ export default class Sheet {
 
     // Function to hide the context menu
     hideContextMenu() {
-        this.contextMenu.style.display = 'none';
+        this.ctxmenu.hide();
     }
 
     handleCellDblClick(e: any) {
@@ -1198,16 +1138,26 @@ export default class Sheet {
     }
 
     handleMouseDown(e: any) { // handle dragging select cell logic
-        if (e.button !== 0) return;
-        if (e.target.closest('.header-cell')) return;
-        if (e.target.closest('.row-number-container')) return;
+        if (e.target.closest('.header-cell') ||
+            e.target.closest('.row-number-container') ||
+            e.target.closest('.corner-cell')) {
+                this.hideContextMenu();
+                return;
+            }
         if (e.target === this.container) return;
         if (e.target === this.editInput) return;
-        if (e.button === 2) return;
         if (this.draggingHeader) return;
-        if (e.target !== this.contextMenu && !this.contextMenu.contains(e.target)) {
+        if (e.target !== this.ctxmenu.container && !this.ctxmenu.container.contains(e.target)) {
             this.hideContextMenu();
         }
+        if (e.button === 2) {
+            const x = e.clientX;
+            const y = e.clientY;
+            const { row, col } = this.getCellFromEvent(e);
+            this.showContextMenu(x, y, row, col);
+            return;
+        }
+        if (e.button !== 0) return;
         this.handleSelectionMouseDown(e);
     }
 
