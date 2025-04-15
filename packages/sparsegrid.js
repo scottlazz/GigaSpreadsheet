@@ -425,6 +425,19 @@ export default class SparseGrid {
 
         return cells;
     }
+    getCellsForce(startRow, startCol, endRow, endCol) {
+        const cells = [];
+        for (let row = startRow; row <= endRow; row++) {
+            for(let col = startCol; col <= endCol; col++) {
+                cells.push({
+                    row,
+                    col,
+                });
+            }
+        }
+
+        return cells;
+    }
 
     // Accessors
     get topRow() { return this._topRow === Infinity ? null : this._topRow; }

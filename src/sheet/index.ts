@@ -85,7 +85,7 @@ export default class Sheet {
         _container.style.height = '100%';
         _container.style.display = 'flex';
         _container.style.flexDirection = 'column';
-        _container.style.maxHeight = 'calc(100vh - 40px)';
+        // _container.style.maxHeight = 'calc(100vh - 40px)';
         _container.innerHTML = `
         ${header}
         <div id="grid-container" class="grid-container">
@@ -548,6 +548,7 @@ export default class Sheet {
         for (let row = startRow; row <= endRow; row++) {
             for (let col = startCol; col <= endCol; col++) {
                 const obj = { row, col, previousValue: this.getCellText(row, col), newValue: '', changeKind: 'valchange' };
+                this.clearElRegistry(row, col);
                 deletions.push([row, col]);
                 changes.push(obj);
             }
@@ -998,8 +999,13 @@ export default class Sheet {
     getSelectedCells() {
         if (!this.selectionBoundRect) return [];
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
-        const cells = this.data.getCells(startRow, startCol, endRow, endCol);
+        const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
         return cells;
+    }
+    isValid(row:number,col:number) {
+        const merge = this.getMerge(row,col);
+        if (!merge) return true;
+        return merge.startRow == row && merge.startCol == col;
     }
     getTotalRows() {
         return this.totalRows;
@@ -2053,7 +2059,7 @@ export default class Sheet {
         const merged = this.getMerge(row, col);
         let width, height;
         if (merged) {
-            width = this.getWidthBetweenColumns(merged.startCol, merged.endCol), height = this.getHeightBetweenRows(merged.startRow, merged.endRow)
+            width = this.getWidthBetweenColumns(merged.startCol, merged.endCol+1), height = this.getHeightBetweenRows(merged.startRow, merged.endRow+1)
         } else {
             width = this.getCellWidth(row, col), height = this.getHeight(row, col);
         }
@@ -2183,7 +2189,7 @@ export default class Sheet {
         ctx.restore();
     }
 
-    renderCell(row: any, col: any, srcblock?: any, ctx?: any) { // FIX BUG ON EDGE OF CANVAS EDIT
+    renderCell(row: any, col: any, srcblock?: any, ctx?: any) {
         // if (this.getMerge(row, col)) {
         //     // this.forceRerender();
         //     return;
@@ -2214,12 +2220,13 @@ export default class Sheet {
         if (this.getCell(row, col).cellType === 'button') {
             const button = this.getButton(row, col).el;
             ({ left, top, width, height } = this.getCellCoordsContainer(row, col));
-            this.positionElement(button, left, top, width*devicePixelRatio, this.rowHeight(row));
-        } else if (this.getCell(row, col).cellType === 'chart') {
+            this.positionElement(button, left, top, width, height);
+        } else if (this.getCell(row, col).cellType === 'linechart') {
             const lineChart = this.getLineChart(row, col)?.el;
             ({ left, top, width, height } = this.getCellCoordsContainer(row, col));
-            this.positionElement(lineChart, left, top, width * devicePixelRatio, this.rowHeight(row));
+            this.positionElement(lineChart, left, top, width, height);
         } else {
+            this.clearElRegistry(row,col);
             this.renderCellText(ctx, left, top, width, row, col);
             if (dependencyTree[row]?.[col]) {
                 for (let childRow in dependencyTree[row][col]) {
@@ -2302,7 +2309,7 @@ export default class Sheet {
                         const button = this.getButton(row, col).el;
                         this.positionElement(button, this.widthAccum[col], this.heightAccum[row], renderWidth, this.rowHeight(row));
                     }
-                } else if (this.getCell(row, col).cellType === 'chart') {
+                } else if (this.getCell(row, col).cellType === 'linechart') {
                     const lineChart = this.getLineChart(row, col)?.el;
                     this.positionElement(lineChart, this.widthAccum[col], this.heightAccum[row], renderWidth, this.rowHeight(row));
                 } else {
