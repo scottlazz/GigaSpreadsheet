@@ -674,37 +674,7 @@ document.addEventListener("DOMContentLoaded", (event)=>{
     const grid = new (0, _gigaDefault.default)('grid-wrapper');
 });
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","./giga":"bR8l7"}],"jnFvT":[function(require,module,exports,__globalThis) {
-exports.interopDefault = function(a) {
-    return a && a.__esModule ? a : {
-        default: a
-    };
-};
-exports.defineInteropFlag = function(a) {
-    Object.defineProperty(a, '__esModule', {
-        value: true
-    });
-};
-exports.exportAll = function(source, dest) {
-    Object.keys(source).forEach(function(key) {
-        if (key === 'default' || key === '__esModule' || Object.prototype.hasOwnProperty.call(dest, key)) return;
-        Object.defineProperty(dest, key, {
-            enumerable: true,
-            get: function() {
-                return source[key];
-            }
-        });
-    });
-    return dest;
-};
-exports.export = function(dest, destName, get) {
-    Object.defineProperty(dest, destName, {
-        enumerable: true,
-        get: get
-    });
-};
-
-},{}],"bR8l7":[function(require,module,exports,__globalThis) {
+},{"./giga":"bR8l7","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"bR8l7":[function(require,module,exports,__globalThis) {
 // @ts-ignore
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
@@ -767,7 +737,7 @@ class Giga {
 }
 exports.default = Giga;
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","src/sheet/components/bottomBar":"1c6wl","../sheet":"cIFaS"}],"1c6wl":[function(require,module,exports,__globalThis) {
+},{"src/sheet/components/bottomBar":"1c6wl","../sheet":"cIFaS","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"1c6wl":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "BottomBar", ()=>BottomBar);
@@ -841,7 +811,37 @@ class BottomBar {
     }
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"cIFaS":[function(require,module,exports,__globalThis) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"jnFvT":[function(require,module,exports,__globalThis) {
+exports.interopDefault = function(a) {
+    return a && a.__esModule ? a : {
+        default: a
+    };
+};
+exports.defineInteropFlag = function(a) {
+    Object.defineProperty(a, '__esModule', {
+        value: true
+    });
+};
+exports.exportAll = function(source, dest) {
+    Object.keys(source).forEach(function(key) {
+        if (key === 'default' || key === '__esModule' || Object.prototype.hasOwnProperty.call(dest, key)) return;
+        Object.defineProperty(dest, key, {
+            enumerable: true,
+            get: function() {
+                return source[key];
+            }
+        });
+    });
+    return dest;
+};
+exports.export = function(dest, destName, get) {
+    Object.defineProperty(dest, destName, {
+        enumerable: true,
+        get: get
+    });
+};
+
+},{}],"cIFaS":[function(require,module,exports,__globalThis) {
 // @ts-ignore
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
@@ -3239,7 +3239,7 @@ class Sheet {
 }
 exports.default = Sheet;
 
-},{"packages/sparsegrid":"72weS","packages/expressionparser":"8OaEa","./windows/format":"7E84C","./graphs/linechart.js":"5HFoS","packages/financial/index":"kDraw","packages/dependencytracker":"91xLf","./utils":"8uhD9","./shiftops":"j0IU6","./templates":"6k5Dl","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT","./components/contextmenu":"gI5GS"}],"72weS":[function(require,module,exports,__globalThis) {
+},{"packages/sparsegrid":"72weS","packages/expressionparser":"8OaEa","./windows/format":"7E84C","./graphs/linechart.js":"5HFoS","packages/financial/index":"kDraw","packages/dependencytracker":"91xLf","./utils":"8uhD9","./shiftops":"j0IU6","./templates":"6k5Dl","./components/contextmenu":"gI5GS","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}],"72weS":[function(require,module,exports,__globalThis) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 function createUuid() {
@@ -5058,6 +5058,6 @@ class ContextMenu {
 }
 exports.default = ContextMenu;
 
-},{"../utils":"8uhD9","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["eZFTg","9Fk10"], "9Fk10", "parcelRequire8661", {})
+},{"../utils":"8uhD9","@parcel/transformer-js/src/esmodule-helpers.js":"jnFvT"}]},["eZFTg","9Fk10"], "9Fk10", "parcelRequireedef", {})
 
 //# sourceMappingURL=gigaspreadsheet.c9112ede.js.map
