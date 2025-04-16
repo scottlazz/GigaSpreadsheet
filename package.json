@@ -1,5 +1,5 @@
 {
-  "name": "parcel-vanilla-starter",
+  "name": "gigaspreadsheet",
   "private": true,
   "version": "0.0.0",
   "source": "src/index.html",
@@ -9,9 +9,13 @@
   },
   "scripts": {
     "start": "parcel",
-    "build": "parcel build"
+    "build": "parcel build",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "devDependencies": {
-    "parcel": "^2.14.0"
+    "gh-pages": "^6.3.0",
+    "parcel": "^2.14.0",
+    "svgo": "^3.3.2"
   }
 }
