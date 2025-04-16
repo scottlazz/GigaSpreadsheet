@@ -515,7 +515,7 @@ export default class Sheet {
 
     handlePaste(text: string) {
         if (!this.selectionBoundRect) return;
-        const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
+        const { startRow, startCol } = this.selectionBoundRect;
 
         const clipboardData = text;
         const rowsData = clipboardData.split('\n');
@@ -526,7 +526,7 @@ export default class Sheet {
             for (let j = 0; j < rowData.length; j++) {
                 const row = startRow + i;
                 const col = startCol + j;
-                if (row < this.totalRows && col < this.totalCols) {
+                // if (row <= this.totalRowBounds && col <= this.totalColBounds) {
                     changes.push({
                         row,
                         col,
@@ -536,7 +536,7 @@ export default class Sheet {
                     });
                     this.setText(row, col, rowData[j]);
                     this.renderCell(row, col);
-                }
+                // }
             }
         }
         // Record the changes in the undo stack
@@ -754,9 +754,9 @@ export default class Sheet {
 
     handleKeyDown(e: any) {
         const key = e.key.toLowerCase();
-        // F2 key or Enter key to start editing
-        if ((key === 'f2' || e.key === 'enter') && this.selectionStart) {
+        if ((key === 'f2') && this.selectionStart) {
             e.preventDefault();
+            if (this.editingCell) return;
             this.startCellEdit(this.selectionStart.row, this.selectionStart.col);
         }
         else if (key === 'f3') {
@@ -805,10 +805,13 @@ export default class Sheet {
                 e.preventDefault(); // Prevent default behavior (e.g., browser undo)
                 this.undo();
             }
-        } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+        } else if (key === 'arrowup' || key === 'arrowdown' || key === 'arrowleft' || key === 'arrowright' || key === 'enter') {
             if (!this.selectionEnd || this.editingCell) return;
             e.preventDefault();
             this.handleArrowKeyDown(e);
+        } else if (this.selectionStart && e.key?.length === 1) {
+            if (this.editingCell) return;
+            this.startCellEdit(this.selectionStart.row, this.selectionStart.col, e.key);
         }
     }
     restoreSave() {
@@ -835,7 +838,7 @@ export default class Sheet {
     handleArrowKeyDown(e: any) {
         if (!this.selectionEnd || !this.selectionStart) return;
         const deltas: any = {
-            'ArrowUp': [-1, 0], 'ArrowDown': [1, 0], 'ArrowLeft': [0, -1], 'ArrowRight': [0, 1]
+            'ArrowUp': [-1, 0], 'ArrowDown': [1, 0], 'ArrowLeft': [0, -1], 'ArrowRight': [0, 1], 'Enter': e.shiftKey ? [-1, 0] : [1,0]
         }
         const curMerge = this.getMerge(this.selectionEnd.row, this.selectionEnd.col);
         let row = this.selectionEnd.row + deltas[e.key][0];
@@ -844,7 +847,7 @@ export default class Sheet {
         if (e.shiftKey) {
             // TODO: do in less bruteforce way
             const prevRect = JSON.stringify(this.selectionBoundRect);
-            if (e.key === 'ArrowUp') {
+            if (e.key === 'ArrowUp' || (e.key === 'Enter' && e.shiftKey)) {
                 let curRect;
                 while (row > 0) {
                     curRect = this.getBoundingRectCells(this.selectionStart.row, this.selectionStart.col, row, col);
@@ -852,7 +855,7 @@ export default class Sheet {
                     row--;
                 }
             }
-            else if (e.key === 'ArrowDown') {
+            else if (e.key === 'ArrowDown' || (e.key === 'Enter' && !e.shiftKey)) {
                 let curRect;
                 while (row < this.getTotalRows()) {
                     curRect = this.getBoundingRectCells(this.selectionStart.row, this.selectionStart.col, row, col);
@@ -878,14 +881,14 @@ export default class Sheet {
             }
         } else if (merge && merge === curMerge) {
             if (e.key === 'ArrowUp') { row = merge.startRow - 1; }
-            else if (e.key === 'ArrowDown') { row = merge.endRow + 1; }
+            else if (e.key === 'ArrowDown' || e.key === 'Enter') { row = merge.endRow + 1; }
             else if (e.key === 'ArrowLeft') { col = merge.startCol - 1; }
             else if (e.key === 'ArrowRight') { col = merge.endCol + 1; }
         }
         row = Math.max(0, row); row = Math.min(row, this.totalRowBounds-1);
         col = Math.max(0, col); col = Math.min(col, this.totalColBounds-1);
-        if (e.shiftKey) this.selectionEnd = { row, col };
-        this.selectCell({ row, col, continuation: e.shiftKey });
+        if (e.shiftKey && e.key !== 'Enter') this.selectionEnd = { row, col };
+        this.selectCell({ row, col, continuation: e.shiftKey && e.key !== 'Enter' });
     }
     inVisibleBounds(row: number, col: number) {
         const { row: visStartRow, col: visStartCol } = this.getTopLeftBounds();
@@ -975,7 +978,7 @@ export default class Sheet {
     getMergeHeight(merge: any) {
         return this.getHeightBetweenRows(merge.startRow, merge.endRow+1);
     }
-    startCellEdit(row: number, col: number) {
+    startCellEdit(row: number, col: number, startingValue?: string) {
         if (row < 0 || row > this.totalRowBounds || col < 0 || col > this.totalColBounds) return;
         const merge = this.getMerge(row, col);
         let left, top, width, height, value;
@@ -984,14 +987,14 @@ export default class Sheet {
             top = this.getHeightOffset(merge.startRow, true);
             width = this.getMergeWidth(merge);
             height = this.getMergeHeight(merge);
-            value = this.getCellText(merge.startRow, merge.startCol);
+            value = startingValue != null ? '' : this.getCellText(merge.startRow, merge.startCol);
             row = merge.startRow, col = merge.startCol;
         } else {
             left = this.getWidthOffset(col, true);
             top = this.getHeightOffset(row, true);
             width = this.getCellWidth(row, col);
             height = this.rowHeight(row);
-            value = this.getCellText(row, col);
+            value = startingValue != null ? '' : this.getCellText(row, col);
         }
 
         // Set up edit input
@@ -1017,7 +1020,8 @@ export default class Sheet {
     }
 
     setText(row: number, col: number, text: string) {
-        this.data?.setCellProperty(row, col, 'text', text);
+        this.setCell(row,col,'text',text)
+        // this.data?.setCellProperty(row, col, 'text', text);
     }
     setCell(row: number, col: number, field: string, value: any) {
         const cell = this.getCell(row, col);
@@ -2147,13 +2151,15 @@ export default class Sheet {
         if (!ctx) {
             let block = srcblock;
             if (!block) block = this.getBlockOrSubBlock(row,col);
-            ctx = block.canvas.getContext('2d', { alpha: false });
+            if (block) {
+                ctx = block.canvas.getContext('2d', { alpha: false });
+            }
         } 
         let { left, top, width, height }: any = this.getCellCoordsCanvas(row, col);
-        ctx.fillStyle = '#ffffff';
+        if (ctx) ctx.fillStyle = '#ffffff';
         if (!srcblock || this.rowColInBounds(row,col,srcblock)) {
             // console.log('inbounds::', row,col)
-            ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
+            ctx && ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
         } else {
             const ssr = srcblock.startRow, sec = srcblock.endCol;
             const merge = this.getMerge(row,col);
@@ -2163,9 +2169,9 @@ export default class Sheet {
             const _height = this.getHeightBetweenRows(srcblock.startRow,merge.endRow+1);
             left = _width - width;
             top = _height - height;
-            ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
+            ctx && ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
         }
-        ctx.fillStyle = '#333333';
+        if (ctx) ctx.fillStyle = '#333333';
         this.renderBorders(ctx,row,col);
         if (this.getCell(row, col).cellType === 'button') {
             const button = this.getButton(row, col).el;
