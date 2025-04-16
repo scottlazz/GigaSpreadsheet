@@ -2152,10 +2152,15 @@ export default class Sheet {
             let block = srcblock;
             if (!block) block = this.getBlockOrSubBlock(row,col);
             if (block) {
-                ctx = block.canvas.getContext('2d', { alpha: false });
+                ctx = block?.canvas.getContext('2d', { alpha: false });
             }
-        } 
-        let { left, top, width, height }: any = this.getCellCoordsCanvas(row, col);
+        }
+        let left, top, width, height;
+        try {
+            ({ left, top, width, height } = this.getCellCoordsCanvas(row, col));
+        } catch {
+            return;
+        }
         if (ctx) ctx.fillStyle = '#ffffff';
         if (!srcblock || this.rowColInBounds(row,col,srcblock)) {
             // console.log('inbounds::', row,col)
