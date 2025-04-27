@@ -345,7 +345,6 @@ body {
   box-sizing: border-box;
 }
 
-.gigasheet-toolbar,
 .gigasheet-bottombar {
   height: 40px;
   padding: 0 30px;
@@ -493,7 +492,7 @@ body {
   align-items: center;
   flex-shrink: 0;
   background-color: #e6e6e6;
-  padding: 7px 5px;
+  padding: 7px 8px;
   font-family: Calibri;
   /* font-family: Aptos Narrow, Calibri, "sans-serif", Mongolian Baiti, Microsoft Yi Baiti, Javanese Text, Yu Gothic; */
 }
@@ -542,4 +541,100 @@ body {
 }
 .gigasheet-formulabar textarea:focus {
   border: 2px solid #000;
+}
+.gigasheet-toolbar-buttons {
+  display: inline-flex;
+  background-color: #fff;
+  border-radius: 8px;
+  width: 100%;
+  height: 40px;
+  box-shadow: rgba(0, 0, 0, 0.12) 0px 0px 2px 0px,
+    rgba(0, 0, 0, 0.14) 0px 2px 4px 0px;
+    margin: 5px 0;
+  padding: 4px;
+  box-sizing: border-box;
+  overflow: auto;
+}
+
+.gigasheet-toolbar {
+  padding: 0 8px;
+  text-align: left;
+  background: #f5f6f7;
+  display: flex;
+}
+
+.IconColors_m20 {
+  fill: #FAFAFAFF;
+}
+.IconColors_m22 {
+  fill: #3A3A38FF;
+}
+.IconColors_m23 {
+  fill: #797774FF;
+}
+.IconColors_m24 {
+  fill: #1E8BCDFF;
+}
+.IconColors_m212 {
+  fill: #F8DB8FFF;
+}
+.IconColors_HighContrast {
+  fill: transparent;
+}
+.gigasheet-toolbar-btn {
+    /* width: 35px; */
+    /* height: 24px; */
+    box-sizing: border-box;
+    background-color: inherit;
+    line-height: 100%;
+    border: 0;
+    padding: 5px;
+}
+.gigasheet-toolbar-btn:hover {
+  background-color: #f5f5f5;
+  color: #242424;
+  cursor: pointer;
+}
+.gigasheet-tooltip {
+  font-family: inherit;
+  position: absolute;
+  padding: 5px 10px;
+  /* color: #fff; */
+  border-radius: 1px;
+  border: 1px solid rgb(153, 153, 153, 0.5);
+  /* background: rgba(0, 0, 0, 1); */
+  background-color: #fff;
+  font-size: 12px;
+  z-index: 201;
+}
+.gigasheet-tooltip::before {
+  pointer-events: none;
+  position: absolute;
+  left: calc(50% - 4px);
+  top: -5px;
+  content: "";
+  width: 8px;
+  height: 8px;
+  background: inherit;
+  -webkit-transform: rotate(45deg);
+  transform: rotate(45deg);
+  z-index: 1;
+  /* box-shadow: 1px 1px 3px -1px rgba(0, 0, 0, .3); */
+  border-left: 1px solid rgb(153, 153, 153, 0.5);
+  border-top: 1px solid rgb(153, 153, 153, 0.5);
+}
+
+.goghgrid-toolbar-divider {
+  display: inline-block;
+  border-right: 1px solid #e0e2e4;
+  width: 0;
+  vertical-align: middle;
+  height: 18px;
+  margin: 12px 3px 0;
+}
+.gigasheet-select {
+  background: 0;
+  margin: 0;
+  border: 0;
+  cursor: pointer;
 }

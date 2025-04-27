@@ -6,7 +6,6 @@ import ExpressionParser from 'packages/expressionparser';
 import { launchFormatMenu } from './windows/format';
 // @ts-ignore
 import { createLineChart } from './graphs/linechart.js';
-// @ts-ignore
 import FinancialSubscriber from 'packages/financial/index';
 // @ts-ignore
 import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "packages/dependencytracker";
@@ -17,7 +16,7 @@ import { header } from './templates';
 import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
 import ContextMenu from './components/contextmenu';
 import { FormulaBar } from './components/formulaBar';
-// "noImplicitAny": false
+import { Toolbar } from './components/toolbar';
 
 export default class Sheet {
     wrapper: HTMLElement;
@@ -75,11 +74,12 @@ export default class Sheet {
     draggingRow: any;
     editingCell: any;
     selectionBoundRect: any;
-    mergeButton: HTMLElement;
+    // mergeButton: HTMLElement;
     formatButton: HTMLElement;
     _container: HTMLDivElement;
     ctxmenu: ContextMenu;
     formulaBar: FormulaBar;
+    toolbar: Toolbar;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.wrapper = wrapper || document.createElement('div');
         const _container = document.createElement('div');
@@ -89,8 +89,10 @@ export default class Sheet {
         _container.style.display = 'flex';
         _container.style.flexDirection = 'column';
         // _container.style.maxHeight = 'calc(100vh - 40px)';
+        this.toolbar = new Toolbar();
         this.formulaBar = new FormulaBar();
-        _container.innerHTML += header;
+        // _container.innerHTML += header;
+        _container.appendChild(this.toolbar.container);
         _container.appendChild(this.formulaBar.container);
         _container.insertAdjacentHTML('beforeend', `
         <div id="grid-container" class="grid-container">
@@ -115,7 +117,7 @@ export default class Sheet {
         this.rowNumberContainer = _container.querySelector('.row-number-container')!;
         this.cornerCell = _container.querySelector('.corner-cell')!;
         this.selectionLayer = _container.querySelector('.selection-layer')!;
-        this.mergeButton = _container.querySelector('.merge-button')!;
+        // this.mergeButton = _container.querySelector('.merge-button')!;
         this.formatButton = _container.querySelector('.format-button')!;
         this.lastDevicePixelRatio = window.devicePixelRatio;
         this.lastBlockCanvases = this.blockCanvases();
@@ -303,15 +305,6 @@ export default class Sheet {
             this.handlePaste(e.clipboardData!.getData('text/plain'));
             e.preventDefault();
         });
-
-        this.mergeButton.onclick = (e) => {
-            e.preventDefault();
-            this.mergeSelectedCells();
-        }
-        this.formatButton.onclick = (e) => {
-            e.preventDefault();
-            this.openFormatMenu();
-        }
         this.ctxmenu.onClick(async (action: string) => {
             if (action === 'copy') {
                 document.execCommand('copy');
@@ -344,6 +337,58 @@ export default class Sheet {
         this.editInput.oninput = (e: any) => {
             this.formulaBar.textarea.value = e.target.value;
         }
+        this.toolbar.onAction(async (action: string) => {
+            if (action === 'Merge') {
+                this.mergeSelectedCells();
+            } else if (action === 'Copy') {
+                document.execCommand('copy');
+            } else if (action === 'Paste') {
+                const clipboardText = await navigator.clipboard.readText();
+                this.handlePaste(clipboardText);
+            } else if (action === 'Undo') {
+                this.undo();
+            } else if (action === 'Redo') {
+                this.redo();
+            } else if (action === 'Left align') {
+                const textAlign = 'left';
+                const selectedCells = this.getSelectedCells();
+                this.setCells(selectedCells, 'textAlign', textAlign);
+            } else if (action === 'Center align') {
+                const textAlign = 'center';
+                const selectedCells = this.getSelectedCells();
+                this.setCells(selectedCells, 'textAlign', textAlign);
+            } else if (action === 'Right align') {
+                const textAlign = 'right';
+                const selectedCells = this.getSelectedCells();
+                this.setCells(selectedCells, 'textAlign', textAlign);
+            } else if (action === 'Grow Font') {
+                const selectedCells = this.getSelectedCells();
+                const cells = [];
+                for(let vcell of selectedCells) {
+                    const cell = this.getCell(vcell.row,vcell.col);
+                    if (cell.fontSize == null) {
+                        cell.fontSize = 12;
+                    }
+                    cell.fontSize++;
+                    cell.fontSize *= devicePixelRatio;
+                    cells.push(cell);
+                }
+                this.rerenderCells(cells);
+            } else if (action === 'Shrink Font') {
+                const selectedCells = this.getSelectedCells();
+                const cells = [];
+                for (let vcell of selectedCells) {
+                    const cell = this.getCell(vcell.row, vcell.col);
+                    if (cell.fontSize == null) {
+                        cell.fontSize = 12;
+                    }
+                    cell.fontSize--;
+                    cell.fontSize *= devicePixelRatio;
+                    cells.push(cell);
+                }
+                this.rerenderCells(cells);
+            }
+        })
     }
 
     showContextMenu(x: number, y: number, row: number, col: number) {
@@ -645,15 +690,27 @@ export default class Sheet {
         this.updateSelection();
     }
 
-    rerenderCells(arr: any = []) {
-        for (let [row, col] of arr) {
+    rerenderCells(arr: any) {
+        for (let cell of arr) {
+            let row, col;
+            if (Array.isArray(cell)) {
+                row = cell[0]; col = cell[1];
+            } else {
+                row = cell.row; col = cell.col;
+            }
             this.renderCell(row, col);
         }
         this.rerenderMerges(arr);
     }
     rerenderMerges(arr: any = []) {
         const mergeSet = new Set();
-        for (let [row, col] of arr) {
+        for (let cell of arr) {
+            let row,col;
+            if (Array.isArray(cell)) {
+                row = cell[0]; col = cell[1];
+            } else {
+                row = cell.row; col = cell.col;
+            }
             const merge = this.getMerge(row, col);
             if (!merge) continue;
             mergeSet.add(merge);

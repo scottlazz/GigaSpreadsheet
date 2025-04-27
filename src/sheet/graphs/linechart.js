@@ -1,5 +1,4 @@
 export function createLineChart(data, container, width, height) {
-    console.log('createlinecahrt?')
     function render(data, width, height) {
         container.innerHTML = '';
         container.innerHTML = `

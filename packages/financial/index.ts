@@ -2,7 +2,7 @@ import YA from './ya';
 
 export default class FinancialSubscriber {
     ya: any;
-    tickListeners: Function[];
+    tickListeners!: Function[];
     static _instance: any;
     constructor() {
         if (FinancialSubscriber._instance) {
@@ -11,16 +11,16 @@ export default class FinancialSubscriber {
         FinancialSubscriber._instance = this;
         this.ya = new YA();
         this.tickListeners = [];
-        this.ya.addListener((data) => {
+        this.ya.addListener((data: any) => {
             for(let listener of this.tickListeners) {
                 listener(data);
             }
         })
     }
-    listenYA(tickers: []) {
+    listenYA(tickers: Array<string>) {
         this.ya.addSubs(tickers);
     }
-    onTick(fn) {
+    onTick(fn: Function) {
         this.tickListeners.push(fn);
     }
 }
