@@ -12,10 +12,11 @@ import FinancialSubscriber from 'packages/financial/index';
 import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "packages/dependencytracker";
 
 import { hasBorderStr } from "./utils";
-import { shiftTextRefs } from "./shiftops";
+import { shiftTextRefs, rowColToRef } from "./shiftops";
 import { header } from './templates';
 import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
 import ContextMenu from './components/contextmenu';
+import { FormulaBar } from './components/formulaBar';
 // "noImplicitAny": false
 
 export default class Sheet {
@@ -78,6 +79,7 @@ export default class Sheet {
     formatButton: HTMLElement;
     _container: HTMLDivElement;
     ctxmenu: ContextMenu;
+    formulaBar: FormulaBar;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.wrapper = wrapper || document.createElement('div');
         const _container = document.createElement('div');
@@ -87,15 +89,17 @@ export default class Sheet {
         _container.style.display = 'flex';
         _container.style.flexDirection = 'column';
         // _container.style.maxHeight = 'calc(100vh - 40px)';
-        _container.innerHTML = `
-        ${header}
+        this.formulaBar = new FormulaBar();
+        _container.innerHTML += header;
+        _container.appendChild(this.formulaBar.container);
+        _container.insertAdjacentHTML('beforeend', `
         <div id="grid-container" class="grid-container">
             <div id="corner-cell" class="corner-cell"></div>
             <div id="header-container" class="header-container"></div>
             <div id="row-number-container" class="row-number-container"></div>
             <div id="selection-layer" class="selection-layer"></div>
         </div>
-        `;
+        `);
         this.container = _container.querySelector('.grid-container')!;
         this.wrapper.appendChild(_container);
         this.ctxmenu = new ContextMenu();
@@ -175,17 +179,17 @@ export default class Sheet {
         this.visibleStartCol = 0;
         this.visibleEndCol = 0;
 
-        // Initialize
-        this.initEventListeners();
-        this.createSelectionHandle();
-        this.addNewSelection();
-
         // Add edit input element
         this.editInput = document.createElement('input');
         this.editInput.className = 'cell-edit-input';
         this.editInput.style.position = 'absolute';
         this.editInput.style.display = 'none';
         this.container.appendChild(this.editInput);
+        // Initialize
+        this.initEventListeners();
+        this.createSelectionHandle();
+        this.addNewSelection();
+
         this.initRender();
         this.data = null;
         this.parser = null;
@@ -337,6 +341,9 @@ export default class Sheet {
                 this.unmergeSelectedCells();
             }
         })
+        this.editInput.oninput = (e: any) => {
+            this.formulaBar.textarea.value = e.target.value;
+        }
     }
 
     showContextMenu(x: number, y: number, row: number, col: number) {
@@ -1086,6 +1093,7 @@ export default class Sheet {
         this.editingCell = null;
         this.editInput.onblur = null;
         this.editInput.onkeydown = null;
+        this.onSelectionChange();
     }
 
     updateRenderingQuality() {
@@ -1491,7 +1499,25 @@ export default class Sheet {
         return newSelection;
     }
 
+    getTrueValue(row: number,col: number) {
+        const merge = this.getMerge(row,col);
+        if (merge) {
+            return this.getCellText(merge.startRow, merge.startCol);
+        }
+        return this.getCellText(row,col);
+    }
+
+    onSelectionChange() {
+        if (!this.selectionBoundRect) return;
+        const row = this.selectionBoundRect.startRow;
+        const col = this.selectionBoundRect.startCol;
+        const ref = rowColToRef(row,col);
+        this.formulaBar.input.value = ref;
+        this.formulaBar.textarea.value = this.getTrueValue(row,col);
+    }
+
     updateSelection() {
+        this.onSelectionChange();
         if (!this.activeSelection) return;
         // Clear previous selection
         this.activeSelection.innerHTML = '';

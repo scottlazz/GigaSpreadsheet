@@ -1,7 +1,7 @@
 // @ts-ignore
 import ExpressionParser from 'packages/expressionparser';
 
-function rowColToRef(row: number, col: number) {
+export function rowColToRef(row: number, col: number) {
     // Validate inputs
     if (row < 0 || col < 0 || !Number.isInteger(row) || !Number.isInteger(col)) {
         return '';
