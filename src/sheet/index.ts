@@ -337,7 +337,7 @@ export default class Sheet {
         this.editInput.oninput = (e: any) => {
             this.formulaBar.textarea.value = e.target.value;
         }
-        this.toolbar.onAction(async (action: string) => {
+        this.toolbar.onAction(async (action: string, value?: any) => {
             if (action === 'Merge') {
                 this.mergeSelectedCells();
             } else if (action === 'Copy') {
@@ -370,7 +370,7 @@ export default class Sheet {
                         cell.fontSize = 12;
                     }
                     cell.fontSize++;
-                    cell.fontSize *= devicePixelRatio;
+                    // cell.fontSize *= devicePixelRatio;
                     cells.push(cell);
                 }
                 this.rerenderCells(cells);
@@ -383,7 +383,37 @@ export default class Sheet {
                         cell.fontSize = 12;
                     }
                     cell.fontSize--;
+                    // cell.fontSize *= devicePixelRatio;
+                    cells.push(cell);
+                }
+                this.rerenderCells(cells);
+            } else if (action === 'Bold') {
+                const selectedCells = this.getSelectedCells();
+                const cells = [];
+                for (let vcell of selectedCells) {
+                    const cell = this.getCell(vcell.row, vcell.col);
+                    if (cell.bold = !cell.bold) {
+                        cell.fontSize = 12;
+                    }
                     cell.fontSize *= devicePixelRatio;
+                    cells.push(cell);
+                }
+                this.rerenderCells(cells);
+            } else if (action === 'fontFamily') {
+                const selectedCells = this.getSelectedCells();
+                const cells = [];
+                for (let vcell of selectedCells) {
+                    const cell = this.getCell(vcell.row, vcell.col);
+                    cell.fontFamily = value;
+                    cells.push(cell);
+                }
+                this.rerenderCells(cells);
+            } else if (action === 'fontSize') {
+                const selectedCells = this.getSelectedCells();
+                const cells = [];
+                for (let vcell of selectedCells) {
+                    const cell = this.getCell(vcell.row, vcell.col);
+                    cell.fontSize = value;
                     cells.push(cell);
                 }
                 this.rerenderCells(cells);
@@ -2565,7 +2595,15 @@ export default class Sheet {
         if (row != null && col != null && this.getCell(row, col).fontSize != null) {
             fontSize = this.getCell(row, col).fontSize;
         }
-        let fontString = `${fontSize}px Arial`;
+        let bold, fontFamily = 'Arial';
+        if (row != null && col != null) {
+            bold = this.getCell(row, col).bold;
+            fontFamily = this.getCell(row, col).fontFamily || 'Arial';
+        }
+        let fontString = '';
+        if (bold) fontString += 'bold ';
+
+        fontString += `${fontSize}px ${fontFamily}`;
 
         if (this.quality() === 'max' && devicePixelRatio >= 1) {
             // Only use subpixel rendering when not zoomed out
