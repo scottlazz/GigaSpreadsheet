@@ -78,7 +78,13 @@ export class Toolbar {
                     </i>
                 </button>
             </div>`;
-        this.font = new Dropdown('Font', [{ value: 'arial', name: 'Arial' }, { value: 'calibri', name: 'Calibri' }, { value: 'helvetica', name: 'Helvetica' }]);
+        this.font = new Dropdown('Font', [
+            { value: 'Arial', name: 'Arial' }, { value: 'Calibri', name: 'Calibri' },
+            { value: 'Helvetica', name: 'Helvetica' }, { name: 'Verdana', value: 'Verdana'},
+            { value: 'Courier New', name: 'Courier New' }, { name: 'Times New Roman', value: 'Times New Roman'},
+            { value: 'Garamond', name: 'Garamond' }, { name: 'Trebuchet MS', value: 'Trebuchet MS'},
+            { value: 'Georgia', name: 'Georgia' },
+        ]);
         this.container.children[0].appendChild(this.font.container);
         this.fontSize = new Dropdown('FontSize', [{value: '8', name: '8'}, {value: '9', name: '9'}, {value: '10', name: '10'}, {value: '11', name: '11'}, {value: '12', name: '12'}, {value: '13', name: '13'}, {value: '15', name: '15'}, {value: '18', name: '18'}, {value: '22', name: '22'}]);
         this.container.children[0].appendChild(this.fontSize.container);
