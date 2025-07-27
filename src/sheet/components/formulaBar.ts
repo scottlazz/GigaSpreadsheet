@@ -10,7 +10,7 @@ export class FormulaBar {
         this.container.className = 'gigasheet-formulabar';
         this.container.innerHTML = `
             <input value="A1" class="gigasheet-name-box"></input>
-            <div class="gigasheet-okcancelcontainer"><button>X</button><button>✓</button><button>fx</button></div>
+            <!-- <div class="gigasheet-okcancelcontainer"><button>X</button><button>✓</button><button>fx</button></div> -->&nbsp;
             <textarea spellcheck="false"></textarea>
         `
         // this.menu = this.container.querySelector('.gigasheet-menu')!;

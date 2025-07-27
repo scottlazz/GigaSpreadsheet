@@ -383,7 +383,6 @@ export default class Sheet {
                         cell.fontSize = 12;
                     }
                     cell.fontSize--;
-                    // cell.fontSize *= devicePixelRatio;
                     cells.push(cell);
                 }
                 this.rerenderCells(cells);
@@ -392,10 +391,16 @@ export default class Sheet {
                 const cells = [];
                 for (let vcell of selectedCells) {
                     const cell = this.getCell(vcell.row, vcell.col);
-                    if (cell.bold = !cell.bold) {
-                        cell.fontSize = 12;
-                    }
-                    cell.fontSize *= devicePixelRatio;
+                    cell.bold = !cell.bold;
+                    cells.push(cell);
+                }
+                this.rerenderCells(cells);
+            } else if (action === 'Italic') {
+                const selectedCells = this.getSelectedCells();
+                const cells = [];
+                for (let vcell of selectedCells) {
+                    const cell = this.getCell(vcell.row, vcell.col);
+                    cell.italic = !cell.italic;
                     cells.push(cell);
                 }
                 this.rerenderCells(cells);
@@ -2565,9 +2570,9 @@ export default class Sheet {
         if (this.getCellColor(row, col)) {
             ctx.fillStyle = this.getCellColor(row, col);
         }
-        if (this.getCell(row, col)?.fontSize != null) {
+        // if (this.getCell(row, col)?.fontSize != null) {
             ctx.font = this.getFontString(row, col);
-        }
+        // }
         if (this.getCell(row, col)?.textBaseline != null) {
             ctx.textBaseline = this.getCell(row, col).textBaseline;
         }
@@ -2593,15 +2598,17 @@ export default class Sheet {
     getFontString(row: number | null = null, col: number | null = null) {
         let fontSize = 12*devicePixelRatio;
         if (row != null && col != null && this.getCell(row, col).fontSize != null) {
-            fontSize = this.getCell(row, col).fontSize;
+            fontSize = this.getCell(row, col).fontSize*devicePixelRatio;
         }
-        let bold, fontFamily = 'Arial';
+        let bold, italic, fontFamily = 'Arial';
         if (row != null && col != null) {
             bold = this.getCell(row, col).bold;
+            italic = this.getCell(row, col).italic;
             fontFamily = this.getCell(row, col).fontFamily || 'Arial';
         }
         let fontString = '';
         if (bold) fontString += 'bold ';
+        if (italic) fontString += 'italic ';
 
         fontString += `${fontSize}px ${fontFamily}`;
 
