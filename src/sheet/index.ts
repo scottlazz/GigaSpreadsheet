@@ -374,6 +374,10 @@ export default class Sheet {
                     cells.push(cell);
                 }
                 this.rerenderCells(cells);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const fontSize = this.getCell(c.row, c.col)?.fontSize || '12';
+                this.toolbar.set('fontSize', fontSize.toString());
             } else if (action === 'Shrink Font') {
                 const selectedCells = this.getSelectedCells();
                 const cells = [];
@@ -386,6 +390,10 @@ export default class Sheet {
                     cells.push(cell);
                 }
                 this.rerenderCells(cells);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const fontSize = this.getCell(c.row, c.col)?.fontSize || '12';
+                this.toolbar.set('fontSize', fontSize.toString());
             } else if (action === 'Bold') {
                 const selectedCells = this.getSelectedCells();
                 const cells = [];
@@ -1606,6 +1614,8 @@ export default class Sheet {
         const ref = rowColToRef(row,col);
         this.formulaBar.input.value = ref;
         this.formulaBar.textarea.value = this.getTrueValue(row,col);
+        const fontSize = this.getCell(row, col)?.fontSize || '12';
+        this.toolbar.set('fontSize', fontSize.toString());
     }
 
     updateSelection() {
@@ -2589,7 +2599,7 @@ export default class Sheet {
         } else {
             textX += 4;
         }
-        ctx.rect(x * devicePixelRatio, y * devicePixelRatio, width * devicePixelRatio, this.rowHeight(row) * devicePixelRatio); // Adjust y position based on your text baseline
+        ctx.rect((x+1.4) * devicePixelRatio, (y+1.4) * devicePixelRatio, (width-2.8) * devicePixelRatio, (this.rowHeight(row)-2.8) * devicePixelRatio); // Adjust y position based on your text baseline
         ctx.clip();
         ctx.fillText(text, (textX) * devicePixelRatio, (y + this.rowHeight(row) / 2) * devicePixelRatio);
         ctx.restore(); // Restore the state to remove clipping

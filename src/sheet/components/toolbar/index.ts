@@ -91,6 +91,11 @@ export class Toolbar {
         this.cb = null;
         this.addListeners();
     }
+    set(attr: string, value: string) {
+        if (attr === 'fontSize') {
+            this.fontSize.container.value = value;
+        }
+    }
     addListeners() {
         const onmouseenter = (e: any) => {
             const text = e.target.getAttribute('data-tooltip');
