@@ -2577,10 +2577,21 @@ export default class Sheet {
             ctx.textBaseline = this.getCell(row, col).textBaseline;
         }
         ctx.beginPath();
-        if (this.getCellTextAlign(row, col)) ctx.textAlign = this.getCellTextAlign(row, col);
+        let textX = x;
+        const textAlign = this.getCellTextAlign(row, col) || 'left';
+        if (textAlign !== 'left') {
+            if (textAlign === 'center') {
+                textX += width / 2;
+            } else if (textAlign === 'right') {
+                textX += width - 4;
+            }
+            ctx.textAlign = this.getCellTextAlign(row, col);
+        } else {
+            textX += 4;
+        }
         ctx.rect(x * devicePixelRatio, y * devicePixelRatio, width * devicePixelRatio, this.rowHeight(row) * devicePixelRatio); // Adjust y position based on your text baseline
         ctx.clip();
-        ctx.fillText(text, (x + 4) * devicePixelRatio, (y + this.rowHeight(row) / 2) * devicePixelRatio);
+        ctx.fillText(text, (textX) * devicePixelRatio, (y + this.rowHeight(row) / 2) * devicePixelRatio);
         ctx.restore(); // Restore the state to remove clipping
     }
 
