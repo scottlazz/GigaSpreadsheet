@@ -94,6 +94,8 @@ export class Toolbar {
     set(attr: string, value: string) {
         if (attr === 'fontSize') {
             this.fontSize.container.value = value;
+        } else if (attr === 'fontFamily') {
+            this.font.container.value = value;
         }
     }
     addListeners() {

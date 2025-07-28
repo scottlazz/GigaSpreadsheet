@@ -1616,6 +1616,8 @@ export default class Sheet {
         this.formulaBar.textarea.value = this.getTrueValue(row,col);
         const fontSize = this.getCell(row, col)?.fontSize || '12';
         this.toolbar.set('fontSize', fontSize.toString());
+        const fontFamily = this.getCell(row, col).fontFamily || 'Arial';
+        this.toolbar.set('fontFamily', fontFamily);
     }
 
     updateSelection() {
