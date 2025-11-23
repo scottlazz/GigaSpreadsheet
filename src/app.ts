@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     };
 
     const LayoutClass: any = (GoldenLayout as any) || GoldenLayout;
-    const layout: any = new LayoutClass(goldenConfig, container);
+    const layout: any = new LayoutClass(config, container);
 
     layout.registerComponent('giga', (containerComp: any, componentState: any) => {
         const mount = document.createElement('div');
@@ -50,7 +50,38 @@ document.addEventListener("DOMContentLoaded", (event) => {
             (containerComp as any).appendChild(mount);
         }
 
-        new Giga(mount as any, [{formulaBar: false, toolbar: true, cellHeaders: false, cellHeight: 14, cellWidth: 45}]);
+        new Giga(mount as any, [
+            {formulaBar: false, toolbar: true,
+                cellHeaders: false,
+                cellHeight: 14, cellWidth: 45,
+                initialCells: [
+                {
+                    row: 1, col: 1, backgroundColor: 'red',
+                },
+                {
+                    row: 2, col: 1, backgroundColor: 'red',
+                },
+                {
+                    row: 3, col: 1, backgroundColor: 'red',
+                },
+                {
+                    row: 4, col: 1, backgroundColor: 'red',
+                },
+                {
+                    row: 1, col: 2, backgroundColor: 'red',
+                },
+                {
+                    row: 2, col: 2, backgroundColor: 'red',
+                },
+                {
+                    row: 3, col: 2, backgroundColor: 'red',
+                },
+                {
+                    row: 4, col: 2, backgroundColor: 'red',
+                },
+            ]
+            }]
+        );
 
         if (containerComp && containerComp.on) {
             containerComp.on('destroy', () => {
