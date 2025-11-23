@@ -582,6 +582,7 @@ body {
   fill: transparent;
 }
 .gigasheet-toolbar-btn {
+  flex-shrink: 0;
     /* width: 35px; */
     /* height: 24px; */
     box-sizing: border-box;
@@ -597,7 +598,7 @@ body {
 }
 .gigasheet-tooltip {
   font-family: inherit;
-  position: absolute;
+  position: fixed;
   padding: 5px 10px;
   /* color: #fff; */
   border-radius: 1px;

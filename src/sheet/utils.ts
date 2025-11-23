@@ -34,3 +34,5 @@ export function mkel(tag='div', className='', children?: string) {
     }
     return el;
 }
+
+export const arrows = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);

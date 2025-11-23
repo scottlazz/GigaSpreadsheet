@@ -7,6 +7,8 @@ export class Toolbar {
     cb: Function | null;
     font: Dropdown;
     fontSize: Dropdown;
+    borderButton: any;
+    backgroundColorButton: any;
     constructor() {
         this.container = document.createElement('div');
         this.container.className = 'gigasheet-toolbar';
@@ -77,6 +79,8 @@ export class Toolbar {
                         ${rightAlign}
                     </i>
                 </button>
+                <input style="width:32px;" data-tooltip="Background Color" class="gigasheet-toolbar-btn" type="color" value="#000000">
+                </button>
             </div>`;
         this.font = new Dropdown('Font', [
             { value: 'Arial', name: 'Arial' }, { value: 'Calibri', name: 'Calibri' },
@@ -86,7 +90,8 @@ export class Toolbar {
             { value: 'Georgia', name: 'Georgia' },
         ]);
         this.container.children[0].appendChild(this.font.container);
-        this.fontSize = new Dropdown('FontSize', [{value: '8', name: '8'}, {value: '9', name: '9'}, {value: '10', name: '10'}, {value: '11', name: '11'}, {value: '12', name: '12'}, {value: '13', name: '13'}, {value: '15', name: '15'}, {value: '18', name: '18'}, {value: '22', name: '22'}]);
+        this.fontSize = new Dropdown('FontSize', [{value: '8', name: '8'}, {value: '9', name: '9'}, {value: '10', name: '10'}, {value: '11', name: '11'},
+            {value: '12', name: '12'}, {value: '13', name: '13'}, {value: '15', name: '15'}, {value: '18', name: '18'}, {value: '22', name: '22'}]);
         this.container.children[0].appendChild(this.fontSize.container);
         this.cb = null;
         this.addListeners();
@@ -121,6 +126,15 @@ export class Toolbar {
             if (!this.cb) return;
             this.cb('fontSize', e.target.value);
         }
+        this.borderButton = this.container.querySelector(`[data-tooltip='Borders']`);
+        this.borderButton.addEventListener('click', (e: any) => {
+            alert('border')
+        });
+        this.backgroundColorButton = this.container.querySelector(`[data-tooltip='Background Color']`);
+        this.backgroundColorButton.addEventListener('change', (e: any) => {
+            if (!this.cb) return;
+            this.cb('backgroundColor', e.target.value);
+        });
     }
     onAction(fn: Function) {
         this.cb = fn;

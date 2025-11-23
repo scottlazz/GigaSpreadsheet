@@ -85,7 +85,7 @@ export const header = `
         <button class="button" data-action="copy" title="Copy">📄</button>
         <div class="separator"></div>
         <div class="dropdown">
-            <button id="format-button" class="button format-button" title="Format Painter">🖌️</button>
+            <button class="button format-button" title="Format Painter">🖌️</button>
         </div>
     </div>
 
