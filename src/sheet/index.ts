@@ -1162,6 +1162,9 @@ export default class Sheet {
     getTotalCols() {
         return this.totalCols;
     }
+    get shouldDrawGridlines() {
+        return this.gridlinesOn && this.quality() !== 'performance';
+    }
     get totalRows() {
         return Math.max(this.data?.rowCount || 0, this.blockRows) + (this.blockRows * this.padding);
     }
@@ -2092,6 +2095,7 @@ export default class Sheet {
         // Calculate vertical position (top)
 
         const top = this.heightAccum[block.startRow];
+        console.log('positioning regular block', top, block);
 
         block.blockContainer.style.left = `${left}px`;
         block.blockContainer.style.top = `${top}px`;
@@ -2108,7 +2112,9 @@ export default class Sheet {
             block.canvas.style.left = `${block.parentBlock.subBlocks[0].styleWidth}px`;
         }
         if (i >= 2) {
-            block.canvas.style.top = `${block.parentBlock.subBlocks[0].styleHeight}px`;
+            const top = `${block.parentBlock.subBlocks[0].styleHeight}px`;
+            console.log('positioning subblock', top)
+            block.canvas.style.top = top;
         }
     }
 
@@ -2149,7 +2155,7 @@ export default class Sheet {
         //     return { startRow, startCol, endRow, endCol, canvas: createCanvas(), parentBlock: block, isSubBlock: true, index: 0 };
         // }
 
-        this.calculateBlockDimensionsContainer(block);
+        // this.calculateBlockDimensionsContainer(block);
         this.positionBlock(block);
 
         // Add to DOM if not already present
@@ -2193,13 +2199,21 @@ export default class Sheet {
         for (let col = block.startCol; col < block.endCol; col++) {
             block.width += this.getColWidth(col) * scaleFactor;
         }
-        block.width = Math.round(block.width);
+        // block.width = Math.round(block.width);
         styleWidth = block.width / scaleFactor;
 
         // Calculate block height based on rows
-        block.height = (this.heightAccum[block.endRow] - this.heightAccum[block.startRow]) * scaleFactor;
-        block.height = Math.round(block.height)
-        let styleHeight = block.height / scaleFactor;
+        let styleHeight;
+        // if (this.blockCanvases() <= 2) {
+            block.height = (this.heightAccum[block.endRow] - this.heightAccum[block.startRow]) * scaleFactor;
+            block.height = Math.round(block.height)
+            styleHeight = block.height / scaleFactor;
+            // block.height = 
+            
+        // }
+
+
+        // console.log(styleHeight, block.index)
 
         // Set canvas dimensions
         block.canvas.width = block.width;
@@ -2207,10 +2221,10 @@ export default class Sheet {
         block.canvas.style.width = `${styleWidth}px`;
         block.canvas.style.height = `${styleHeight}px`;
 
-        const ctx = block.canvas.getContext('2d', { alpha: false });
+        // const ctx = block.canvas.getContext('2d', { alpha: false });
         block.styleHeight = styleHeight;
         block.styleWidth = styleWidth;
-        ctx.scale(1,1);
+        // ctx.scale(1,1);
     }
 
     calculateBlockDimensionsContainer(block: any) {
@@ -2387,41 +2401,83 @@ export default class Sheet {
         }
         return { left, top, width, height, row, col };
     }
-    renderBorders(ctx: any, row: any, col: any) {
-        if (!this.getCell(row,col)?.border) return;
-        const border = this.getCell(row, col)?.border;
-        ctx.save();
-        ctx.strokeStyle = 'red';
+    setGridlinesCtx(ctx: any, bgc: any) {
+        // console.log('bgc:', bgc)
+        if (bgc) {
+            ctx.strokeStyle = bgc;
+            return;
+        }
+        ctx.fillStyle = bgc || '#333333';
+        ctx.strokeStyle = `hsl(0,0%,88%)`;
+    }
+    scale(val: number) {
+        return Math.round(val * this.effectiveDevicePixelRatio());
+    }
+    scalex(val: number) {
+        return val * this.effectiveDevicePixelRatio();
+    }
+    scalec(val: number) {
+        return Math.ceil(val * this.effectiveDevicePixelRatio());
+    }
+    scalef(val: number) {
+        return Math.floor(val * this.effectiveDevicePixelRatio());
+    }
 
+    // Scale a rectangle to device pixels and round edges so that fills/strokes align
+    // precisely with gridlines. Returns device-pixel integer coords and sizes.
+    scaleRect(x: number, y: number, width: number, height: number) {
+        const dpr = this.effectiveDevicePixelRatio();
+        const l = Math.round(x * dpr);
+        const t = Math.round(y * dpr);
+        const r = Math.round((x + width) * dpr);
+        const b = Math.round((y + height) * dpr);
+        return { l, t, w: Math.max(0, r - l)+1, h: Math.max(0, b - t)+1 };
+    }
+    renderBorders(ctx: any, row: any, col: any, force: boolean = false) {
+        const shouldRender = (force && this.getCell(row, col)?.backgroundColor) || (this.shouldDrawGridlines && force) || !!this.getCell(row,col)?.border;
+        if (!shouldRender) return;
+        const bgc = this.getCell(row, col)?.backgroundColor;
+        const border = this.getCell(row, col)?.border;
+        const setBorStroke = () => ctx.strokeStyle = 'red';
+        ctx.save();
+        ctx.translate(0.5, 0.5);
         // left border
-        if (hasBorderStr(border, 'left')) {
+        const hasLeft = hasBorderStr(border, 'left');
+        if (force || hasLeft) {
+            if (hasLeft) {setBorStroke();} else {this.setGridlinesCtx(ctx, bgc);}
             ctx.beginPath();
-            ctx.moveTo(this.getWidthOffset(col) * devicePixelRatio, this.getHeightOffset(row) * devicePixelRatio);
-            ctx.lineTo(this.getWidthOffset(col) * devicePixelRatio, (this.getHeightOffset(row) + this.getCellHeight(row)) * devicePixelRatio);
+            ctx.moveTo(this.scale(this.getWidthOffset(col)), this.scale(this.getHeightOffset(row)));
+            ctx.lineTo(this.scale(this.getWidthOffset(col)), this.scale(this.getHeightOffset(row) + this.getCellHeight(row)));
             ctx.stroke();
         }
 
         // top border
-        if (hasBorderStr(border, 'top')) {
+        const hasTop = hasBorderStr(border, 'top');
+        if (force || hasTop) {
+            if (hasTop) {setBorStroke();} else {this.setGridlinesCtx(ctx, bgc);}
             ctx.beginPath();
-            ctx.moveTo(this.getWidthOffset(col) * devicePixelRatio, this.getHeightOffset(row) * devicePixelRatio);
-            ctx.lineTo((this.getWidthOffset(col) + this.getCellWidth(col)) * devicePixelRatio, this.getHeightOffset(row) * devicePixelRatio);
+            ctx.moveTo(this.scale(this.getWidthOffset(col)),this.scale(this.getHeightOffset(row)));
+            ctx.lineTo(this.scale((this.getWidthOffset(col) + this.getCellWidth(col))),this.scale(this.getHeightOffset(row)));
             ctx.stroke();
         }
 
         // right border
-        if (hasBorderStr(border, 'right')) {
+        const hasRight = hasBorderStr(border, 'right');
+        if (force || hasRight) {
+            if (hasRight) {setBorStroke();} else {this.setGridlinesCtx(ctx, bgc);}
             ctx.beginPath();
-            ctx.moveTo((this.getWidthOffset(col) + this.getCellWidth(col)) * devicePixelRatio, this.getHeightOffset(row) * devicePixelRatio);
-            ctx.lineTo((this.getWidthOffset(col) + this.getCellWidth(col)) * devicePixelRatio, (this.getHeightOffset(row) + this.getCellHeight(row)) * devicePixelRatio);
+            ctx.moveTo(this.scale(this.getWidthOffset(col) + this.getCellWidth(col)), this.scale(this.getHeightOffset(row)));
+            ctx.lineTo(this.scale(this.getWidthOffset(col) + this.getCellWidth(col)), this.scale(this.getHeightOffset(row) + this.getCellHeight(row)));
             ctx.stroke();
         }
 
         // bottom border
-        if (hasBorderStr(border, 'bottom')) {
+        const hasBottom = hasBorderStr(border, 'bottom');
+        if (force || hasBottom) {
+            if (hasBottom) {setBorStroke();} else {this.setGridlinesCtx(ctx, bgc);}
             ctx.beginPath();
-            ctx.moveTo(this.getWidthOffset(col) * devicePixelRatio, (this.getHeightOffset(row) + this.getCellHeight(row)) * devicePixelRatio);
-            ctx.lineTo((this.getWidthOffset(col) + this.getCellWidth(col)) * devicePixelRatio, (this.getHeightOffset(row) + this.getCellHeight(row)) * devicePixelRatio);
+            ctx.moveTo(this.scale(this.getWidthOffset(col)), this.scale(this.getHeightOffset(row) + this.getCellHeight(row)));
+            ctx.lineTo(this.scale(this.getWidthOffset(col) + this.getCellWidth(col)), this.scale(this.getHeightOffset(row) + this.getCellHeight(row)));
             ctx.stroke();
         }
 
@@ -2449,7 +2505,12 @@ export default class Sheet {
         if (ctx) ctx.fillStyle = '#ffffff';
         if (!srcblock || this.rowColInBounds(row,col,srcblock)) {
             // console.log('inbounds::', row,col)
-            ctx && ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
+            ctx && ctx.fillRect(
+                this.scale(left),
+                this.scale(top),
+                this.scale(width),
+                this.scale(height)
+            );
         } else {
             const ssr = srcblock.startRow, sec = srcblock.endCol;
             const merge = this.getMerge(row,col);
@@ -2459,10 +2520,16 @@ export default class Sheet {
             const _height = this.getHeightBetweenRows(srcblock.startRow,merge.endRow+1);
             left = _width - width;
             top = _height - height;
-            ctx && ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
+            // ctx && ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
+            ctx && ctx.fillRect(
+                this.scale(left),
+                this.scale(top),
+                this.scale(width),
+                this.scale(height)
+            );
         }
         if (ctx) ctx.fillStyle = '#333333';
-        this.renderBorders(ctx,row,col);
+        this.renderBorders(ctx,row,col,true);
         if (this.getCell(row, col).cellType === 'button') {
             const button = this.getButton(row, col).el;
             ({ left, top, width, height } = this.getCellCoordsContainer(row, col));
@@ -2491,7 +2558,12 @@ export default class Sheet {
 
     renderBlock(block: any, calcDimensions = false) {
         if (calcDimensions) {
-            this.calculateBlockDimensions(block);
+            // if (block.isSubBlock) {
+                this.calculateBlockDimensions(block);
+                this.positionSubBlock(block, block.index);
+            // } else {
+            //     this.positionBlock(block);
+            // }
         }
         const ctx = block.canvas.getContext('2d', { alpha: false });
         ctx.fillStyle = '#ffffff';
@@ -2505,35 +2577,37 @@ export default class Sheet {
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
         ctx.fillStyle = '#333333';
-        const scaler = 88;
-        ctx.strokeStyle = `hsl(0,0%,${scaler}%)`;
+        ctx.strokeStyle = `hsl(0,0%,88%)`;
+        // const scaler = 88;
         ctx.lineWidth = 1;
         ctx.font = this.getFontString();
 
-        ctx.translate(0.5, 0.5); // thick gridlines fix
-
+        
         // draw row gridlines
         let y;
         if (this.gridlinesOn && this.quality() !== 'performance') {
+            ctx.save();
+            const dpr = this.effectiveDevicePixelRatio();
             for (let row = block.startRow; row < block.endRow; row++) {
-                y = Math.round((this.heightAccum[row] - this.heightAccum[block.startRow])*devicePixelRatio);
+                // Align stroke to half-pixel so 1px lines render sharply
+                y = Math.round((this.heightAccum[row] - this.heightAccum[block.startRow]) * dpr) + 0.5;
                 ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(block.canvas.width, y);
+                ctx.moveTo(0.5, y);
+                ctx.lineTo(block.canvas.width - 0.5, y);
                 ctx.stroke();
             }
-        }
-        // draw col grid lines
-        if (this.gridlinesOn && this.quality() !== 'performance') {
+            // draw col grid lines
             for (let col = block.startCol; col < block.endCol; col++) {
                 const colWidth = this.getColWidth(col);
                 // draw col gridlines
+                const xCoord = Math.round(x * dpr) + 0.5;
                 ctx.beginPath();
-                ctx.moveTo(Math.round(x * devicePixelRatio), 0);
-                ctx.lineTo(Math.round(x * devicePixelRatio), block.canvas.height);
+                ctx.moveTo(xCoord, 0.5);
+                ctx.lineTo(xCoord, block.canvas.height - 0.5);
                 ctx.stroke();
                 x += colWidth;
             }
+            ctx.restore();
         }
         x = 0;
         const seenMerges = new Set();
@@ -2570,44 +2644,6 @@ export default class Sheet {
         }
 
         this.renderMergesOnBlock(block, ctx);
-    }
-    renderGridlines(block: any) {
-        if (!(this.gridlinesOn && this.quality() !== 'performance')) return;
-        const ctx = block.canvas.getContext('2d', { alpha: false });
-        console.log('rerendering gridlines:');
-        ctx.save();
-        ctx.fillStyle = '#333333';
-        const scaler = 88;
-        ctx.strokeStyle = `hsl(0,0%,${scaler}%)`;
-        ctx.lineWidth = 1;
-
-        ctx.translate(0.5, 0.5); // thick gridlines fix
-
-        // draw row gridlines
-        let y;
-        if (this.gridlinesOn && this.quality() !== 'performance') {
-            for (let row = block.startRow; row < block.endRow; row++) {
-                y = Math.round((this.heightAccum[row] - this.heightAccum[block.startRow])*devicePixelRatio);
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(block.canvas.width, y);
-                ctx.stroke();
-            }
-        }
-        let x = 0;
-        // draw col grid lines
-        if (this.gridlinesOn && this.quality() !== 'performance') {
-            for (let col = block.startCol; col < block.endCol; col++) {
-                const colWidth = this.getColWidth(col);
-                // draw col gridlines
-                ctx.beginPath();
-                ctx.moveTo(Math.round(x * devicePixelRatio), 0);
-                ctx.lineTo(Math.round(x * devicePixelRatio), block.canvas.height);
-                ctx.stroke();
-                x += colWidth;
-            }
-        }
-        ctx.restore();
     }
     renderMergesOnBlock(block: any, ctx: any) {
         const merges: Array<Rect> = this.getMergesInRange(block);
@@ -2763,9 +2799,10 @@ export default class Sheet {
     renderCellBackground(ctx: any, x: number, y: number, width: number, row: number, col: number) {
         if (this.getCell(row, col)?.backgroundColor != null) {
             ctx.save();
+            // ctx.translate(-0.5, -0.5);
             ctx.fillStyle = this.getCell(row, col).backgroundColor;
-            ctx.fillRect((x) * devicePixelRatio, (y) * devicePixelRatio,
-                (width) * devicePixelRatio, (this.rowHeight(row)) * devicePixelRatio);
+            const { l, t, w, h } = this.scaleRect(x, y, width, this.rowHeight(row));
+            ctx.fillRect(l, t, w, h);
             ctx.restore();
         }
     }
