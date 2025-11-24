@@ -938,6 +938,20 @@ export default class Sheet {
             document.execCommand('copy');
             this.clearSelectedCells();
         }
+        else if (key === 'k' && e.ctrlKey) {
+            if (this.editingCell) return;
+            console.log({
+                cellHeight: this.cellHeight,
+                cellWidth: this.cellWidth,
+                mergedCells: this.mergedCells,
+                heightOverrides: Object.assign({}, this.heightOverrides),
+                widthOverrides: Object.assign({}, this.widthOverrides),
+                gridlinesOn: this.gridlinesOn,
+                initialCells: this.data.getAllCells()
+            });
+            // data = this.data.
+            e.preventDefault();
+        }
         else if (key === 's' && e.ctrlKey) {
             if (this.editingCell) return;
             const data = this.data.save();
@@ -1149,6 +1163,19 @@ export default class Sheet {
         if (!this.selectionBoundRect) return [];
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
         const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
+        return cells;
+    }
+    getSelectedCellDataSparse() {
+        const cells: any = [];
+        if (!this.selectionBoundRect) return cells;
+        const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
+        for(let i = startRow; i <= endRow; i++) {
+            for(let j = startCol; j <= endCol; j++) {
+                if (this.data.has(i,j)) {
+                    cells.push(this.getCell(i,j));
+                }
+            }
+        }
         return cells;
     }
     isValid(row:number,col:number) {
@@ -2095,10 +2122,17 @@ export default class Sheet {
         // Calculate vertical position (top)
 
         const top = this.heightAccum[block.startRow];
-        console.log('positioning regular block', top, block);
 
-        block.blockContainer.style.left = `${left}px`;
-        block.blockContainer.style.top = `${top}px`;
+        // Round positions in device pixels so the container aligns with integer
+        // canvas pixel sizes and avoids sub-pixel gaps between blocks.
+        const dpr = this.effectiveDevicePixelRatio();
+        const leftDp = Math.round(left * dpr);
+        const topDp = Math.round(top * dpr);
+        const styleLeft = leftDp / dpr;
+        const styleTop = topDp / dpr;
+
+        block.blockContainer.style.left = `${styleLeft}px`;
+        block.blockContainer.style.top = `${styleTop}px`;
         block.blockContainer.style.display = 'block';
 
         // block.left = left;
@@ -2108,13 +2142,14 @@ export default class Sheet {
         if (i === 0) return;
 
         // Calculate vertical position (top)
+        const dpr = this.effectiveDevicePixelRatio();
         if (i === 1 || i === 3) {
-            block.canvas.style.left = `${block.parentBlock.subBlocks[0].styleWidth}px`;
+            const leftCss = Math.round(block.parentBlock.subBlocks[0].styleWidth * dpr) / dpr;
+            block.canvas.style.left = `${leftCss}px`;
         }
         if (i >= 2) {
-            const top = `${block.parentBlock.subBlocks[0].styleHeight}px`;
-            console.log('positioning subblock', top)
-            block.canvas.style.top = top;
+            const topCss = Math.round(block.parentBlock.subBlocks[0].styleHeight * dpr) / dpr;
+            block.canvas.style.top = `${topCss}px`;
         }
     }
 
@@ -2194,37 +2229,29 @@ export default class Sheet {
 
     calculateBlockDimensions(block: any) {
         let scaleFactor = this.effectiveDevicePixelRatio();
-        block.width = 0;
-        let styleWidth = 0;
+        // Compute integer canvas pixel sizes to avoid gaps between adjacent blocks
+        let widthSum = 0;
         for (let col = block.startCol; col < block.endCol; col++) {
-            block.width += this.getColWidth(col) * scaleFactor;
+            widthSum += this.getColWidth(col);
         }
-        // block.width = Math.round(block.width);
-        styleWidth = block.width / scaleFactor;
+        let widthDp = Math.round(widthSum * scaleFactor);
+        const styleWidth = widthDp / scaleFactor;
 
-        // Calculate block height based on rows
-        let styleHeight;
-        // if (this.blockCanvases() <= 2) {
-            block.height = (this.heightAccum[block.endRow] - this.heightAccum[block.startRow]) * scaleFactor;
-            block.height = Math.round(block.height)
-            styleHeight = block.height / scaleFactor;
-            // block.height = 
-            
-        // }
+        // Calculate block height based on rows (in device pixels)
+        let heightDp = Math.round((this.heightAccum[block.endRow] - this.heightAccum[block.startRow]) * scaleFactor);
+        const styleHeight = heightDp / scaleFactor;
 
 
         // console.log(styleHeight, block.index)
 
-        // Set canvas dimensions
-        block.canvas.width = block.width;
-        block.canvas.height = block.height;
+        // Set canvas dimensions (use integer device-pixel sizes)
+        block.canvas.width = widthDp;
+        block.canvas.height = heightDp;
         block.canvas.style.width = `${styleWidth}px`;
         block.canvas.style.height = `${styleHeight}px`;
 
-        // const ctx = block.canvas.getContext('2d', { alpha: false });
         block.styleHeight = styleHeight;
         block.styleWidth = styleWidth;
-        // ctx.scale(1,1);
     }
 
     calculateBlockDimensionsContainer(block: any) {
@@ -2431,57 +2458,77 @@ export default class Sheet {
         const t = Math.round(y * dpr);
         const r = Math.round((x + width) * dpr);
         const b = Math.round((y + height) * dpr);
-        return { l, t, w: Math.max(0, r - l)+1, h: Math.max(0, b - t)+1 };
+        return { l, t, w: Math.max(0, r - l), h: Math.max(0, b - t) };
     }
-    renderBorders(ctx: any, row: any, col: any, force: boolean = false) {
+    renderBorders(ctx: any, row: any, col: any, force: boolean = false, block: any = null) {
         const shouldRender = (force && this.getCell(row, col)?.backgroundColor) || (this.shouldDrawGridlines && force) || !!this.getCell(row,col)?.border;
         if (!shouldRender) return;
-        const bgc = this.getCell(row, col)?.backgroundColor;
+        const bgc = this.getCell(row, col)?.backgroundColor || 'white';
         const border = this.getCell(row, col)?.border;
-        const setBorStroke = () => ctx.strokeStyle = 'red';
+        const setBorStroke = () => ctx.strokeStyle = 'black';
         ctx.save();
-        ctx.translate(0.5, 0.5);
+        ctx.lineWidth = 1;
+        // derive device-pixel rectangle for the cell. If a block is provided, compute coordinates
+        // relative to the block so drawing occurs inside the block's canvas.
+        let left: number, top: number, width: number, height: number;
+        if (block) {
+            left = this.getWidthBetweenColumns(block.startCol, col);
+            top = this.getHeightBetweenRows(block.startRow, row);
+            width = this.getCellWidth(col);
+            height = this.getCellHeight(row);
+            // scaleRect expects container-relative coords; these are relative to block origin which is
+            // what we want for drawing into block.canvas.
+        } else {
+            left = this.getWidthOffset(col);
+            top = this.getHeightOffset(row);
+            width = this.getCellWidth(col);
+            height = this.getCellHeight(row);
+        }
+        const rect = this.scaleRect(left, top, width, height);
+
+        // helper to stroke a line with half-pixel alignment
+        const strokeLine = (x1: number, y1: number, x2: number, y2: number) => {
+            ctx.beginPath();
+            ctx.moveTo(x1 + 0.5, y1 + 0.5);
+            ctx.lineTo(x2 + 0.5, y2 + 0.5);
+            ctx.stroke();
+        }
+
         // left border
         const hasLeft = hasBorderStr(border, 'left');
         if (force || hasLeft) {
-            if (hasLeft) {setBorStroke();} else {this.setGridlinesCtx(ctx, bgc);}
-            ctx.beginPath();
-            ctx.moveTo(this.scale(this.getWidthOffset(col)), this.scale(this.getHeightOffset(row)));
-            ctx.lineTo(this.scale(this.getWidthOffset(col)), this.scale(this.getHeightOffset(row) + this.getCellHeight(row)));
-            ctx.stroke();
+            if (hasLeft) { setBorStroke(); } else { this.setGridlinesCtx(ctx, bgc); }
+            strokeLine(rect.l, rect.t, rect.l, rect.t + rect.h);
         }
 
         // top border
         const hasTop = hasBorderStr(border, 'top');
         if (force || hasTop) {
-            if (hasTop) {setBorStroke();} else {this.setGridlinesCtx(ctx, bgc);}
-            ctx.beginPath();
-            ctx.moveTo(this.scale(this.getWidthOffset(col)),this.scale(this.getHeightOffset(row)));
-            ctx.lineTo(this.scale((this.getWidthOffset(col) + this.getCellWidth(col))),this.scale(this.getHeightOffset(row)));
-            ctx.stroke();
+            if (hasTop) { setBorStroke(); } else { this.setGridlinesCtx(ctx, bgc); }
+            strokeLine(rect.l, rect.t, rect.l + rect.w, rect.t);
         }
 
         // right border
         const hasRight = hasBorderStr(border, 'right');
         if (force || hasRight) {
-            if (hasRight) {setBorStroke();} else {this.setGridlinesCtx(ctx, bgc);}
-            ctx.beginPath();
-            ctx.moveTo(this.scale(this.getWidthOffset(col) + this.getCellWidth(col)), this.scale(this.getHeightOffset(row)));
-            ctx.lineTo(this.scale(this.getWidthOffset(col) + this.getCellWidth(col)), this.scale(this.getHeightOffset(row) + this.getCellHeight(row)));
-            ctx.stroke();
+            if (hasRight) { setBorStroke(); } else { this.setGridlinesCtx(ctx, bgc); }
+            strokeLine(rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
         }
 
         // bottom border
         const hasBottom = hasBorderStr(border, 'bottom');
         if (force || hasBottom) {
-            if (hasBottom) {setBorStroke();} else {this.setGridlinesCtx(ctx, bgc);}
-            ctx.beginPath();
-            ctx.moveTo(this.scale(this.getWidthOffset(col)), this.scale(this.getHeightOffset(row) + this.getCellHeight(row)));
-            ctx.lineTo(this.scale(this.getWidthOffset(col) + this.getCellWidth(col)), this.scale(this.getHeightOffset(row) + this.getCellHeight(row)));
-            ctx.stroke();
+            if (hasBottom) { setBorStroke(); } else { this.setGridlinesCtx(ctx, bgc); }
+            strokeLine(rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
         }
 
         ctx.restore();
+    }
+
+    getCtx(row: number,col:number) {
+        let block = this.getBlockOrSubBlock(row, col);
+        if (!block) return;
+        return block?.canvas.getContext('2d', { alpha: false });
     }
 
     renderCell(row: any, col: any, srcblock?: any, ctx?: any) {
@@ -2489,12 +2536,14 @@ export default class Sheet {
         //     // this.forceRerender();
         //     return;
         // }
+        let block = srcblock || this.getBlockOrSubBlock(row, col);
         if (!ctx) {
-            let block = srcblock;
-            if (!block) block = this.getBlockOrSubBlock(row,col);
             if (block) {
                 ctx = block?.canvas.getContext('2d', { alpha: false });
             }
+        } else {
+            // if ctx is provided but block wasn't, try to resolve block for proper border drawing
+            block = block || this.getBlockOrSubBlock(row, col);
         }
         let left, top, width, height;
         try {
@@ -2505,12 +2554,10 @@ export default class Sheet {
         if (ctx) ctx.fillStyle = '#ffffff';
         if (!srcblock || this.rowColInBounds(row,col,srcblock)) {
             // console.log('inbounds::', row,col)
-            ctx && ctx.fillRect(
-                this.scale(left),
-                this.scale(top),
-                this.scale(width),
-                this.scale(height)
-            );
+            if (ctx) {
+                const r = this.scaleRect(left, top, width, height);
+                ctx.fillRect(r.l, r.t, r.w, r.h);
+            }
         } else {
             const ssr = srcblock.startRow, sec = srcblock.endCol;
             const merge = this.getMerge(row,col);
@@ -2521,15 +2568,16 @@ export default class Sheet {
             left = _width - width;
             top = _height - height;
             // ctx && ctx.fillRect((left + 1)*devicePixelRatio, (top + 1)*devicePixelRatio, (width - 2)*devicePixelRatio, (height - 2)*devicePixelRatio);
-            ctx && ctx.fillRect(
-                this.scale(left),
-                this.scale(top),
-                this.scale(width),
-                this.scale(height)
-            );
+            if (ctx) {
+                const r = this.scaleRect(left, top, width, height);
+                ctx.fillRect(r.l, r.t, r.w, r.h);
+            }
         }
         if (ctx) ctx.fillStyle = '#333333';
-        this.renderBorders(ctx,row,col,true);
+        
+        
+        this.renderCellBackground(ctx, left, top, width, row, col);
+        this.renderBorders(ctx,row,col,true, block);
         if (this.getCell(row, col).cellType === 'button') {
             const button = this.getButton(row, col).el;
             ({ left, top, width, height } = this.getCellCoordsContainer(row, col));
@@ -2540,12 +2588,12 @@ export default class Sheet {
             this.positionElement(lineChart, left, top, width, height);
         } else {
             this.clearElRegistry(row,col);
-            this.renderCellBackground(ctx, left, top, width, row, col);
+            
             this.renderCellText(ctx, left, top, width, row, col);
             if (dependencyTree[row]?.[col]) {
                 for (let childRow in dependencyTree[row][col]) {
                     for (let childCol in dependencyTree[row][col][childRow]) {
-                        this.renderCell(childRow, childCol)
+                        this.renderCell(Number(childRow), Number(childCol));
                     }
                 }
             }
@@ -2634,8 +2682,8 @@ export default class Sheet {
                     const lineChart = this.getLineChart(row, col)?.el;
                     this.positionElement(lineChart, this.widthAccum[col], this.heightAccum[row], renderWidth, this.rowHeight(row));
                 } else {
-                    this.renderBorders(ctx,row,col);
                     this.renderCellBackground(ctx, x, y, renderWidth, row, col);
+                    this.renderBorders(ctx,row,col,false, block);
                     this.renderCellText(ctx, x, y, renderWidth, row, col);
                 }
             }
@@ -2787,7 +2835,10 @@ export default class Sheet {
 
     getCell(row: number, col: number) {
         if (!this.data) return { row, col };
-        return this.data.get(row, col)
+        if (!this.data.has(row, col) || !this.data.get(row, col)) return { row, col };
+        const cell = this.data.get(row, col);
+        cell.row = row; cell.col = col; // bug: inserting can change row/col
+        return cell;
     }
     getCellText(row: number, col: number) {
         return this.getCell(row, col)?.text || '';
@@ -2802,8 +2853,15 @@ export default class Sheet {
             // ctx.translate(-0.5, -0.5);
             ctx.fillStyle = this.getCell(row, col).backgroundColor;
             const { l, t, w, h } = this.scaleRect(x, y, width, this.rowHeight(row));
-            ctx.fillRect(l, t, w, h);
+            ctx.fillRect(l, t, w+1, h+1);
             ctx.restore();
+            if (row !== 0) {
+                this.renderBorders(ctx, row-1, col, false);
+            }
+            if (col !== 0) {
+                this.renderBorders(ctx, row, col-1, false);
+            }
+            this.renderBorders(ctx, row, col+1, false);
         }
     }
 

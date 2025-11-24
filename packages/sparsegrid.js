@@ -398,6 +398,29 @@ export default class SparseGrid {
         return deletedCount;
     }
 
+    getAllCells() {
+        const data = [];
+        for(let row in this._data) {
+            for(let col in this._data[row]) {
+                if (this._data[row][col] && typeof this._data[row][col] === 'object') {
+                    this._data[row][col].row = parseInt(row); this._data[row][col].col = parseInt(col);
+                    data.push(this._data[row][col]);
+                }
+            }
+        }
+        return data;
+    }
+
+    getAllData() {
+        const data = [];
+        for(let row in this._data) {
+            for(let col in this._data[row]) {
+                data.push(this._data[row][col])
+            }
+        }
+        return data;
+    }
+
     getCells(startRow, startCol, endRow, endCol) {
         const cells = [];
         const [minRow, maxRow] = [Math.min(startRow, endRow), Math.max(startRow, endRow)];
