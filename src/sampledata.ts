@@ -57,7 +57,7 @@ export const fininit = {
     {
       "row": 2,
       "col": 1,
-      "border": 28,
+      "border": 30,
       "_id": 1,
       "text": "spot",
       "textAlign": "center",
@@ -218,10 +218,10 @@ export const fininit = {
     {
       "row": 2,
       "col": 18,
-      "text": "...",
+      "text": "ois",
       "_id": 36,
       "textAlign": "center",
-      "border": 20
+      "border": 28
     },
     {
       "row": 3,
@@ -286,12 +286,12 @@ export const fininit = {
       "col": 16,
       "backgroundColor": "#ffffcc",
       "_id": 5,
-      "text": ""
+      "text": "0.59"
     },
     {
       "row": 3,
       "col": 18,
-      "border": 20,
+      "border": 28,
       "_id": 31
     },
     {
@@ -307,7 +307,8 @@ export const fininit = {
       "col": 2,
       "border": 20,
       "_id": 3,
-      "backgroundColor": "#99ffcc"
+      "backgroundColor": "#99ffcc",
+      "text": "x99-24"
     },
     {
       "row": 4,
@@ -362,7 +363,8 @@ export const fininit = {
       "col": 10,
       "border": 20,
       "_id": 8,
-      "backgroundColor": "#00ff00"
+      "backgroundColor": "#00ff00",
+      "text": "-21.32"
     },
     {
       "row": 4,
@@ -388,7 +390,8 @@ export const fininit = {
       "col": 14,
       "border": 20,
       "_id": 12,
-      "backgroundColor": "#ff66ff"
+      "backgroundColor": "#ff66ff",
+      "text": "3.285"
     },
     {
       "row": 4,
@@ -402,7 +405,7 @@ export const fininit = {
       "backgroundColor": "#ffffcc",
       "_id": 6,
       "border": 20,
-      "text": ""
+      "text": "0.13"
     },
     {
       "row": 4,
@@ -413,7 +416,7 @@ export const fininit = {
     {
       "row": 4,
       "col": 18,
-      "border": 20,
+      "border": 28,
       "_id": 32
     },
     {
@@ -479,6 +482,12 @@ export const fininit = {
       "_id": 7
     },
     {
+      "row": 5,
+      "col": 18,
+      "border": 8,
+      "_id": 9
+    },
+    {
       "row": 6,
       "col": 1,
       "text": "3",
@@ -541,6 +550,12 @@ export const fininit = {
       "_id": 8
     },
     {
+      "row": 6,
+      "col": 18,
+      "border": 8,
+      "_id": 10
+    },
+    {
       "row": 7,
       "col": 1,
       "text": "4",
@@ -601,6 +616,12 @@ export const fininit = {
       "col": 16,
       "backgroundColor": "#ffffcc",
       "_id": 9
+    },
+    {
+      "row": 7,
+      "col": 18,
+      "border": 8,
+      "_id": 11
     },
     {
       "row": 8,
@@ -719,7 +740,7 @@ export const fininit = {
     {
       "row": 8,
       "col": 18,
-      "border": 20,
+      "border": 28,
       "_id": 33
     },
     {
@@ -785,6 +806,12 @@ export const fininit = {
       "_id": 11
     },
     {
+      "row": 9,
+      "col": 18,
+      "border": 8,
+      "_id": 12
+    },
+    {
       "row": 10,
       "col": 1,
       "text": "7",
@@ -845,6 +872,12 @@ export const fininit = {
       "col": 16,
       "backgroundColor": "#ffffcc",
       "_id": 12
+    },
+    {
+      "row": 10,
+      "col": 18,
+      "border": 8,
+      "_id": 13
     },
     {
       "row": 11,
@@ -909,6 +942,12 @@ export const fininit = {
       "_id": 13
     },
     {
+      "row": 11,
+      "col": 18,
+      "border": 8,
+      "_id": 14
+    },
+    {
       "row": 12,
       "col": 1,
       "text": "9",
@@ -969,6 +1008,12 @@ export const fininit = {
       "col": 16,
       "backgroundColor": "#ffffcc",
       "_id": 14
+    },
+    {
+      "row": 12,
+      "col": 18,
+      "border": 8,
+      "_id": 15
     },
     {
       "row": 13,
@@ -1062,7 +1107,8 @@ export const fininit = {
       "col": 14,
       "border": 20,
       "_id": 29,
-      "backgroundColor": "#ff66ff"
+      "backgroundColor": "#ff66ff",
+      "text": "3.6259"
     },
     {
       "row": 13,
@@ -1076,7 +1122,8 @@ export const fininit = {
       "backgroundColor": "#ffffcc",
       "_id": 15,
       "border": 20,
-      "text": ""
+      "text": "3.55",
+      "bold": true
     },
     {
       "row": 13,
@@ -1087,7 +1134,7 @@ export const fininit = {
     {
       "row": 13,
       "col": 18,
-      "border": 20,
+      "border": 28,
       "_id": 34
     },
     {
@@ -1153,6 +1200,12 @@ export const fininit = {
       "_id": 16
     },
     {
+      "row": 14,
+      "col": 18,
+      "border": 8,
+      "_id": 16
+    },
+    {
       "row": 15,
       "col": 1,
       "text": "12",
@@ -1212,6 +1265,12 @@ export const fininit = {
       "row": 15,
       "col": 16,
       "backgroundColor": "#ffffcc",
+      "_id": 17
+    },
+    {
+      "row": 15,
+      "col": 18,
+      "border": 8,
       "_id": 17
     },
     {
@@ -1277,6 +1336,12 @@ export const fininit = {
       "_id": 18
     },
     {
+      "row": 16,
+      "col": 18,
+      "border": 8,
+      "_id": 18
+    },
+    {
       "row": 17,
       "col": 1,
       "text": "20",
@@ -1339,6 +1404,12 @@ export const fininit = {
       "_id": 19
     },
     {
+      "row": 17,
+      "col": 18,
+      "border": 8,
+      "_id": 19
+    },
+    {
       "row": 18,
       "col": 1,
       "text": "25",
@@ -1398,6 +1469,12 @@ export const fininit = {
       "row": 18,
       "col": 16,
       "backgroundColor": "#ffffcc",
+      "_id": 20
+    },
+    {
+      "row": 18,
+      "col": 18,
+      "border": 8,
       "_id": 20
     },
     {
@@ -1517,7 +1594,7 @@ export const fininit = {
     {
       "row": 19,
       "col": 18,
-      "border": 20,
+      "border": 28,
       "_id": 35
     },
     {
@@ -1582,6 +1659,593 @@ export const fininit = {
       "col": 16,
       "backgroundColor": "#ffffcc",
       "_id": 22
+    },
+    {
+      "row": 20,
+      "col": 18,
+      "border": 8,
+      "_id": 21
+    },
+    {
+      "row": 21,
+      "col": 1,
+      "text": "40",
+      "_id": 1,
+      "border": 8,
+      "textAlign": "center"
+    },
+    {
+      "row": 21,
+      "col": 2,
+      "backgroundColor": "#99ffcc",
+      "_id": 6
+    },
+    {
+      "row": 21,
+      "col": 3,
+      "backgroundColor": "#d9d9d9",
+      "_id": 11
+    },
+    {
+      "row": 21,
+      "col": 4,
+      "backgroundColor": "#ccffff",
+      "_id": 16
+    },
+    {
+      "row": 21,
+      "col": 5,
+      "backgroundColor": "#ffffcc",
+      "_id": 31
+    },
+    {
+      "row": 21,
+      "col": 9,
+      "backgroundColor": "#d9d9d9",
+      "_id": 26
+    },
+    {
+      "row": 21,
+      "col": 10,
+      "backgroundColor": "#ccffff",
+      "_id": 21
+    },
+    {
+      "row": 21,
+      "col": 13,
+      "backgroundColor": "#ffffcc",
+      "_id": 36
+    },
+    {
+      "row": 21,
+      "col": 14,
+      "backgroundColor": "#ffeffb",
+      "_id": 46
+    },
+    {
+      "row": 21,
+      "col": 16,
+      "backgroundColor": "#ffffcc",
+      "_id": 41
+    },
+    {
+      "row": 21,
+      "col": 18,
+      "border": 8,
+      "_id": 22
+    },
+    {
+      "row": 22,
+      "col": 1,
+      "text": "45",
+      "_id": 2,
+      "border": 8,
+      "textAlign": "center"
+    },
+    {
+      "row": 22,
+      "col": 2,
+      "backgroundColor": "#99ffcc",
+      "_id": 7
+    },
+    {
+      "row": 22,
+      "col": 3,
+      "backgroundColor": "#d9d9d9",
+      "_id": 12
+    },
+    {
+      "row": 22,
+      "col": 4,
+      "backgroundColor": "#ccffff",
+      "_id": 17
+    },
+    {
+      "row": 22,
+      "col": 5,
+      "backgroundColor": "#ffffcc",
+      "_id": 32
+    },
+    {
+      "row": 22,
+      "col": 9,
+      "backgroundColor": "#d9d9d9",
+      "_id": 27
+    },
+    {
+      "row": 22,
+      "col": 10,
+      "backgroundColor": "#ccffff",
+      "_id": 22
+    },
+    {
+      "row": 22,
+      "col": 13,
+      "backgroundColor": "#ffffcc",
+      "_id": 37
+    },
+    {
+      "row": 22,
+      "col": 14,
+      "backgroundColor": "#ffeffb",
+      "_id": 47
+    },
+    {
+      "row": 22,
+      "col": 16,
+      "backgroundColor": "#ffffcc",
+      "_id": 42
+    },
+    {
+      "row": 22,
+      "col": 18,
+      "border": 8,
+      "_id": 23
+    },
+    {
+      "row": 23,
+      "col": 1,
+      "text": "50",
+      "_id": 3,
+      "border": 8,
+      "textAlign": "center"
+    },
+    {
+      "row": 23,
+      "col": 2,
+      "backgroundColor": "#99ffcc",
+      "_id": 8
+    },
+    {
+      "row": 23,
+      "col": 3,
+      "backgroundColor": "#d9d9d9",
+      "_id": 13
+    },
+    {
+      "row": 23,
+      "col": 4,
+      "backgroundColor": "#ccffff",
+      "_id": 18
+    },
+    {
+      "row": 23,
+      "col": 5,
+      "backgroundColor": "#ffffcc",
+      "_id": 33
+    },
+    {
+      "row": 23,
+      "col": 9,
+      "backgroundColor": "#d9d9d9",
+      "_id": 28
+    },
+    {
+      "row": 23,
+      "col": 10,
+      "backgroundColor": "#ccffff",
+      "_id": 23
+    },
+    {
+      "row": 23,
+      "col": 13,
+      "backgroundColor": "#ffffcc",
+      "_id": 38
+    },
+    {
+      "row": 23,
+      "col": 14,
+      "backgroundColor": "#ffeffb",
+      "_id": 48
+    },
+    {
+      "row": 23,
+      "col": 16,
+      "backgroundColor": "#ffffcc",
+      "_id": 43
+    },
+    {
+      "row": 23,
+      "col": 18,
+      "border": 8,
+      "_id": 24
+    },
+    {
+      "row": 24,
+      "col": 1,
+      "text": "55",
+      "_id": 4,
+      "border": 8,
+      "textAlign": "center"
+    },
+    {
+      "row": 24,
+      "col": 2,
+      "backgroundColor": "#99ffcc",
+      "_id": 9
+    },
+    {
+      "row": 24,
+      "col": 3,
+      "backgroundColor": "#d9d9d9",
+      "_id": 14
+    },
+    {
+      "row": 24,
+      "col": 4,
+      "backgroundColor": "#ccffff",
+      "_id": 19
+    },
+    {
+      "row": 24,
+      "col": 5,
+      "backgroundColor": "#ffffcc",
+      "_id": 34
+    },
+    {
+      "row": 24,
+      "col": 9,
+      "backgroundColor": "#d9d9d9",
+      "_id": 29
+    },
+    {
+      "row": 24,
+      "col": 10,
+      "backgroundColor": "#ccffff",
+      "_id": 24
+    },
+    {
+      "row": 24,
+      "col": 13,
+      "backgroundColor": "#ffffcc",
+      "_id": 39
+    },
+    {
+      "row": 24,
+      "col": 14,
+      "backgroundColor": "#ffeffb",
+      "_id": 49
+    },
+    {
+      "row": 24,
+      "col": 16,
+      "backgroundColor": "#ffffcc",
+      "_id": 44
+    },
+    {
+      "row": 24,
+      "col": 18,
+      "border": 8,
+      "_id": 25
+    },
+    {
+      "row": 25,
+      "col": 1,
+      "text": "60",
+      "_id": 5,
+      "border": 24,
+      "textAlign": "center"
+    },
+    {
+      "row": 25,
+      "col": 2,
+      "backgroundColor": "#99ffcc",
+      "_id": 10,
+      "border": 16
+    },
+    {
+      "row": 25,
+      "col": 3,
+      "backgroundColor": "#d9d9d9",
+      "_id": 15,
+      "border": 16
+    },
+    {
+      "row": 25,
+      "col": 4,
+      "backgroundColor": "#ccffff",
+      "_id": 20,
+      "border": 16
+    },
+    {
+      "row": 25,
+      "col": 5,
+      "backgroundColor": "#ffffcc",
+      "_id": 35,
+      "border": 16
+    },
+    {
+      "row": 25,
+      "col": 6,
+      "border": 16,
+      "_id": 1
+    },
+    {
+      "row": 25,
+      "col": 7,
+      "border": 16,
+      "_id": 2
+    },
+    {
+      "row": 25,
+      "col": 8,
+      "border": 16,
+      "_id": 3
+    },
+    {
+      "row": 25,
+      "col": 9,
+      "backgroundColor": "#d9d9d9",
+      "_id": 30,
+      "border": 16
+    },
+    {
+      "row": 25,
+      "col": 10,
+      "backgroundColor": "#ccffff",
+      "_id": 25,
+      "border": 16
+    },
+    {
+      "row": 25,
+      "col": 11,
+      "border": 16,
+      "_id": 4
+    },
+    {
+      "row": 25,
+      "col": 12,
+      "border": 16,
+      "_id": 5
+    },
+    {
+      "row": 25,
+      "col": 13,
+      "backgroundColor": "#ffffcc",
+      "_id": 40,
+      "border": 16
+    },
+    {
+      "row": 25,
+      "col": 14,
+      "backgroundColor": "#ffeffb",
+      "_id": 50,
+      "border": 16
+    },
+    {
+      "row": 25,
+      "col": 15,
+      "border": 16,
+      "_id": 6
+    },
+    {
+      "row": 25,
+      "col": 16,
+      "backgroundColor": "#ffffcc",
+      "_id": 45,
+      "border": 16
+    },
+    {
+      "row": 25,
+      "col": 17,
+      "border": 16,
+      "_id": 7
+    },
+    {
+      "row": 25,
+      "col": 18,
+      "border": 24,
+      "_id": 8
+    },
+    {
+      "row": 26,
+      "col": 1,
+      "text": "x2 10",
+      "_id": 26,
+      "textAlign": "center",
+      "border": 8
+    },
+    {
+      "row": 26,
+      "col": 5,
+      "backgroundColor": "#ffffcc",
+      "_id": 50
+    },
+    {
+      "row": 26,
+      "col": 16,
+      "backgroundColor": "#ffffcc",
+      "_id": 53
+    },
+    {
+      "row": 26,
+      "col": 18,
+      "border": 8,
+      "_id": 47
+    },
+    {
+      "row": 27,
+      "col": 1,
+      "text": "x5 10",
+      "_id": 27,
+      "textAlign": "center",
+      "border": 8
+    },
+    {
+      "row": 27,
+      "col": 5,
+      "backgroundColor": "#ffffcc",
+      "_id": 51
+    },
+    {
+      "row": 27,
+      "col": 16,
+      "backgroundColor": "#ffffcc",
+      "_id": 54
+    },
+    {
+      "row": 27,
+      "col": 18,
+      "border": 8,
+      "_id": 48
+    },
+    {
+      "row": 28,
+      "col": 1,
+      "text": "x5 30",
+      "_id": 28,
+      "textAlign": "center",
+      "border": 8
+    },
+    {
+      "row": 28,
+      "col": 5,
+      "backgroundColor": "#ffffcc",
+      "_id": 52
+    },
+    {
+      "row": 28,
+      "col": 16,
+      "backgroundColor": "#ffffcc",
+      "_id": 55
+    },
+    {
+      "row": 28,
+      "col": 18,
+      "border": 8,
+      "_id": 49
+    },
+    {
+      "row": 29,
+      "col": 1,
+      "text": "x10 30",
+      "_id": 29,
+      "textAlign": "center",
+      "border": 24
+    },
+    {
+      "row": 29,
+      "col": 2,
+      "border": 16,
+      "_id": 30
+    },
+    {
+      "row": 29,
+      "col": 3,
+      "border": 16,
+      "_id": 31
+    },
+    {
+      "row": 29,
+      "col": 4,
+      "border": 16,
+      "_id": 32
+    },
+    {
+      "row": 29,
+      "col": 5,
+      "border": 16,
+      "_id": 33,
+      "backgroundColor": "#ffffcc"
+    },
+    {
+      "row": 29,
+      "col": 6,
+      "border": 16,
+      "_id": 34
+    },
+    {
+      "row": 29,
+      "col": 7,
+      "border": 16,
+      "_id": 35
+    },
+    {
+      "row": 29,
+      "col": 8,
+      "border": 16,
+      "_id": 36
+    },
+    {
+      "row": 29,
+      "col": 9,
+      "border": 16,
+      "_id": 37
+    },
+    {
+      "row": 29,
+      "col": 10,
+      "border": 16,
+      "_id": 38
+    },
+    {
+      "row": 29,
+      "col": 11,
+      "border": 16,
+      "_id": 39
+    },
+    {
+      "row": 29,
+      "col": 12,
+      "border": 16,
+      "_id": 40
+    },
+    {
+      "row": 29,
+      "col": 13,
+      "border": 16,
+      "_id": 41
+    },
+    {
+      "row": 29,
+      "col": 14,
+      "border": 16,
+      "_id": 42
+    },
+    {
+      "row": 29,
+      "col": 15,
+      "border": 16,
+      "_id": 43
+    },
+    {
+      "row": 29,
+      "col": 16,
+      "border": 16,
+      "_id": 44,
+      "backgroundColor": "#ffffcc"
+    },
+    {
+      "row": 29,
+      "col": 17,
+      "border": 16,
+      "_id": 45
+    },
+    {
+      "row": 29,
+      "col": 18,
+      "border": 24,
+      "_id": 46
     }
   ]
 }

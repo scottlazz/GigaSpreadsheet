@@ -411,6 +411,21 @@ export default class SparseGrid {
         return data;
     }
 
+    getAllCellsInRange(startRow, startCol, endRow, endCol) {
+        const data = [];
+        for(let row in this._data) {
+            if (row < startRow || row > endRow) continue;
+            for(let col in this._data[row]) {
+                if (col < startCol || col > endCol) continue;
+                if (this._data[row][col] && typeof this._data[row][col] === 'object') {
+                    this._data[row][col].row = parseInt(row); this._data[row][col].col = parseInt(col);
+                    data.push(this._data[row][col]);
+                }
+            }
+        }
+        return data;
+    }
+
     getAllData() {
         const data = [];
         for(let row in this._data) {
@@ -452,10 +467,15 @@ export default class SparseGrid {
         const cells = [];
         for (let row = startRow; row <= endRow; row++) {
             for(let col = startCol; col <= endCol; col++) {
-                cells.push({
-                    row,
-                    col,
-                });
+                let cell = this.get(row,col);
+                if (!cell) {
+                    cell = {
+                        row,
+                        col,
+                    };
+                }
+                cell.row = parseInt(row); cell.col = parseInt(col);
+                cells.push(cell);
             }
         }
 

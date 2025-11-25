@@ -63,7 +63,7 @@ export function launchFormatMenu() {
                 display: flex;
                 gap: 4px;
             }
-            .alignment-btn,.border-btn {
+            .alignment-btn,.border-btn,.border-btn-apply {
                 flex: 1;
                 padding: 6px;
                 background: white;
@@ -159,6 +159,15 @@ export function launchFormatMenu() {
                 </div>
             </div>
             <div class="menu-section">
+                <div class="menu-title">Add Border</div>
+                <div class="border-options">
+                    <div class="border-btn-apply" data-border="${(1 << 1)}" title="Border Left">Left</div>
+                    <div class="border-btn-apply" data-border="${(1 << 2)}" title="Border Top">Top</div>
+                    <div class="border-btn-apply" data-border="${(1 << 3)}" title="Border Right">Right</div>
+                    <div class="border-btn-apply" data-border="${(1 << 4)}" title="Border Bottom">Bottom</div>
+                </div>
+            </div>
+            <div class="menu-section">
             <div class="menu-title">Text Baseline</div>
                 <div class="option-group">
                     <div class="format-btn" data-baseline="alphabetic" title="Alphabetic">A</div>
@@ -222,6 +231,13 @@ export function launchFormatMenu() {
             // Remove active class from all buttons
             // const border = this.getAttribute('data-border');
             onChange('border', border);
+        });
+    });
+    formatWindow.document.querySelectorAll('.border-btn-apply').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const border = this.getAttribute('data-border');
+            console.log('border:', border)
+            onChange('border-apply', border);
         });
     });
     // Baseline buttons

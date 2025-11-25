@@ -10,7 +10,7 @@ import FinancialSubscriber from 'packages/financial/index';
 // @ts-ignore
 import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "packages/dependencytracker";
 
-import { hasBorderStr, arrows } from "./utils";
+import { hasBorderStr, addBorder, arrows } from "./utils";
 import { shiftTextRefs, rowColToRef } from "./shiftops";
 import { header } from './templates';
 import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
@@ -238,6 +238,7 @@ export default class Sheet {
         if (!overrides) return [];
         const _overrides: any = [];
         for (let key in overrides) {
+            if (overrides[key] == null) continue;
             _overrides[key] = overrides[key];
         }
         return _overrides;
@@ -772,6 +773,14 @@ export default class Sheet {
         this.updateSelection();
     }
 
+    rerenderCellsForce(arr: any) {
+        for (let cell of arr) {
+            this.putCellObj(cell.row, cell.col, cell);
+            this.renderCell(cell.row, cell.col);
+        }
+
+        this.rerenderMerges(arr);
+    }
     rerenderCells(arr: any) {
         for (let cell of arr) {
             let row, col;
@@ -782,20 +791,6 @@ export default class Sheet {
             }
             this.renderCell(row, col);
         }
-        const blocks = new Set();
-        // for (let cell of arr) {
-        //     let row, col;
-        //     if (Array.isArray(cell)) {
-        //         row = cell[0]; col = cell[1];
-        //     } else {
-        //         row = cell.row; col = cell.col;
-        //     }
-        //     let block = this.getBlockOrSubBlock(row,col);
-        //     if (block) blocks.add(block);
-        // }
-        // for(let block of blocks) {
-        //     this.renderGridlines(block);
-        // }
 
         this.rerenderMerges(arr);
     }
@@ -901,11 +896,25 @@ export default class Sheet {
         this.startCellEdit(row, col);
     }
 
+    applyBorder(border: any) {
+        const selectedCells = this.getSelectedCellsOrVirtual();
+        console.log('selected cells', selectedCells)
+        for(let cell of selectedCells) {
+            cell.border = addBorder(cell.border, border);
+        }
+        this.rerenderCellsForce(selectedCells);
+        // this.setCells(selectedCells, type, value);
+    }
+
     openFormatMenu() {
         const { win, addListener } = launchFormatMenu();
         addListener((type: string, value: string) => {
-            const selectedCells = this.getSelectedCells();
-            this.setCells(selectedCells, type, value);
+            if (type === 'border-apply') {
+                this.applyBorder(parseInt(value));
+            } else {
+                const selectedCells = this.getSelectedCells();
+                this.setCells(selectedCells, type, value);
+            }
         });
     }
 
@@ -1165,6 +1174,12 @@ export default class Sheet {
         const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
         return cells;
     }
+    getSelectedCellsOrVirtual() {
+        if (!this.selectionBoundRect) return [];
+        const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
+        const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
+        return cells;
+    }
     getSelectedCellDataSparse() {
         const cells: any = [];
         if (!this.selectionBoundRect) return cells;
@@ -1268,6 +1283,12 @@ export default class Sheet {
         if (!this.data.has(row, col)) {
             this.data.set(row, col, cell);
         }
+    }
+    putCellObj(row: number, col: number, obj: any) {
+        if (!obj) return;
+        // if (!this.data.has(row, col)) {
+            this.data.set(row, col, obj);
+        // }
     }
     setCells(cells: any, field: string, value: any) {
         for (let cell of cells) {
@@ -2496,28 +2517,28 @@ export default class Sheet {
 
         // left border
         const hasLeft = hasBorderStr(border, 'left');
-        if (force || hasLeft) {
+        if (hasLeft) {
             if (hasLeft) { setBorStroke(); } else { this.setGridlinesCtx(ctx, bgc); }
             strokeLine(rect.l, rect.t, rect.l, rect.t + rect.h);
         }
 
         // top border
         const hasTop = hasBorderStr(border, 'top');
-        if (force || hasTop) {
+        if (hasTop) {
             if (hasTop) { setBorStroke(); } else { this.setGridlinesCtx(ctx, bgc); }
             strokeLine(rect.l, rect.t, rect.l + rect.w, rect.t);
         }
 
         // right border
         const hasRight = hasBorderStr(border, 'right');
-        if (force || hasRight) {
+        if (hasRight) {
             if (hasRight) { setBorStroke(); } else { this.setGridlinesCtx(ctx, bgc); }
             strokeLine(rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
         }
 
         // bottom border
         const hasBottom = hasBorderStr(border, 'bottom');
-        if (force || hasBottom) {
+        if (hasBottom) {
             if (hasBottom) { setBorStroke(); } else { this.setGridlinesCtx(ctx, bgc); }
             strokeLine(rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
         }
@@ -2556,7 +2577,7 @@ export default class Sheet {
             // console.log('inbounds::', row,col)
             if (ctx) {
                 const r = this.scaleRect(left, top, width, height);
-                ctx.fillRect(r.l, r.t, r.w, r.h);
+                ctx.fillRect(r.l+1, r.t+1, r.w-1, r.h-1);
             }
         } else {
             const ssr = srcblock.startRow, sec = srcblock.endCol;
@@ -2658,11 +2679,12 @@ export default class Sheet {
             ctx.restore();
         }
         x = 0;
-        const seenMerges = new Set();
         for (let col = block.startCol; col < block.endCol; col++) {
             const colWidth = this.getColWidth(col);
 
             for (let row = block.startRow; row < block.endRow; row++) {
+                this.renderCell(row,col);
+                continue;
                 if (!this.getCell(row, col)) continue;
                 // Check if the cell is part of a merged range
                 const merged = this.getMerge(row, col);
@@ -2853,15 +2875,15 @@ export default class Sheet {
             // ctx.translate(-0.5, -0.5);
             ctx.fillStyle = this.getCell(row, col).backgroundColor;
             const { l, t, w, h } = this.scaleRect(x, y, width, this.rowHeight(row));
-            ctx.fillRect(l, t, w+1, h+1);
+            ctx.fillRect(l+1, t+1, w, h);
             ctx.restore();
-            if (row !== 0) {
-                this.renderBorders(ctx, row-1, col, false);
-            }
-            if (col !== 0) {
-                this.renderBorders(ctx, row, col-1, false);
-            }
-            this.renderBorders(ctx, row, col+1, false);
+            // if (row !== 0) {
+            //     this.renderBorders(ctx, row-1, col, false);
+            // }
+            // if (col !== 0) {
+            //     this.renderBorders(ctx, row, col-1, false);
+            // }
+            // this.renderBorders(ctx, row, col+1, false);
         }
     }
 
