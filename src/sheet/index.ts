@@ -2499,10 +2499,7 @@ export default class Sheet {
         const b = Math.round((y + height) * dpr);
         return { l, t, w: Math.max(0, r - l), h: Math.max(0, b - t) };
     }
-    renderBorders(ctx: any, row: any, col: any, force: boolean = false, block: any = null) {
-        // const shouldRender = (force && this.getCell(row, col)?.backgroundColor) || (this.shouldDrawGridlines && force) || !!this.getCell(row,col)?.border;
-        // if (!shouldRender) return;
-        // const bgc = this.getCell(row, col)?.backgroundColor || 'white';
+    renderBorders(ctx: any, row: any, col: any) {
         const cell = this.getCellOrMerge(row,col);
         const border = cell?.border;
         const setBorStroke = () => ctx.strokeStyle = 'black';
@@ -2570,7 +2567,7 @@ export default class Sheet {
         
         
         this.renderCellBackground(ctx, row, col);
-        this.renderBorders(ctx,row,col,true, block);
+        this.renderBorders(ctx,row,col);
         if (this.getCell(row, col).cellType === 'button') {
             const button = this.getButton(row, col).el;
             ({ left, top, width, height } = this.getCellCoordsContainer(row, col));
@@ -2885,14 +2882,21 @@ export default class Sheet {
     renderCellBackground(ctx: any, row: number, col: number) {
         const cell = this.getCellOrMerge(row,col);
 
-        // if (cell?.backgroundColor != null) {
+        if (cell?.backgroundColor != null) {
             ctx.save();
             ctx.fillStyle = cell.backgroundColor || 'white';
             const c = this.getCellCoordsCanvas(row,col);
             const { l, t, w, h } = this.scaleRect(c.left, c.top, c.width, c.height);
             ctx.fillRect(l+1, t+1, w, h);
             ctx.restore();
-        // }
+        } else {
+            ctx.save();
+            ctx.fillStyle = cell.backgroundColor || 'white';
+            const c = this.getCellCoordsCanvas(row,col);
+            const { l, t, w, h } = this.scaleRect(c.left, c.top, c.width, c.height);
+            ctx.fillRect(l+1, t+1, w-1, h-1);
+            ctx.restore();
+        }
     }
 
     renderCellText(ctx: any, row: number, col: number, _text = '') {
