@@ -239,7 +239,8 @@ export const fininit = {
       "backgroundColor": "#99ffcc",
       "_id": 1,
       "border": 20,
-      "text": ""
+      "text": "",
+      "textAlign": "center"
     },
     {
       "row": 3,
@@ -269,7 +270,8 @@ export const fininit = {
       "row": 3,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 30
+      "_id": 30,
+      "textAlign": "center"
     },
     {
       "row": 3,
@@ -281,14 +283,16 @@ export const fininit = {
       "row": 3,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 58
+      "_id": 58,
+      "textAlign": "center"
     },
     {
       "row": 3,
       "col": 16,
       "backgroundColor": "#ffffcc",
       "_id": 5,
-      "text": "0.59"
+      "text": "0.59",
+      "textAlign": "center"
     },
     {
       "row": 3,
@@ -310,7 +314,8 @@ export const fininit = {
       "border": 20,
       "_id": 3,
       "backgroundColor": "#99ffcc",
-      "text": "x99-24"
+      "text": "99-24",
+      "textAlign": "center"
     },
     {
       "row": 4,
@@ -366,7 +371,8 @@ export const fininit = {
       "border": 20,
       "_id": 8,
       "backgroundColor": "#00ff00",
-      "text": "-21.32"
+      "text": "-21.32",
+      "textAlign": "center"
     },
     {
       "row": 4,
@@ -393,7 +399,8 @@ export const fininit = {
       "border": 20,
       "_id": 12,
       "backgroundColor": "#ff66ff",
-      "text": "3.285"
+      "text": "3.285",
+      "textAlign": "center"
     },
     {
       "row": 4,
@@ -407,7 +414,8 @@ export const fininit = {
       "backgroundColor": "#ffffcc",
       "_id": 6,
       "border": 20,
-      "text": "0.13"
+      "text": "0.13",
+      "textAlign": "center"
     },
     {
       "row": 4,
@@ -433,7 +441,8 @@ export const fininit = {
       "row": 5,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 2
+      "_id": 2,
+      "textAlign": "center"
     },
     {
       "row": 5,
@@ -463,7 +472,8 @@ export const fininit = {
       "row": 5,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 31
+      "_id": 31,
+      "textAlign": "center"
     },
     {
       "row": 5,
@@ -475,13 +485,15 @@ export const fininit = {
       "row": 5,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 59
+      "_id": 59,
+      "textAlign": "center"
     },
     {
       "row": 5,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 7
+      "_id": 7,
+      "textAlign": "center"
     },
     {
       "row": 5,
@@ -501,7 +513,8 @@ export const fininit = {
       "row": 6,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 3
+      "_id": 3,
+      "textAlign": "center"
     },
     {
       "row": 6,
@@ -531,7 +544,8 @@ export const fininit = {
       "row": 6,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 32
+      "_id": 32,
+      "textAlign": "center"
     },
     {
       "row": 6,
@@ -543,13 +557,15 @@ export const fininit = {
       "row": 6,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 60
+      "_id": 60,
+      "textAlign": "center"
     },
     {
       "row": 6,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 8
+      "_id": 8,
+      "textAlign": "center"
     },
     {
       "row": 6,
@@ -569,7 +585,8 @@ export const fininit = {
       "row": 7,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 4
+      "_id": 4,
+      "textAlign": "center"
     },
     {
       "row": 7,
@@ -599,7 +616,8 @@ export const fininit = {
       "row": 7,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 33
+      "_id": 33,
+      "textAlign": "center"
     },
     {
       "row": 7,
@@ -611,13 +629,15 @@ export const fininit = {
       "row": 7,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 61
+      "_id": 61,
+      "textAlign": "center"
     },
     {
       "row": 7,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 9
+      "_id": 9,
+      "textAlign": "center"
     },
     {
       "row": 7,
@@ -638,7 +658,8 @@ export const fininit = {
       "col": 2,
       "border": 20,
       "_id": 13,
-      "backgroundColor": "#99ffcc"
+      "backgroundColor": "#99ffcc",
+      "textAlign": "center"
     },
     {
       "row": 8,
@@ -691,7 +712,8 @@ export const fininit = {
       "col": 10,
       "border": 20,
       "_id": 20,
-      "backgroundColor": "#00ff00"
+      "backgroundColor": "#00ff00",
+      "textAlign": "center"
     },
     {
       "row": 8,
@@ -717,7 +739,8 @@ export const fininit = {
       "col": 14,
       "border": 20,
       "_id": 24,
-      "backgroundColor": "#ff66ff"
+      "backgroundColor": "#ff66ff",
+      "textAlign": "center"
     },
     {
       "row": 8,
@@ -731,7 +754,8 @@ export const fininit = {
       "backgroundColor": "#ffffcc",
       "_id": 10,
       "border": 20,
-      "text": ""
+      "text": "",
+      "textAlign": "center"
     },
     {
       "row": 8,
@@ -757,7 +781,8 @@ export const fininit = {
       "row": 9,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 5
+      "_id": 5,
+      "textAlign": "center"
     },
     {
       "row": 9,
@@ -787,7 +812,8 @@ export const fininit = {
       "row": 9,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 34
+      "_id": 34,
+      "textAlign": "center"
     },
     {
       "row": 9,
@@ -799,13 +825,15 @@ export const fininit = {
       "row": 9,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 62
+      "_id": 62,
+      "textAlign": "center"
     },
     {
       "row": 9,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 11
+      "_id": 11,
+      "textAlign": "center"
     },
     {
       "row": 9,
@@ -825,7 +853,8 @@ export const fininit = {
       "row": 10,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 6
+      "_id": 6,
+      "textAlign": "center"
     },
     {
       "row": 10,
@@ -855,7 +884,8 @@ export const fininit = {
       "row": 10,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 35
+      "_id": 35,
+      "textAlign": "center"
     },
     {
       "row": 10,
@@ -867,13 +897,15 @@ export const fininit = {
       "row": 10,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 63
+      "_id": 63,
+      "textAlign": "center"
     },
     {
       "row": 10,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 12
+      "_id": 12,
+      "textAlign": "center"
     },
     {
       "row": 10,
@@ -893,7 +925,8 @@ export const fininit = {
       "row": 11,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 7
+      "_id": 7,
+      "textAlign": "center"
     },
     {
       "row": 11,
@@ -923,7 +956,8 @@ export const fininit = {
       "row": 11,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 36
+      "_id": 36,
+      "textAlign": "center"
     },
     {
       "row": 11,
@@ -935,13 +969,15 @@ export const fininit = {
       "row": 11,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 64
+      "_id": 64,
+      "textAlign": "center"
     },
     {
       "row": 11,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 13
+      "_id": 13,
+      "textAlign": "center"
     },
     {
       "row": 11,
@@ -961,7 +997,8 @@ export const fininit = {
       "row": 12,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 8
+      "_id": 8,
+      "textAlign": "center"
     },
     {
       "row": 12,
@@ -991,7 +1028,8 @@ export const fininit = {
       "row": 12,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 37
+      "_id": 37,
+      "textAlign": "center"
     },
     {
       "row": 12,
@@ -1003,13 +1041,15 @@ export const fininit = {
       "row": 12,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 65
+      "_id": 65,
+      "textAlign": "center"
     },
     {
       "row": 12,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 14
+      "_id": 14,
+      "textAlign": "center"
     },
     {
       "row": 12,
@@ -1030,7 +1070,8 @@ export const fininit = {
       "col": 2,
       "backgroundColor": "#99ffcc",
       "_id": 9,
-      "border": 20
+      "border": 20,
+      "textAlign": "center"
     },
     {
       "row": 13,
@@ -1083,7 +1124,8 @@ export const fininit = {
       "col": 10,
       "border": 20,
       "_id": 25,
-      "backgroundColor": "#00ff00"
+      "backgroundColor": "#00ff00",
+      "textAlign": "center"
     },
     {
       "row": 13,
@@ -1110,7 +1152,8 @@ export const fininit = {
       "border": 20,
       "_id": 29,
       "backgroundColor": "#ff66ff",
-      "text": "3.6259"
+      "text": "3.6259",
+      "textAlign": "center"
     },
     {
       "row": 13,
@@ -1125,7 +1168,8 @@ export const fininit = {
       "_id": 15,
       "border": 20,
       "text": "3.55",
-      "bold": true
+      "bold": true,
+      "textAlign": "center"
     },
     {
       "row": 13,
@@ -1151,7 +1195,8 @@ export const fininit = {
       "row": 14,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 37
+      "_id": 37,
+      "textAlign": "center"
     },
     {
       "row": 14,
@@ -1181,7 +1226,8 @@ export const fininit = {
       "row": 14,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 38
+      "_id": 38,
+      "textAlign": "center"
     },
     {
       "row": 14,
@@ -1193,13 +1239,15 @@ export const fininit = {
       "row": 14,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 66
+      "_id": 66,
+      "textAlign": "center"
     },
     {
       "row": 14,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 16
+      "_id": 16,
+      "textAlign": "center"
     },
     {
       "row": 14,
@@ -1219,7 +1267,8 @@ export const fininit = {
       "row": 15,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 38
+      "_id": 38,
+      "textAlign": "center"
     },
     {
       "row": 15,
@@ -1249,7 +1298,8 @@ export const fininit = {
       "row": 15,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 39
+      "_id": 39,
+      "textAlign": "center"
     },
     {
       "row": 15,
@@ -1261,13 +1311,15 @@ export const fininit = {
       "row": 15,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 67
+      "_id": 67,
+      "textAlign": "center"
     },
     {
       "row": 15,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 17
+      "_id": 17,
+      "textAlign": "center"
     },
     {
       "row": 15,
@@ -1287,7 +1339,8 @@ export const fininit = {
       "row": 16,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 39
+      "_id": 39,
+      "textAlign": "center"
     },
     {
       "row": 16,
@@ -1317,7 +1370,8 @@ export const fininit = {
       "row": 16,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 40
+      "_id": 40,
+      "textAlign": "center"
     },
     {
       "row": 16,
@@ -1329,13 +1383,15 @@ export const fininit = {
       "row": 16,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 68
+      "_id": 68,
+      "textAlign": "center"
     },
     {
       "row": 16,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 18
+      "_id": 18,
+      "textAlign": "center"
     },
     {
       "row": 16,
@@ -1355,7 +1411,8 @@ export const fininit = {
       "row": 17,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 40
+      "_id": 40,
+      "textAlign": "center"
     },
     {
       "row": 17,
@@ -1385,7 +1442,8 @@ export const fininit = {
       "row": 17,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 41
+      "_id": 41,
+      "textAlign": "center"
     },
     {
       "row": 17,
@@ -1397,13 +1455,15 @@ export const fininit = {
       "row": 17,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 69
+      "_id": 69,
+      "textAlign": "center"
     },
     {
       "row": 17,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 19
+      "_id": 19,
+      "textAlign": "center"
     },
     {
       "row": 17,
@@ -1423,7 +1483,8 @@ export const fininit = {
       "row": 18,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 41
+      "_id": 41,
+      "textAlign": "center"
     },
     {
       "row": 18,
@@ -1453,7 +1514,8 @@ export const fininit = {
       "row": 18,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 42
+      "_id": 42,
+      "textAlign": "center"
     },
     {
       "row": 18,
@@ -1465,13 +1527,15 @@ export const fininit = {
       "row": 18,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 70
+      "_id": 70,
+      "textAlign": "center"
     },
     {
       "row": 18,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 20
+      "_id": 20,
+      "textAlign": "center"
     },
     {
       "row": 18,
@@ -1492,7 +1556,8 @@ export const fininit = {
       "col": 2,
       "backgroundColor": "#99ffcc",
       "_id": 42,
-      "border": 20
+      "border": 20,
+      "textAlign": "center"
     },
     {
       "row": 19,
@@ -1545,7 +1610,8 @@ export const fininit = {
       "col": 10,
       "border": 20,
       "_id": 12,
-      "backgroundColor": "#00ff00"
+      "backgroundColor": "#00ff00",
+      "textAlign": "center"
     },
     {
       "row": 19,
@@ -1571,7 +1637,8 @@ export const fininit = {
       "col": 14,
       "border": 20,
       "_id": 16,
-      "backgroundColor": "#ff66ff"
+      "backgroundColor": "#ff66ff",
+      "textAlign": "center"
     },
     {
       "row": 19,
@@ -1585,7 +1652,8 @@ export const fininit = {
       "backgroundColor": "#ffffcc",
       "_id": 21,
       "border": 20,
-      "text": ""
+      "text": "",
+      "textAlign": "center"
     },
     {
       "row": 19,
@@ -1611,7 +1679,8 @@ export const fininit = {
       "row": 20,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 43
+      "_id": 43,
+      "textAlign": "center"
     },
     {
       "row": 20,
@@ -1642,7 +1711,8 @@ export const fininit = {
       "row": 20,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 43
+      "_id": 43,
+      "textAlign": "center"
     },
     {
       "row": 20,
@@ -1654,13 +1724,15 @@ export const fininit = {
       "row": 20,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 71
+      "_id": 71,
+      "textAlign": "center"
     },
     {
       "row": 20,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 22
+      "_id": 22,
+      "textAlign": "center"
     },
     {
       "row": 20,
@@ -1680,7 +1752,8 @@ export const fininit = {
       "row": 21,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 6
+      "_id": 6,
+      "textAlign": "center"
     },
     {
       "row": 21,
@@ -1710,7 +1783,8 @@ export const fininit = {
       "row": 21,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 21
+      "_id": 21,
+      "textAlign": "center"
     },
     {
       "row": 21,
@@ -1722,13 +1796,15 @@ export const fininit = {
       "row": 21,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 46
+      "_id": 46,
+      "textAlign": "center"
     },
     {
       "row": 21,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 41
+      "_id": 41,
+      "textAlign": "center"
     },
     {
       "row": 21,
@@ -1748,7 +1824,8 @@ export const fininit = {
       "row": 22,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 7
+      "_id": 7,
+      "textAlign": "center"
     },
     {
       "row": 22,
@@ -1778,7 +1855,8 @@ export const fininit = {
       "row": 22,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 22
+      "_id": 22,
+      "textAlign": "center"
     },
     {
       "row": 22,
@@ -1790,13 +1868,15 @@ export const fininit = {
       "row": 22,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 47
+      "_id": 47,
+      "textAlign": "center"
     },
     {
       "row": 22,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 42
+      "_id": 42,
+      "textAlign": "center"
     },
     {
       "row": 22,
@@ -1816,7 +1896,8 @@ export const fininit = {
       "row": 23,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 8
+      "_id": 8,
+      "textAlign": "center"
     },
     {
       "row": 23,
@@ -1846,7 +1927,8 @@ export const fininit = {
       "row": 23,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 23
+      "_id": 23,
+      "textAlign": "center"
     },
     {
       "row": 23,
@@ -1858,13 +1940,15 @@ export const fininit = {
       "row": 23,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 48
+      "_id": 48,
+      "textAlign": "center"
     },
     {
       "row": 23,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 43
+      "_id": 43,
+      "textAlign": "center"
     },
     {
       "row": 23,
@@ -1884,7 +1968,8 @@ export const fininit = {
       "row": 24,
       "col": 2,
       "backgroundColor": "#99ffcc",
-      "_id": 9
+      "_id": 9,
+      "textAlign": "center"
     },
     {
       "row": 24,
@@ -1914,7 +1999,8 @@ export const fininit = {
       "row": 24,
       "col": 10,
       "backgroundColor": "#ccffff",
-      "_id": 24
+      "_id": 24,
+      "textAlign": "center"
     },
     {
       "row": 24,
@@ -1926,13 +2012,15 @@ export const fininit = {
       "row": 24,
       "col": 14,
       "backgroundColor": "#ffeffb",
-      "_id": 49
+      "_id": 49,
+      "textAlign": "center"
     },
     {
       "row": 24,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 44
+      "_id": 44,
+      "textAlign": "center"
     },
     {
       "row": 24,
@@ -1953,7 +2041,8 @@ export const fininit = {
       "col": 2,
       "backgroundColor": "#99ffcc",
       "_id": 10,
-      "border": 16
+      "border": 16,
+      "textAlign": "center"
     },
     {
       "row": 25,
@@ -2006,7 +2095,8 @@ export const fininit = {
       "col": 10,
       "backgroundColor": "#ccffff",
       "_id": 25,
-      "border": 16
+      "border": 16,
+      "textAlign": "center"
     },
     {
       "row": 25,
@@ -2032,7 +2122,8 @@ export const fininit = {
       "col": 14,
       "backgroundColor": "#ffeffb",
       "_id": 50,
-      "border": 16
+      "border": 16,
+      "textAlign": "center"
     },
     {
       "row": 25,
@@ -2045,7 +2136,8 @@ export const fininit = {
       "col": 16,
       "backgroundColor": "#ffffcc",
       "_id": 45,
-      "border": 16
+      "border": 16,
+      "textAlign": "center"
     },
     {
       "row": 25,
@@ -2062,7 +2154,7 @@ export const fininit = {
     {
       "row": 26,
       "col": 1,
-      "text": "x2 10",
+      "text": "2 10",
       "_id": 26,
       "textAlign": "center",
       "border": 8
@@ -2077,7 +2169,8 @@ export const fininit = {
       "row": 26,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 53
+      "_id": 53,
+      "textAlign": "center"
     },
     {
       "row": 26,
@@ -2088,7 +2181,7 @@ export const fininit = {
     {
       "row": 27,
       "col": 1,
-      "text": "x5 10",
+      "text": "5 10",
       "_id": 27,
       "textAlign": "center",
       "border": 8
@@ -2103,7 +2196,8 @@ export const fininit = {
       "row": 27,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 54
+      "_id": 54,
+      "textAlign": "center"
     },
     {
       "row": 27,
@@ -2114,7 +2208,7 @@ export const fininit = {
     {
       "row": 28,
       "col": 1,
-      "text": "x5 30",
+      "text": "5 30",
       "_id": 28,
       "textAlign": "center",
       "border": 8
@@ -2129,7 +2223,8 @@ export const fininit = {
       "row": 28,
       "col": 16,
       "backgroundColor": "#ffffcc",
-      "_id": 55
+      "_id": 55,
+      "textAlign": "center"
     },
     {
       "row": 28,
@@ -2140,7 +2235,7 @@ export const fininit = {
     {
       "row": 29,
       "col": 1,
-      "text": "x10 30",
+      "text": "10 30",
       "_id": 29,
       "textAlign": "center",
       "border": 24
@@ -2235,7 +2330,8 @@ export const fininit = {
       "col": 16,
       "border": 16,
       "_id": 44,
-      "backgroundColor": "#ffffcc"
+      "backgroundColor": "#ffffcc",
+      "textAlign": "center"
     },
     {
       "row": 29,

@@ -305,6 +305,6 @@ export default class ExpressionParser {
         }
 
         // If the expression does not start with '=', treat it as a literal value
-        return parseFloat(expression) || expression;
+        return !isNaN(expression) && !Number.isNaN(parseFloat(expression)) ? parseFloat(expression) : expression;
     }
 }
