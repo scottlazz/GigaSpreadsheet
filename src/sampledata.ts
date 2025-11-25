@@ -52,7 +52,9 @@ export const fininit = {
       "text": "RATE",
       "_id": 1,
       "textAlign": "center",
-      "bold": true
+      "backgroundColor": "#f5d0c4ff",
+      "bold": true,
+      "border": 12
     },
     {
       "row": 2,
