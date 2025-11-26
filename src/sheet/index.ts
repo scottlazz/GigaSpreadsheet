@@ -86,6 +86,7 @@ export default class Sheet {
     probe: HTMLDivElement;
     lastDirKey: any;
     scheduledRenders: {[key: string]: any};
+    scheduledOffBlockRenders: {[key: string]: any};
     renderQueued: boolean;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.toolbar = null;
@@ -94,6 +95,7 @@ export default class Sheet {
         this.formulaBar = null;
         this.lastCol = null;
         this.scheduledRenders = {};
+        this.scheduledOffBlockRenders = {};
         this.wrapper = wrapper || document.createElement('div');
         const _container = document.createElement('div');
         this._container = _container;
@@ -1356,6 +1358,7 @@ export default class Sheet {
     }
 
     getBlocksInMerge(merge: any): Set<any> {
+        const blocks: any = [];
         const blockSet = new Set();
         for (let i = merge.startRow; i <= merge.endRow; i++) {
             for (let j = merge.startCol; j <= merge.endCol; j++) {
@@ -1363,8 +1366,10 @@ export default class Sheet {
                 if (!block) continue;
                 if (blockSet.has(block)) continue;
                 blockSet.add(block);
+                blocks.push([block,[i,j]]);
             }
         }
+        return blocks;
         return blockSet;
     }
 
@@ -2523,75 +2528,108 @@ export default class Sheet {
         const b = Math.round((y + height) * dpr);
         return { l, t, w: Math.max(0, r - l), h: Math.max(0, b - t) };
     }
+    setBorStroke(ctx: any) {
+        ctx.strokeStyle = 'black';
+    }
+    setGridLineStroke(ctx: any) {
+        ctx.strokeStyle = '#dddddd';
+    }
+    setClearStroke(ctx: any) {
+        ctx.strokeStyle = 'white';
+    }
+    strokeLine(ctx: any, x1: number, y1: number, x2: number, y2: number) {
+        ctx.beginPath();
+        ctx.moveTo(x1 + 0.5, y1 + 0.5);
+        ctx.lineTo(x2 + 0.5, y2 + 0.5);
+        ctx.stroke();
+    }
+    renderleftBorder(ctx: any, row: number, col: number, fromBlockRender: boolean) {
+        const cell = this.getCellOrMerge(row,col);
+        const border = cell?.border;
+        let left, top, width, height;
+        ({ left, top, width, height } = this.getCellCoordsCanvas(cell.row, cell.col));
+        const rect = this.scaleRect(left, top, width, height);
+        const hasLeft = hasBorderStr(border, 'left') || hasBorderStr(this.getCellOrMerge(cell.row, cell.col-1)?.border, 'right');
+        if (hasLeft) {
+            this.setBorStroke(ctx);
+            this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
+        } else if (!fromBlockRender) {
+            if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
+            this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
+        }
+    }
     // drawborders
     renderBorders(ctx: any, row: number, col: number, fromBlockRender: boolean) {
         // return;
         const cell = this.getCellOrMerge(row,col);
         const border = cell?.border;
-        const setBorStroke = () => ctx.strokeStyle = 'black';
-        const setGridLineStroke = () => {
-            ctx.strokeStyle = '#dddddd';
-        }
-        const setClearStroke = () => {
-            // ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
-            // console.log('setting clear stroke')
-            ctx.strokeStyle = 'white';
-        }
         ctx.save();
         ctx.lineWidth = 1;
-        // ctx.fillStyle = '#333333';
-        // derive device-pixel rectangle for the cell. If a block is provided, compute coordinates
-        // relative to the block so drawing occurs inside the block's canvas.
         let left, top, width, height;
-        ({ left, top, width, height } = this.getCellCoordsCanvas(cell.row, cell.col));
+        ({ left, top, width, height } = this.getCellCoordsCanvas(row, col));
         const rect = this.scaleRect(left, top, width, height);
-
-        // helper to stroke a line with half-pixel alignment
-        const strokeLine = (x1: number, y1: number, x2: number, y2: number) => {
-            ctx.beginPath();
-            ctx.moveTo(x1 + 0.5, y1 + 0.5);
-            ctx.lineTo(x2 + 0.5, y2 + 0.5);
-            ctx.stroke();
-        }
 
         // left border
         const hasLeft = hasBorderStr(border, 'left') || hasBorderStr(this.getCellOrMerge(cell.row, cell.col-1)?.border, 'right');
         if (hasLeft) {
-            setBorStroke();
-            strokeLine(rect.l, rect.t, rect.l, rect.t + rect.h);
+            this.setBorStroke(ctx);
+            this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
         } else if (!fromBlockRender) {
-            if (this.shouldDrawGridlines) { setGridLineStroke(); } else { setClearStroke(); }
-            strokeLine(rect.l, rect.t, rect.l, rect.t + rect.h);
+            if (this.getCellOrMerge(cell.row, cell.col-1)?.backgroundColor) {
+
+            } else {
+                if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
+                this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
+            }
+
+            // todo: improve this logic, instead of above, calc right borders on cells abutting to the left
         }
-        console.log('?????', border, fromBlockRender)
         // top border
         const hasTop = hasBorderStr(border, 'top') || hasBorderStr(this.getCellOrMerge(cell.row-1, cell.col)?.border, 'bottom');
         if (hasTop) {
-            setBorStroke();
-            strokeLine(rect.l, rect.t, rect.l + rect.w, rect.t);
+            this.setBorStroke(ctx);
+            this.strokeLine(ctx, rect.l, rect.t, rect.l + rect.w, rect.t);
         } else if (!fromBlockRender) {
-            if (this.shouldDrawGridlines) { setGridLineStroke(); } else { setClearStroke(); }
-            strokeLine(rect.l, rect.t, rect.l + rect.w, rect.t);
+            if (this.getCellOrMerge(cell.row-1, cell.col)?.backgroundColor) {
+
+            } else {
+                if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
+                this.strokeLine(ctx, rect.l, rect.t, rect.l + rect.w, rect.t);
+            }
+
+            // calc bottom borders on cells abutting to the top
         }
 
         // right border
         const hasRight = hasBorderStr(border, 'right') || hasBorderStr(this.getCellOrMerge(cell.row, cell.col+1)?.border, 'left');
         if (hasRight) {
-            setBorStroke();
-            strokeLine(rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
+            this.setBorStroke(ctx);
+            this.strokeLine(ctx, rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
         } else if (!fromBlockRender) {
-            if (this.shouldDrawGridlines) { setGridLineStroke(); } else { setClearStroke(); }
-            strokeLine(rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
+            if (this.getCellOrMerge(cell.row, cell.col+1)?.backgroundColor) {
+
+            } else {
+                if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
+                this.strokeLine(ctx, rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
+            }
+
+            // calc left borders on cells abutting to the right
         }
 
         // bottom border
         const hasBottom = hasBorderStr(border, 'bottom') || hasBorderStr(this.getCellOrMerge(cell.row+1, cell.col)?.border, 'top');
         if (hasBottom) {
-            setBorStroke();
-            strokeLine(rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
+            this.setBorStroke(ctx);
+            this.strokeLine(ctx, rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
         } else if (!fromBlockRender) {
-            if (this.shouldDrawGridlines) { setGridLineStroke(); } else { setClearStroke(); }
-            strokeLine(rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
+            if (this.getCellOrMerge(cell.row+1, cell.col)?.backgroundColor) {
+
+            } else {
+                if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
+                this.strokeLine(ctx, rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
+            }
+
+            // calc top borders on cells abutting to the bottom
         }
 
         ctx.restore();
@@ -2600,15 +2638,15 @@ export default class Sheet {
     getCtx(row: number,col:number) {
         let block = this.getBlockOrSubBlock(row, col);
         if (!block) return;
-        return block?.canvas.getContext('2d', { alpha: true });
+        return block?.canvas.getContext('2d');
     }
 
     immediateRenderCell(row: any, col: any, fromBlockRender: boolean) {
-        // if (!this.isValid(row,col)) return;
+        if (!this.isValid(row,col)) return;
 
         let block = this.getBlockOrSubBlock(row, col);
         if (!block) return;
-        let ctx = block?.canvas.getContext('2d', { alpha: true });
+        let ctx = block?.canvas.getContext('2d');
         let left, top, width, height;
         // ctx.fillStyle = '#333333';
         
@@ -2636,6 +2674,18 @@ export default class Sheet {
             }
         }
     }
+    immedateOffBlockRender(row: any, col: any, fromBlockRender: boolean,block:any) {
+        // if (!this.isValid(row,col)) return;
+
+        // let block = this.getBlockOrSubBlock(row, col);
+        if (!block) return;
+        let ctx = block?.canvas.getContext('2d');
+
+        this.renderCellBackground(ctx, row, col);
+        this.renderBorders(ctx,row,col,fromBlockRender);
+        this.clearElRegistry(row,col);
+        this.renderCellText(ctx, row, col);
+    }
 
     getCellsInMerge(merge: any) {
         const cells = [];
@@ -2653,6 +2703,11 @@ export default class Sheet {
             this.immediateRenderCell(row,col,fromBlockRender);
             delete this.scheduledRenders[key];
         }
+        for(let key in this.scheduledOffBlockRenders) {
+            const [row,col,fromBlockRender,block] = this.scheduledOffBlockRenders[key];
+            this.immedateOffBlockRender(row,col,fromBlockRender,block);
+            delete this.scheduledOffBlockRenders[key];
+        }
         this.renderQueued = false;
     }
 
@@ -2660,12 +2715,15 @@ export default class Sheet {
         // return;
         // this.immediateRenderCell(...arguments)
         // schedules a render
+        // const br = this.scheduledRenders[`${row},${col}`]?.[2];
         this.scheduledRenders[`${row},${col}`] = [row,col,fromBlockRender];
         const merge = this.getMerge(row,col);
         if (merge) {
-            const cells = this.getCellsInMerge(merge);
-            for(let cell of cells) {
-                this.scheduledRenders[`${cell.row},${cell.col}`] = [cell.row,cell.col];
+            const startBlock = this.getBlockOrSubBlock(merge.startRow,merge.startCol);
+            for (let block of this.getBlocksInMerge(merge)) {
+                if (block[0] === startBlock) continue;
+                this.scheduledOffBlockRenders[`${block[1][0]},${block[1][1]}`] =
+                    [block[1][0],block[1][1],fromBlockRender,block[0]];
             }
         }
         if (!this.renderQueued) {
@@ -2678,36 +2736,9 @@ export default class Sheet {
         return devicePixelRatio;
     }
 
-    renderBlock(block: any, calcDimensions = false) {
-        if (calcDimensions) {
-            // if (block.isSubBlock) {
-                this.calculateBlockDimensions(block);
-                this.positionSubBlock(block, block.index);
-            // } else {
-            //     this.positionBlock(block);
-            // }
-        }
-        const ctx = block.canvas.getContext('2d', { alpha: true });
-        ctx.fillStyle = '#ffffff';
-        // ctx.fillRect(0, 0, block.canvas.width, block.canvas.height);
-
-        // Set rendering quality based on zoom
-        this.applyRenderingQuality(ctx);
-
-        // Draw cells
-        let x = 0;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#333333';
-        // ctx.strokeStyle = `hsl(0,0%,88%)`;
-        ctx.strokeStyle = '#dddddd';
-        // const scaler = 88;
-        ctx.lineWidth = 1;
-        ctx.font = this.getFontString();
-
-        
-        // draw row gridlines
+    renderGridlines(block: any, ctx: any) {
         let y;
+        let x = 0;
         if (this.gridlinesOn && this.quality() !== 'performance') {
             ctx.save();
             const dpr = this.effectiveDevicePixelRatio();
@@ -2732,42 +2763,37 @@ export default class Sheet {
             }
             ctx.restore();
         }
-        x = 0;
-        for (let col = block.startCol; col < block.endCol; col++) {
-            const colWidth = this.getColWidth(col);
+    }
 
+    setBlockCtx(ctx: any) {
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#333333';
+        // const scaler = 88;
+        // ctx.strokeStyle = `hsl(0,0%,88%)`;
+        ctx.strokeStyle = '#dddddd';
+        ctx.lineWidth = 1;
+        ctx.font = this.getFontString();
+    }
+
+    renderBlock(block: any, calcDimensions = false) {
+        if (calcDimensions) {
+            this.calculateBlockDimensions(block);
+            this.positionSubBlock(block, block.index);
+        }
+        const ctx = block.canvas.getContext('2d');
+
+        this.applyRenderingQuality(ctx);
+
+        this.setBlockCtx(ctx);
+
+        this.renderGridlines(block, ctx);
+
+        for (let col = block.startCol; col < block.endCol; col++) {
             for (let row = block.startRow; row < block.endRow; row++) {
                 this.renderCell(row,col, true);
-                continue;
-                if (!this.getCell(row, col)) continue;
-                // Check if the cell is part of a merged range
-                const merged = this.getMerge(row, col);
-                if (merged) continue;
-                const y = this.heightAccum[row] - this.heightAccum[block.startRow];
-
-                // Skip rendering if the cell is part of a merged range (except the top-left cell)
-
-                const renderWidth = colWidth;
-
-                if (this.getCell(row, col).cellType === 'button') {
-                    if (!merged) {
-                        const button = this.getButton(row, col).el;
-                        this.positionElement(button, this.widthAccum[col], this.heightAccum[row], renderWidth, this.rowHeight(row));
-                    }
-                } else if (this.getCell(row, col).cellType === 'linechart') {
-                    const lineChart = this.getLineChart(row, col)?.el;
-                    this.positionElement(lineChart, this.widthAccum[col], this.heightAccum[row], renderWidth, this.rowHeight(row));
-                } else {
-                    this.renderCellBackground(ctx, x, y, renderWidth, row, col);
-                    this.renderBorders(ctx,row,col,false, block);
-                    this.renderCellText(ctx, x, y, renderWidth, row, col);
-                }
             }
-
-            x += colWidth;
         }
-
-        // this.renderMergesOnBlock(block, ctx);
     }
     // renderMergesOnBlock(block: any, ctx: any) {
     //     const merges: Array<Rect> = this.getMergesInRange(block);
