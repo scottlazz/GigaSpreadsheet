@@ -64,22 +64,22 @@ export class Toolbar {
                         ${merge}
                     </i>
                 </button>
-                <button class="gigasheet-toolbar-btn" data-tooltip="Left align">
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Left align">
                     <i class="gigasheet-icon">
                         ${leftAlign}
                     </i>
                 </button>
-                <button class="gigasheet-toolbar-btn" data-tooltip="Center align">
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Center align">
                     <i class="gigasheet-icon">
                         ${centerAlign}
                     </i>
                 </button>
-                <button class="gigasheet-toolbar-btn" data-tooltip="Right align">
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Right align">
                     <i class="gigasheet-icon">
                         ${rightAlign}
                     </i>
                 </button>
-                <input style="width:32px;" data-tooltip="Background Color" class="gigasheet-toolbar-btn" type="color" value="#000000">
+                <input style="width:32px;" data-tooltip="Background Color" class="gigasheet-toolbar-btn" type="color" value="#FFFFFF">
                 </button>
             </div>`;
         this.font = new Dropdown('Font', [
@@ -101,7 +101,32 @@ export class Toolbar {
             this.fontSize.container.value = value;
         } else if (attr === 'fontFamily') {
             this.font.container.value = value;
+        } else if (attr === 'backgroundColor') {
+            this.backgroundColorButton.value = value;
+        } else if (attr === 'textAlign') {
+            this.setActiveTextAlign(value);
+        } else if (attr === 'bold') {
+            const bold = this.container.querySelector(`[data-tooltip='Bold']`);
+            if (value) bold?.classList.add('active-btn');
+            else bold?.classList.remove('active-btn');
+        } else if (attr === 'italic') {
+            const el = this.container.querySelector(`[data-tooltip='Italic']`);
+            if (value) el?.classList.add('active-btn');
+            else el?.classList.remove('active-btn');
         }
+    }
+    setActiveTextAlign(value: string) {
+        const left = this.container.querySelector(`[data-tooltip='Left align']`);
+        const middle = this.container.querySelector(`[data-tooltip='Center align']`);
+        const right = this.container.querySelector(`[data-tooltip='Right align']`);
+        left?.classList.remove('active-btn');
+        right?.classList.remove('active-btn');
+        middle?.classList.remove('active-btn');
+        let b;
+        // b = left;
+        if (value === 'left') {b = left;} else if (value === 'center') {
+            b = middle;} else if (value == 'right') {b = right;}
+        b?.classList.add('active-btn');
     }
     addListeners() {
         const onmouseenter = (e: any) => {
@@ -110,8 +135,11 @@ export class Toolbar {
         }
         const onclick = (e: any) => {
             if (!this.cb) return;
-            const button = e.target.closest('.gigasheet-toolbar-btn')
+            const button = e.target.closest('.gigasheet-toolbar-btn');
             const text = button.getAttribute('data-tooltip');
+            // if (button.classList.contains('toolbar-text-align')) {
+            //     this.setActiveTextAlign(text.toLowerCase().split(' ')[0]);
+            // }
             this.cb(text);
         }
         for(let el of (this.container.querySelectorAll('.gigasheet-toolbar-btn') as any)) {

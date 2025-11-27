@@ -91,8 +91,10 @@ export default class Sheet {
     maxRows: number | null;
     maxCols: number | null;
     initialCells: any;
+    changes: any[];
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.toolbar = null;
+        this.changes = [];
         this.renderQueued = false;
         this.options = options;
         this.formulaBar = null;
@@ -350,7 +352,7 @@ export default class Sheet {
             // console.log('clicked align buttons', e.target?.getAttribute('data-align'))
             const textAlign = e.target?.getAttribute('data-align');
             const selectedCells = this.getSelectedCells();
-            this.setCells(selectedCells, 'textAlign', textAlign);
+            this.setCells(selectedCells, 'ta', textAlign);
         })
         this._container.querySelector('.quick-text-actions-buttons')?.addEventListener('click', async (e: any) => {
             // console.log('clicked align buttons', e.target?.getAttribute('data-align'))
@@ -421,19 +423,33 @@ export default class Sheet {
             } else if (action === 'Left align') {
                 const textAlign = 'left';
                 const selectedCells = this.getSelectedCells();
-                this.setCells(selectedCells, 'textAlign', textAlign);
+                this.setCells(selectedCells, 'ta', textAlign);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const value = this.getCell(c.row, c.col)?.ta || 'left';
+                this.toolbar?.set('textAlign', value);
             } else if (action === 'Center align') {
                 const textAlign = 'center';
                 const selectedCells = this.getSelectedCells();
-                this.setCells(selectedCells, 'textAlign', textAlign);
+                this.setCells(selectedCells, 'ta', textAlign);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const value = this.getCell(c.row, c.col)?.ta || 'left';
+                this.toolbar?.set('textAlign', value);
             } else if (action === 'Right align') {
                 const textAlign = 'right';
                 const selectedCells = this.getSelectedCells();
-                this.setCells(selectedCells, 'textAlign', textAlign);
+                this.setCells(selectedCells, 'ta', textAlign);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const value = this.getCell(c.row, c.col)?.ta || 'left';
+                this.toolbar?.set('textAlign', value);
             } else if (action === 'Grow Font') {
                 const selectedCells = this.getSelectedCells();
                 const cells = [];
                 for(let vcell of selectedCells) {
+                    // this.recordCellBeforeChange(vcell.row, vcell.col,'fontSize');
+                    this.recordCellBeforeChange(vcell.row, vcell.col);
                     const cell = this.getCell(vcell.row,vcell.col);
                     if (cell.fontSize == null) {
                         cell.fontSize = 12;
@@ -442,6 +458,7 @@ export default class Sheet {
                     // cell.fontSize *= devicePixelRatio;
                     cells.push(cell);
                 }
+                this.flushChanges();
                 this.rerenderCells(cells);
                 const c = selectedCells[0];
                 if (c?.row == null) return;
@@ -451,6 +468,7 @@ export default class Sheet {
                 const selectedCells = this.getSelectedCells();
                 const cells = [];
                 for (let vcell of selectedCells) {
+                    this.recordCellBeforeChange(vcell.row, vcell.col);
                     const cell = this.getCell(vcell.row, vcell.col);
                     if (cell.fontSize == null) {
                         cell.fontSize = 12;
@@ -458,6 +476,7 @@ export default class Sheet {
                     cell.fontSize--;
                     cells.push(cell);
                 }
+                this.flushChanges();
                 this.rerenderCells(cells);
                 const c = selectedCells[0];
                 if (c?.row == null) return;
@@ -468,45 +487,63 @@ export default class Sheet {
                 const cells = [];
                 for (let vcell of selectedCells) {
                     const cell = this.getCell(vcell.row, vcell.col);
+                    this.recordCellBeforeChange(vcell.row, vcell.col);
                     cell.bold = !cell.bold;
                     cells.push(cell);
                 }
+                this.flushChanges();
                 this.rerenderCells(cells);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const value = this.getCell(c.row, c.col)?.bold || false;
+                this.toolbar?.set('bold', value);
             } else if (action === 'Italic') {
                 const selectedCells = this.getSelectedCells();
                 const cells = [];
                 for (let vcell of selectedCells) {
                     const cell = this.getCell(vcell.row, vcell.col);
+                    this.recordCellBeforeChange(vcell.row, vcell.col);
                     cell.italic = !cell.italic;
                     cells.push(cell);
                 }
+                this.flushChanges();
                 this.rerenderCells(cells);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const value = this.getCell(c.row, c.col)?.italic || false;
+                this.toolbar?.set('italic', value);
             } else if (action === 'fontFamily') {
                 const selectedCells = this.getSelectedCells();
                 const cells = [];
                 for (let vcell of selectedCells) {
+                    this.recordCellBeforeChange(vcell.row, vcell.col);
                     const cell = this.getCell(vcell.row, vcell.col);
-                    cell.fontFamily = value;
+                    cell.ff = value;
                     cells.push(cell);
                 }
+                this.flushChanges();
                 this.rerenderCells(cells);
             } else if (action === 'fontSize') {
                 const selectedCells = this.getSelectedCells();
                 const cells = [];
                 for (let vcell of selectedCells) {
+                    this.recordCellBeforeChange(vcell.row, vcell.col);
                     const cell = this.getCell(vcell.row, vcell.col);
                     cell.fontSize = value;
                     cells.push(cell);
                 }
+                this.flushChanges();
                 this.rerenderCells(cells);
             } else if (action === 'backgroundColor') {
                 const selectedCells = this.getSelectedCells();
                 const cells = [];
                 for (let vcell of selectedCells) {
+                    this.recordCellBeforeChange(vcell.row, vcell.col);
                     const cell = this.getCell(vcell.row, vcell.col);
-                    this.setCell(cell.row, cell.col, 'backgroundColor', value);
+                    this.setCell(cell.row, cell.col, 'bc', value);
                     cells.push(cell);
                 }
+                this.flushChanges();
                 this.rerenderCells(cells);
             }
         })
@@ -676,6 +713,7 @@ export default class Sheet {
         //     this.renderCell(row, col);
         // }
         this.rerenderCells(deletions);
+        this.onSelectionChange();
     }
 
     getColumnName(columnNumber: number) {
@@ -773,6 +811,20 @@ export default class Sheet {
         }
     }
 
+    recordCellBeforeChange(row: number, col: number, attr?: any) {
+        const obj = { row, col,
+            prevData: Object.assign({}, this.getCell(row, col)),
+            attr,
+            changeKind: 'valchange'
+        };
+        this.changes.push(obj);
+    }
+
+    flushChanges() {
+        this.recordChanges(this.changes);
+        this.changes = [];
+    }
+
     setWidthOverride(col: any, width: any) {
         if (width == null) {
             delete this.widthOverrides[col];
@@ -836,7 +888,11 @@ export default class Sheet {
                 // Record the current value for redo
                 redoChanges.push({ row, col, prevData: Object.assign({}, this.getCell(row,col)), previousValue: this.getCellText(row, col), newValue: previousValue, changeKind: 'valchange' });
                 // Revert the cell to its previous value
-                this.putCellObj(row,col, prevData);
+                if (change.attr) {
+                    this.setCell(row, col, change.attr, prevData[change.attr]);
+                } else {
+                    this.putCellObj(row,col, prevData);
+                }
                 // this.setCell(row, col, 'text', previousValue);
                 updatedCells.push([row, col]);
             } else {
@@ -938,7 +994,11 @@ export default class Sheet {
                 // Record the current value for undo
                 undoChanges.push({ row, col, prevData: Object.assign({}, this.getCell(row,col)), previousValue: this.getCellText(row, col), newValue, changeKind: 'valchange' });
                 // Apply the new value to the cell
-                this.putCellObj(row,col,prevData)
+                if (change.attr) {
+                    this.setCell(row, col, change.attr, prevData[change.attr]);
+                } else {
+                    this.putCellObj(row,col, prevData);
+                }
                 // this.setCell(row, col, 'text', previousValue);
                 updatedCells.push([row, col]);
             } else {
@@ -1333,9 +1393,11 @@ export default class Sheet {
     }
     setCells(cells: any, field: string, value: any) {
         for (let cell of cells) {
+            this.recordCellBeforeChange(cell.row, cell.col);
             this.setCell(cell.row, cell.col, field, value);
             this.renderCell(cell.row, cell.col);
         }
+        this.flushChanges();
         if (field === 'cellType') {
             console.log('forcing rerender')
             this.forceRerender();
@@ -1856,8 +1918,16 @@ export default class Sheet {
         }
         const fontSize = this.getCell(row, col)?.fontSize || '12';
         this.toolbar?.set('fontSize', fontSize.toString());
-        const fontFamily = this.getCell(row, col).fontFamily || 'Arial';
+        const fontFamily = this.getCell(row, col).ff || 'Arial';
         this.toolbar?.set('fontFamily', fontFamily);
+        const backgroundColor = this.getCell(row, col).bc || '#FFFFFF';
+        this.toolbar?.set('backgroundColor', backgroundColor);
+        const textAlign = this.getCell(row, col).ta || 'left';
+        this.toolbar?.set('textAlign', textAlign);
+        const bold = this.getCell(row, col).bold || false;
+        this.toolbar?.set('bold', bold);
+        const italic = this.getCell(row, col).italic || false;
+        this.toolbar?.set('italic', italic);
     }
 
     updateSelection() {
@@ -2622,7 +2692,7 @@ export default class Sheet {
             this.setBorStroke(ctx);
             this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
         } else if (!fromBlockRender) {
-            if (this.getCellOrMerge(cell.row, cell.col-1)?.backgroundColor) {
+            if (this.getCellOrMerge(cell.row, cell.col-1)?.bc) {
 
             } else {
                 if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
@@ -2637,7 +2707,7 @@ export default class Sheet {
             this.setBorStroke(ctx);
             this.strokeLine(ctx, rect.l, rect.t, rect.l + rect.w, rect.t);
         } else if (!fromBlockRender) {
-            if (this.getCellOrMerge(cell.row-1, cell.col)?.backgroundColor) {
+            if (this.getCellOrMerge(cell.row-1, cell.col)?.bc) {
 
             } else {
                 if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
@@ -2653,7 +2723,7 @@ export default class Sheet {
             this.setBorStroke(ctx);
             this.strokeLine(ctx, rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
         } else if (!fromBlockRender) {
-            if (this.getCellOrMerge(cell.row, cell.col+1)?.backgroundColor) {
+            if (this.getCellOrMerge(cell.row, cell.col+1)?.bc) {
 
             } else {
                 if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
@@ -2669,7 +2739,7 @@ export default class Sheet {
             this.setBorStroke(ctx);
             this.strokeLine(ctx, rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
         } else if (!fromBlockRender) {
-            if (this.getCellOrMerge(cell.row+1, cell.col)?.backgroundColor) {
+            if (this.getCellOrMerge(cell.row+1, cell.col)?.bc) {
 
             } else {
                 if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
@@ -3006,23 +3076,23 @@ export default class Sheet {
         return this.getCell(row, col)?.text || '';
     }
     getCellTextAlign(row: number, col: number) {
-        return this.getCell(row, col)?.textAlign;
+        return this.getCell(row, col)?.ta;
     }
 
     // renderbackground
     renderCellBackground(ctx: any, row: number, col: number) {
         const cell = this.getCellOrMerge(row,col);
 
-        if (cell?.backgroundColor != null) {
+        if (cell?.bc != null) {
             ctx.save();
-            ctx.fillStyle = cell.backgroundColor || 'white';
+            ctx.fillStyle = cell.bc || 'white';
             const c = this.getCellCoordsCanvas(row,col);
             const { l, t, w, h } = this.scaleRect(c.left, c.top, c.width, c.height);
             ctx.fillRect(l+1, t+1, w, h);
             ctx.restore();
         } else {
             ctx.save();
-            ctx.fillStyle = cell.backgroundColor || 'white';
+            ctx.fillStyle = cell.bc || 'white';
             const c = this.getCellCoordsCanvas(row,col);
             const { l, t, w, h } = this.scaleRect(c.left, c.top, c.width, c.height);
             ctx.fillRect(l+1, t+1, w-1, h-1);
@@ -3096,7 +3166,7 @@ export default class Sheet {
         if (row != null && col != null) {
             bold = this.getCell(row, col).bold;
             italic = this.getCell(row, col).italic;
-            fontFamily = this.getCell(row, col).fontFamily || 'Arial';
+            fontFamily = this.getCell(row, col).ff || 'Arial';
         }
         let fontString = '';
         if (bold) fontString += 'bold ';
