@@ -331,7 +331,8 @@ export default class Sheet {
             e.clipboardData!.setData('text/plain', clipboardData);
             e.clipboardData!.setData('json/pasteData', JSON.stringify({
                 srcCell: {row: startRow, col: startCol},
-                configs: this.getSelectedCellDataSparse()
+                configs: this.getSelectedCellDataSparse(),
+                merges: this.getMergesInRange(this.selectionBoundRect)
             }));
             e.preventDefault();
         });
@@ -359,6 +360,7 @@ export default class Sheet {
             } else if (action === 'paste') {
                 const clipboardText = await navigator.clipboard.readText();
                 this.handlePaste(clipboardText);
+                // document.execCommand('paste');
             } else if (action === 'cut') {
                 document.execCommand('copy');
                 this.clearSelectedCells();
@@ -366,7 +368,7 @@ export default class Sheet {
         })
         this._container.addEventListener('paste', (e) => {
             if (this.editingCell) return;
-            this.handlePaste(e.clipboardData!.getData('text/plain'));
+            // this.handlePaste(e.clipboardData!.getData('text/plain'));
             this.handlePasteData(e.clipboardData!.getData('json/pasteData'));
             e.preventDefault();
         });
@@ -690,6 +692,7 @@ export default class Sheet {
         try {
             pasteData = JSON.parse(text);
         } catch {}
+        const changes = [];
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
         const destCell = {row: startRow, col: startCol};
         const srcCell = pasteData.srcCell;
@@ -699,8 +702,26 @@ export default class Sheet {
         for (let config of configs) {
             config.row = config.row + offsetRow;
             config.col = config.col + offsetCol;
+            changes.push({
+                row: config.row,
+                col: config.col,
+                prevData: Object.assign({}, this.getCell(config.row,config.col)),
+                changeKind: 'valchange'
+            });
             this.putCellObj(config.row, config.col, config);
             this.renderCell(config.row, config.col);
+        }
+        for(let merge of pasteData.merges) {
+            const newMerge = {...merge};
+            newMerge.startRow = newMerge.startRow + offsetRow;
+            newMerge.endRow = newMerge.endRow + offsetRow;
+            newMerge.startCol = newMerge.startCol + offsetCol;
+            newMerge.endCol = newMerge.endCol + offsetCol;
+            this.mergeSelectedCells(newMerge, false);
+            changes.push({ changeKind: 'merge', bounds: { ...newMerge } });
+        }
+        if (changes.length > 0) {
+            this.recordChanges(changes);
         }
     }
 
@@ -717,18 +738,16 @@ export default class Sheet {
             for (let j = 0; j < rowData.length; j++) {
                 const row = startRow + i;
                 const col = startCol + j;
-                // if (row <= this.totalRowBounds && col <= this.totalColBounds) {
+                if (row <= this.totalRowBounds && col <= this.totalColBounds) {
                     changes.push({
                         row,
                         col,
-                        previousValue: this.getCellText(row, col),
                         prevData: Object.assign({}, this.getCell(row,col)),
-                        newValue: rowData[j],
                         changeKind: 'valchange'
                     });
-                    // this.setText(row, col, rowData[j]);
-                    // this.renderCell(row, col);
-                // }
+                    this.setText(row, col, rowData[j]);
+                    this.renderCell(row, col);
+                }
             }
         }
         // Record the changes in the undo stack
