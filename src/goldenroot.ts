@@ -1,8 +1,10 @@
 // import Giga from "./giga";
-import Sheet from './sheet';
+import Sheet from "./sheet";
+import { fininit } from "./sampledata";
+
 import {GoldenLayout} from 'golden-layout';
-import goldenConfig from "./goldenConfig";
 import 'golden-layout/dist/css/goldenlayout-base.css';
+import goldenConfig from "./goldenConfig";
 // import { FormulaBar } from "./sheet/components/formulaBar";
 
 document.addEventListener("DOMContentLoaded", (event) => {
@@ -33,7 +35,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     };
 
     const LayoutClass: any = (GoldenLayout as any) || GoldenLayout;
-    const layout: any = new LayoutClass(config, container);
+    const layout: any = new LayoutClass(goldenConfig, container);
 
     layout.registerComponent('giga', (containerComp: any, componentState: any) => {
         const mount = document.createElement('div');
@@ -52,37 +54,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
 
         new Sheet(mount as any,
-            {formulaBar: false, toolbar: true,
-                cellHeaders: false,
-                // gridlinesOn: false,
-                cellHeight: 14, cellWidth: 45,
-                initialCells: [
-                {
-                    row: 1, col: 1, backgroundColor: 'red',
-                },
-                {
-                    row: 2, col: 1, backgroundColor: 'red',
-                },
-                {
-                    row: 3, col: 1, backgroundColor: 'red',
-                },
-                {
-                    row: 4, col: 1, backgroundColor: 'red',
-                },
-                {
-                    row: 1, col: 2, backgroundColor: 'red',
-                },
-                {
-                    row: 2, col: 2, backgroundColor: 'red',
-                },
-                {
-                    row: 3, col: 2, backgroundColor: 'red',
-                },
-                {
-                    row: 4, col: 2, backgroundColor: 'red',
-                },
-            ]
-            }
+            Object.assign({}, fininit, {toolbar: false, cellHeaders: false, formulaBar: false})
         );
 
         if (containerComp && containerComp.on) {

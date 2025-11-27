@@ -1,6 +1,8 @@
 export const fininit = {
   "cellHeight": 14,
   "cellWidth": 45,
+  // "maxRows": 100,
+  // "maxCols": 50,
   "mergedCells": [
     {
       "startRow": 1,
@@ -26,7 +28,7 @@ export const fininit = {
     "7": 75,
     "17": 72
   },
-  "gridlinesOn": false,
+  "gridlinesOn": true,
   "initialCells": [
     {
       "row": 1,

@@ -3,7 +3,7 @@
 </h1>
 <p align="center">An open source canvas-based spreadsheet application that doesn't suck
 
-# 👩‍💻 Demo
+# Demo
 [https://scottlazz.github.io/GigaSpreadsheet/](https://scottlazz.github.io/GigaSpreadsheet/)
 
 ## Features
@@ -34,7 +34,7 @@ The spreadsheet can be configured in `app.ts`
     }]);
 ```
 
-# 📒 FAQ
+# FAQ
 
 **Why doesn't it use React?**
 
