@@ -660,7 +660,10 @@ export default class Sheet {
         const deletions = [];
         for (let row = startRow; row <= endRow; row++) {
             for (let col = startCol; col <= endCol; col++) {
-                const obj = { row, col, previousValue: this.getCellText(row, col), newValue: '', changeKind: 'valchange' };
+                const obj = { row, col,
+                    prevData: Object.assign({}, this.getCell(row, col)),
+                    changeKind: 'valchange'
+                };
                 this.clearElRegistry(row, col);
                 deletions.push([row, col]);
                 changes.push(obj);
@@ -1024,6 +1027,7 @@ export default class Sheet {
             if (this.editingCell) return;
             document.execCommand('copy');
             this.clearSelectedCells();
+            e.preventDefault();
         }
         else if (key === 'k' && e.ctrlKey) {
             if (this.editingCell) return;
