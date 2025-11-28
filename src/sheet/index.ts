@@ -92,6 +92,7 @@ export default class Sheet {
     maxCols: number | null;
     initialCells: any;
     changes: any[];
+    widthMaxByCol: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.toolbar = null;
         this.changes = [];
@@ -112,7 +113,6 @@ export default class Sheet {
         // _container.style.maxHeight = 'calc(100vh - 40px)';
         this.maxRows = options.maxRows || null;
         this.maxCols = options.maxCols || null;
-        console.log('maxrows,cols', this.maxRows, this.maxCols)
         if (options.toolbar !== false) {
             this.toolbar = new Toolbar();
             _container.appendChild(this.toolbar.container);
@@ -183,6 +183,7 @@ export default class Sheet {
         this.mergedCells = options.mergedCells || [];
         this.heightOverrides = this.buildOverrides(options.heightOverrides);
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
+        this.widthMaxByCol = {};
         this.gridlinesOn = options.gridlinesOn ?? true;
         this.activeBlocks = new Map(); // Track active canvas blocks
         // window.activeBlocks = this.activeBlocks;
@@ -371,7 +372,7 @@ export default class Sheet {
         this._container.addEventListener('paste', (e) => {
             if (this.editingCell) return;
             // this.handlePaste(e.clipboardData!.getData('text/plain'));
-            this.handlePasteData(e.clipboardData!.getData('json/pasteData'));
+            this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
             e.preventDefault();
         });
         this.ctxmenu.onClick(async (action: string) => {
@@ -446,105 +447,55 @@ export default class Sheet {
                 this.toolbar?.set('textAlign', value);
             } else if (action === 'Grow Font') {
                 const selectedCells = this.getSelectedCells();
-                const cells = [];
-                for(let vcell of selectedCells) {
-                    // this.recordCellBeforeChange(vcell.row, vcell.col,'fontSize');
-                    this.recordCellBeforeChange(vcell.row, vcell.col);
-                    const cell = this.getCell(vcell.row,vcell.col);
+                this.setCellsMutate(selectedCells, (cell: any) => {
                     if (cell.fontSize == null) {
                         cell.fontSize = 12;
                     }
                     cell.fontSize++;
-                    // cell.fontSize *= devicePixelRatio;
-                    cells.push(cell);
-                }
-                this.flushChanges();
-                this.rerenderCells(cells);
+                });
                 const c = selectedCells[0];
                 if (c?.row == null) return;
                 const fontSize = this.getCell(c.row, c.col)?.fontSize || '12';
                 this.toolbar?.set('fontSize', fontSize.toString());
             } else if (action === 'Shrink Font') {
                 const selectedCells = this.getSelectedCells();
-                const cells = [];
-                for (let vcell of selectedCells) {
-                    this.recordCellBeforeChange(vcell.row, vcell.col);
-                    const cell = this.getCell(vcell.row, vcell.col);
+                this.setCellsMutate(selectedCells, (cell: any) => {
                     if (cell.fontSize == null) {
                         cell.fontSize = 12;
                     }
                     cell.fontSize--;
-                    cells.push(cell);
-                }
-                this.flushChanges();
-                this.rerenderCells(cells);
+                });
                 const c = selectedCells[0];
                 if (c?.row == null) return;
                 const fontSize = this.getCell(c.row, c.col)?.fontSize || '12';
                 this.toolbar?.set('fontSize', fontSize.toString());
             } else if (action === 'Bold') {
                 const selectedCells = this.getSelectedCells();
-                const cells = [];
-                for (let vcell of selectedCells) {
-                    const cell = this.getCell(vcell.row, vcell.col);
-                    this.recordCellBeforeChange(vcell.row, vcell.col);
+                this.setCellsMutate(selectedCells, (cell: any) => {
                     cell.bold = !cell.bold;
-                    cells.push(cell);
-                }
-                this.flushChanges();
-                this.rerenderCells(cells);
+                });
                 const c = selectedCells[0];
                 if (c?.row == null) return;
                 const value = this.getCell(c.row, c.col)?.bold || false;
                 this.toolbar?.set('bold', value);
             } else if (action === 'Italic') {
                 const selectedCells = this.getSelectedCells();
-                const cells = [];
-                for (let vcell of selectedCells) {
-                    const cell = this.getCell(vcell.row, vcell.col);
-                    this.recordCellBeforeChange(vcell.row, vcell.col);
+                this.setCellsMutate(selectedCells, (cell: any) => {
                     cell.italic = !cell.italic;
-                    cells.push(cell);
-                }
-                this.flushChanges();
-                this.rerenderCells(cells);
+                });
                 const c = selectedCells[0];
                 if (c?.row == null) return;
                 const value = this.getCell(c.row, c.col)?.italic || false;
                 this.toolbar?.set('italic', value);
             } else if (action === 'fontFamily') {
                 const selectedCells = this.getSelectedCells();
-                const cells = [];
-                for (let vcell of selectedCells) {
-                    this.recordCellBeforeChange(vcell.row, vcell.col);
-                    const cell = this.getCell(vcell.row, vcell.col);
-                    cell.ff = value;
-                    cells.push(cell);
-                }
-                this.flushChanges();
-                this.rerenderCells(cells);
+                this.setCells(selectedCells, 'ff', value);
             } else if (action === 'fontSize') {
                 const selectedCells = this.getSelectedCells();
-                const cells = [];
-                for (let vcell of selectedCells) {
-                    this.recordCellBeforeChange(vcell.row, vcell.col);
-                    const cell = this.getCell(vcell.row, vcell.col);
-                    cell.fontSize = value;
-                    cells.push(cell);
-                }
-                this.flushChanges();
-                this.rerenderCells(cells);
+                this.setCells(selectedCells, 'fontSize', value);
             } else if (action === 'backgroundColor') {
                 const selectedCells = this.getSelectedCells();
-                const cells = [];
-                for (let vcell of selectedCells) {
-                    this.recordCellBeforeChange(vcell.row, vcell.col);
-                    const cell = this.getCell(vcell.row, vcell.col);
-                    this.setCell(cell.row, cell.col, 'bc', value);
-                    cells.push(cell);
-                }
-                this.flushChanges();
-                this.rerenderCells(cells);
+                this.setCells(selectedCells, 'bc', value);
             }
         })
     }
@@ -728,11 +679,14 @@ export default class Sheet {
         return columnName;
     }
 
-    handlePasteData(text: string) {
+    handlePasteData(text: string, e: any) {
         let pasteData;
         try {
             pasteData = JSON.parse(text);
-        } catch {}
+        } catch {
+            this.handlePaste(e.clipboardData!.getData('text/plain'));
+            return;
+        }
         const changes = [];
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
         const destCell = {row: startRow, col: startCol};
@@ -893,7 +847,6 @@ export default class Sheet {
                 } else {
                     this.putCellObj(row,col, prevData);
                 }
-                // this.setCell(row, col, 'text', previousValue);
                 updatedCells.push([row, col]);
             } else {
                 console.log('UNHANDLED UNDO:', changeKind)
@@ -999,7 +952,6 @@ export default class Sheet {
                 } else {
                     this.putCellObj(row,col, prevData);
                 }
-                // this.setCell(row, col, 'text', previousValue);
                 updatedCells.push([row, col]);
             } else {
                 console.log('UNHANDLED REDO:', changeKind)
@@ -1374,8 +1326,7 @@ export default class Sheet {
     }
 
     setText(row: number, col: number, text: string) {
-        this.setCell(row,col,'text',text)
-        // this.data?.setCellProperty(row, col, 'text', text);
+        this.setCell(row,col,'text',text);
     }
     setCell(row: number, col: number, field: string, value: any) {
         const cell = this.getCell(row, col);
@@ -1387,9 +1338,15 @@ export default class Sheet {
     }
     putCellObj(row: number, col: number, obj: any) {
         if (!obj) return;
-        // if (!this.data.has(row, col)) {
-            this.data.set(row, col, obj);
-        // }
+        this.data.set(row, col, obj);
+    }
+    setCellsMutate(cells: any, mutator: Function) {
+        for (let cell of cells) {
+            this.recordCellBeforeChange(cell.row, cell.col);
+            mutator(cell);
+            this.renderCell(cell.row, cell.col);
+        }
+        this.flushChanges();
     }
     setCells(cells: any, field: string, value: any) {
         for (let cell of cells) {
@@ -1509,7 +1466,6 @@ export default class Sheet {
     }
 
     handleMouseDown(e: any) { // handle dragging select cell logic
-        this._container.focus();
         if (e.target.closest('.header-cell') ||
             e.target.closest('.row-number-container') ||
             e.target.closest('.corner-cell')) {
@@ -1522,6 +1478,7 @@ export default class Sheet {
         if (e.target !== this.ctxmenu.container && !this.ctxmenu.container.contains(e.target)) {
             this.hideContextMenu();
         }
+        this._container.focus();
         if (e.button === 2) {
             let x = e.clientX;
             x = x - this._container.getBoundingClientRect().x;
@@ -2780,7 +2737,6 @@ export default class Sheet {
             this.positionElement(lineChart, left, top, width, height);
         } else {
             this.clearElRegistry(row,col);
-            
             this.renderCellText(ctx, row, col);
             if (dependencyTree[row]?.[col]) {
                 for (let childRow in dependencyTree[row][col]) {
@@ -3127,6 +3083,7 @@ export default class Sheet {
         if (this.getCell(row, col)?.textBaseline != null) {
             ctx.textBaseline = this.getCell(row, col).textBaseline;
         }
+
         ctx.beginPath();
         let textX = left;
         const textAlign = this.getCellTextAlign(row, col) || 'left';
@@ -3140,6 +3097,38 @@ export default class Sheet {
         } else {
             textX += 4;
         }
+        // const m = ctx.measureText(text);
+        // // console.log(this.widthOverrides[cell.col], m)
+        // if (this.widthMaxByCol[cell.col]) {
+        //     if (Math.max(this.cellWidth, m.width) > this.widthMaxByCol[cell.col].max) {
+        //         // this.widthOverrides[c.col] = m.width;
+        //         this.widthMaxByCol[cell.col] = {max: Math.max(this.cellWidth, m.width), row: cell.row};
+        //         console.log('setting width overrride::', m.width, m)
+        //         this.setWidthOverride(cell.col, Math.max(this.cellWidth, m.width*.8));
+        //         this.updateWidthAccum();
+        //         this.renderHeaders();
+        //         this.forceRerender();
+        //         this.updateSelection();
+        //     } else if (Math.max(this.cellWidth, m.width) < this.widthMaxByCol[cell.col].max &&
+        //         this.widthMaxByCol[cell.col].row === cell.row
+        //     ) {
+        //         this.widthMaxByCol[cell.col] = {max: Math.max(this.cellWidth, m.width), row: cell.row};
+        //         console.log('setting width overrride::', m.width)
+        //         this.setWidthOverride(cell.col, Math.max(this.cellWidth, m.width*.8));
+        //         this.updateWidthAccum();
+        //         this.renderHeaders();
+        //         this.forceRerender();
+        //         this.updateSelection();
+        //     }
+        // } else if (text?.length > 3 && m.width > this.cellWidth) {
+        //     console.log('setting width overrride::', m.width)
+        //     this.widthMaxByCol[cell.col] = {max: Math.max(this.cellWidth, m.width), row: cell.row};
+        //     this.setWidthOverride(cell.col, Math.max(this.cellWidth, m.width*.8));
+        //     this.updateWidthAccum();
+        //     this.renderHeaders();
+        //     this.forceRerender();
+        //     this.updateSelection();
+        // }
         ctx.rect((left+1.4) * devicePixelRatio, (top+1.4) * devicePixelRatio, (width-2.8) * devicePixelRatio, (this.rowHeight(row)-1) * devicePixelRatio); // Adjust y position based on your text baseline
         ctx.clip();
         ctx.fillText(text, (textX) * devicePixelRatio, ((top + this.rowHeight(row) / 2)+1) * devicePixelRatio);
