@@ -10,7 +10,7 @@ import FinancialSubscriber from 'packages/financial/index';
 // @ts-ignore
 import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "packages/dependencytracker";
 
-import { hasBorderStr, addBorder, arrows, isNumeric } from "./utils";
+import { hasBorderStr, addBorder, addBorderStr, arrows, isNumeric } from "./utils";
 import { shiftTextRefs, rowColToRef } from "./shiftops";
 import { header } from './templates';
 import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
@@ -372,7 +372,43 @@ export default class Sheet {
         this._container.addEventListener('paste', (e) => {
             if (this.editingCell) return;
             // this.handlePaste(e.clipboardData!.getData('text/plain'));
-            this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+            // this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+            const xml = e.clipboardData!.getData('text/html');
+            if (xml) {
+                const d = document.createElement('div');
+                d.innerHTML = xml;
+                const table: any = d.querySelector('table');
+                const configs = [];
+                let r = 0;
+                for (let row of (table.children[1].rows)) {
+                    let c = 0;
+                    for(let col of row.children) {
+                        const s = col.style;
+                        // console.log(Array.from(col.style));
+                        let top = s.getPropertyValue('border-top-width'), right = s.getPropertyValue('border-right-width'),
+                            bottom = s.getPropertyValue('border-bottom-width'), left = s.getPropertyValue('border-left-width');
+                        let b = 0;
+                        if (top) b = addBorderStr(b, 'top'); if (right) b = addBorderStr(b, 'right');
+                        if (bottom) b = addBorderStr(b, 'bottom'); if (left) b = addBorderStr(b, 'left');
+                        const cell: any = {text: col.innerText, row: r, col: c};
+                        if (s.getPropertyValue('color')) cell.color = s.getPropertyValue('color');
+                        if (s.getPropertyValue('background-color')) cell.bc = s.getPropertyValue('background-color');
+                        if (b) cell.border = b;
+                        configs.push(cell)
+                        console.log(col.innerText)
+                        c++;
+                    }
+                    r++;
+                }
+                const xmlCopyData = JSON.stringify({
+                    srcCell: {row: 0, col: 0},
+                    configs,
+                    merges: []
+                })
+                this.handlePasteData(xmlCopyData,e);
+            } else {
+                this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+            }
             e.preventDefault();
         });
         this.ctxmenu.onClick(async (action: string) => {
@@ -991,12 +1027,11 @@ export default class Sheet {
 
     applyBorder(border: any) {
         const selectedCells = this.getSelectedCellsOrVirtual();
-        console.log('selected cells', selectedCells)
-        for(let cell of selectedCells) {
-            cell.border = addBorder(cell.border, border);
-        }
-        this.rerenderCellsForce(selectedCells);
-        // this.setCells(selectedCells, type, value);
+        this.setCellsMutate(selectedCells, (cell: any) => {
+            if (cell.fontSize == null) {
+                this.setCell(cell.row, cell.col, 'border', addBorder(cell.border, border));
+            }
+        });
     }
 
     openFormatMenu() {
@@ -3014,6 +3049,10 @@ export default class Sheet {
                 ctx.textRendering = 'geometricPrecision';
                 ctx.imageSmoothingEnabled = true;
         }
+    }
+
+    hasCell(row: number, col: number) {
+        return !this.data.has(row, col) || !this.data.get(row, col);
     }
 
     getCell(row: number, col: number) {

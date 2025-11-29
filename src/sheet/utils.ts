@@ -26,6 +26,14 @@ export function hasBorderStr(curBorder: number | null, borderStr: string) {
     else { return 0 };
     return border === (border&curBorder);
 }
+export function addBorderStr(curBorder: number | null, borderStr: string) {
+    if (curBorder == null) return 0;
+    if (borderStr === 'left') return curBorder | borderLeft;
+    else if (borderStr === 'top') return curBorder | borderTop;
+    else if (borderStr === 'right') return curBorder | borderRight;
+    else if (borderStr === 'bottom') return curBorder | borderBottom;
+    else { return 0 };
+}
 export function mkel(tag='div', className='', children?: string) {
     const el = document.createElement(tag);
     el.className = className;
