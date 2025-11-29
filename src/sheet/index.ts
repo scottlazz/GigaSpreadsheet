@@ -373,18 +373,29 @@ export default class Sheet {
             if (this.editingCell) return;
             // this.handlePaste(e.clipboardData!.getData('text/plain'));
             // this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+            e.preventDefault();
             const xml = e.clipboardData!.getData('text/html');
             if (xml) {
                 const d = document.createElement('div');
                 d.innerHTML = xml;
                 const table: any = d.querySelector('table');
+                if (!table) {
+                    this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+                    return;
+                }
+                // table.style.position = 'absolute';
+                // table.style.background = 'white';
+                // table.style.top = 0;
+                // document.body.appendChild(table);
                 const configs = [];
+                const merges = [];
                 let r = 0;
                 for (let row of (table.children[1].rows)) {
                     let c = 0;
                     for(let col of row.children) {
                         const s = col.style;
                         // console.log(Array.from(col.style));
+                        // console.log(col.getAttribute('style'));
                         let top = s.getPropertyValue('border-top-width'), right = s.getPropertyValue('border-right-width'),
                             bottom = s.getPropertyValue('border-bottom-width'), left = s.getPropertyValue('border-left-width');
                         let b = 0;
@@ -393,9 +404,17 @@ export default class Sheet {
                         const cell: any = {text: col.innerText, row: r, col: c};
                         if (s.getPropertyValue('color')) cell.color = s.getPropertyValue('color');
                         if (s.getPropertyValue('background-color')) cell.bc = s.getPropertyValue('background-color');
+                        if (s.getPropertyValue('text-align') && s.getPropertyValue('text-align') !== 'left') cell.ta = s.getPropertyValue('text-align');
+                        const rowspan = col.getAttribute('rowspan'), colspan = col.getAttribute('colspan');
+                        if (rowspan) {
+                            merges.push({startRow: r, startCol: c,
+                                endRow: r + parseInt(rowspan)-1, endCol: c + parseInt(colspan)-1});
+                                c+= parseInt(colspan)-1;
+                        }
+                        if (col.getAttribute('rowspan'))
                         if (b) cell.border = b;
-                        configs.push(cell)
-                        console.log(col.innerText)
+                        configs.push(cell);
+                        // console.log(col.innerText)
                         c++;
                     }
                     r++;
@@ -403,13 +422,12 @@ export default class Sheet {
                 const xmlCopyData = JSON.stringify({
                     srcCell: {row: 0, col: 0},
                     configs,
-                    merges: []
+                    merges
                 })
                 this.handlePasteData(xmlCopyData,e);
             } else {
                 this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
             }
-            e.preventDefault();
         });
         this.ctxmenu.onClick(async (action: string) => {
             if (action === 'copy') {
