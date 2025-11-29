@@ -186,7 +186,7 @@ export default class SparseGrid {
         const colData = [];
         for (let row in this._data) {
             if (row === 'count') continue;
-            if (col in this._data[row]) {
+            if (col in this._data[row] && this._data[row][col]) {
                 colData[row] = this._data[row][col];
             }
         }

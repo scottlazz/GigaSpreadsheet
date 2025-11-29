@@ -93,15 +93,22 @@ export default class Sheet {
     initialCells: any;
     changes: any[];
     widthMaxByCol: any;
+    needDims: any;
+    dimUpdatesQueued: any;
+    measureCanvas: any;
+    maxWidthInCol: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.toolbar = null;
         this.changes = [];
         this.renderQueued = false;
+        this.dimUpdatesQueued = false;
         this.options = options;
         this.formulaBar = null;
         this.lastCol = null;
         this.scheduledRenders = {};
+        this.needDims = {};
         this.scheduledOffBlockRenders = {};
+        this.measureCanvas = document.createElement('canvas');
         this.wrapper = wrapper || document.createElement('div');
         const _container = document.createElement('div');
         this._container = _container;
@@ -183,6 +190,7 @@ export default class Sheet {
         this.mergedCells = options.mergedCells || [];
         this.heightOverrides = this.buildOverrides(options.heightOverrides);
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
+        this.maxWidthInCol = {};
         this.widthMaxByCol = {};
         this.gridlinesOn = options.gridlinesOn ?? true;
         this.activeBlocks = new Map(); // Track active canvas blocks
@@ -395,7 +403,7 @@ export default class Sheet {
                     for(let col of row.children) {
                         const s = col.style;
                         // console.log(Array.from(col.style));
-                        // console.log(col.getAttribute('style'));
+                        // for(let a of col.style) {console.log(a, s.getPropertyValue(a));}
                         let top = s.getPropertyValue('border-top-width'), right = s.getPropertyValue('border-right-width'),
                             bottom = s.getPropertyValue('border-bottom-width'), left = s.getPropertyValue('border-left-width');
                         let b = 0;
@@ -405,6 +413,7 @@ export default class Sheet {
                         if (s.getPropertyValue('color')) cell.color = s.getPropertyValue('color');
                         if (s.getPropertyValue('background-color')) cell.bc = s.getPropertyValue('background-color');
                         if (s.getPropertyValue('text-align') && s.getPropertyValue('text-align') !== 'left') cell.ta = s.getPropertyValue('text-align');
+                        if (s.getPropertyValue('font-weight') === 'bold') cell.bold = true;
                         const rowspan = col.getAttribute('rowspan'), colspan = col.getAttribute('colspan');
                         if (rowspan) {
                             merges.push({startRow: r, startCol: c,
@@ -709,6 +718,7 @@ export default class Sheet {
                 this.clearElRegistry(row, col);
                 deletions.push([row, col]);
                 changes.push(obj);
+                this.updateDim(row,col);
             }
         }
         this.data.deleteCells(deletions);
@@ -1100,6 +1110,7 @@ export default class Sheet {
                 cellHeight: this.cellHeight,
                 cellWidth: this.cellWidth,
                 mergedCells: this.mergedCells,
+                autosize: this.options?.autosize ?? false,
                 heightOverrides: Object.assign({}, this.heightOverrides),
                 widthOverrides: Object.assign({}, this.widthOverrides),
                 gridlinesOn: this.gridlinesOn,
@@ -1388,15 +1399,18 @@ export default class Sheet {
         if (!this.data.has(row, col)) {
             this.data.set(row, col, cell);
         }
+        this.updateDim(row,col);
     }
     putCellObj(row: number, col: number, obj: any) {
         if (!obj) return;
         this.data.set(row, col, obj);
+        this.updateDim(row,col);
     }
     setCellsMutate(cells: any, mutator: Function) {
         for (let cell of cells) {
             this.recordCellBeforeChange(cell.row, cell.col);
             mutator(cell);
+            this.updateDim(cell.row, cell.col);
             this.renderCell(cell.row, cell.col);
         }
         this.flushChanges();
@@ -1741,7 +1755,9 @@ export default class Sheet {
     }
 
     getColWidth(col: any) {
-        return this.widthOverrides[col] ?? this.cellWidth;
+        if (col in this.widthOverrides) return this.widthOverrides[col];
+        if (col in this.maxWidthInCol && this.maxWidthInCol[col].max > this.cellWidth) return this.maxWidthInCol[col].max;
+        return this.cellWidth;
     }
 
     getTopLeftBounds() {
@@ -2026,25 +2042,28 @@ export default class Sheet {
         this.selectionHandle.style.top = `${rect.bottom - containerRect.top - 3}px`;
     }
 
-    setData(data: any = null, initialData: any = null) {
-        data = data || new SparseGrid();
+    setData(grid: any = null, initialData: any = null) {
+        grid = grid || new SparseGrid();
+        this.parser = new ExpressionParser(grid);
+        this.data = grid;
+        // if (initialData) {
+        //     initialData.forEach(((cell: any) => {
+        //         grid.set(cell.row, cell.col, cell);
+        //     }))
+        // }
         if (initialData) {
-            initialData.forEach(((cell: any) => {
-                data.set(cell.row, cell.col, cell);
-            }))
+            this.rerenderCellsForce(initialData)
         }
         // for (let i = 0; i < 2000; i++) {
         //     for (let j = 0; j < 2000; j++) {
         //         data.set(i, j, { text: (Math.random() * 1000).toFixed(2), _id: uuid() })
         //     }
         // }
-        this.parser = new ExpressionParser(data);
-        this.data = data;
 
-        this.updateGridDimensions();
-        this.renderHeaders();
-        this.renderRowNumbers();
-        this.updateVisibleGrid(true);
+        // this.updateGridDimensions();
+        // this.renderHeaders();
+        // this.renderRowNumbers();
+        // this.updateVisibleGrid(true);
     }
 
     renderHeaders() {
@@ -2841,6 +2860,83 @@ export default class Sheet {
         }
         this.renderQueued = false;
     }
+    immediateUpdateDims = () => {
+        const ctx = this.measureCanvas.getContext('2d');
+        let needsRerender = false;
+        let colsNeedingRemax: any = {};
+        for(let key in this.needDims) {
+
+            const [row,col] = this.needDims[key];
+            const cell = this.getCell(row,col);
+            if (cell.text && cell.text.length > 3) {
+                this.setTextCtx(ctx, row, col);
+                const m = ctx.measureText(cell.text);
+                const mwidth = Math.floor(m.width*.54);
+                if (this.maxWidthInCol[cell.col]) {
+                    if (mwidth > this.maxWidthInCol[cell.col].max) {
+                        this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
+                        needsRerender = true;
+                    } else if (mwidth < this.maxWidthInCol[cell.col].max &&
+                        this.maxWidthInCol[cell.col].row === cell.row
+                    ) {
+                        this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
+                        needsRerender = true;
+                        colsNeedingRemax[cell.col] = true;
+                    }
+                } else if (mwidth > this.cellWidth) {
+                    this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
+                    needsRerender = true;
+                }
+
+                cell._dims = {width: mwidth};
+            } else {
+                if (this.maxWidthInCol[cell.col] && this.maxWidthInCol[cell.col].row === cell.row) {
+                    this.maxWidthInCol[cell.col].max = 0;
+                    needsRerender = true;
+                    colsNeedingRemax[cell.col] = true;
+                }
+                cell._dims = {width: 0};
+            }
+            delete this.needDims[key];
+        }
+        for(let col in colsNeedingRemax) {
+            const cells = this.data.getCol(col);
+            for(let key in cells) {
+                const cell = cells[key];
+                if (!this.isValid(cell.row,cell.col)) continue;
+                if (cell._dims) {
+                    if (cell._dims.width > this.maxWidthInCol[cell.col].max) {
+                        this.maxWidthInCol[cell.col].max = cell._dims.width;
+                        this.maxWidthInCol[cell.col].row = cell.row;
+                    }
+                }
+            }
+        }
+        this.dimUpdatesQueued = false;
+        if (needsRerender) {
+            this.updateWidthAccum();
+            this.renderHeaders();
+            this.forceRerender();
+            this.updateSelection();
+        }
+
+        // this.updateGridDimensions();
+        //     this.renderRowNumbers();
+        //     this.renderHeaders();
+            // this.forceRerender();
+            // this.updateVisibleGrid();
+    }
+
+    updateDim(row: any, col: any) {
+        if (!this.isValid(row,col)) return;
+        if (!this.options?.autosize) return;
+        if (col in this.widthOverrides) return;
+        this.needDims[[row,col].toString()] = [row,col];
+        if (!this.dimUpdatesQueued) {
+            this.dimUpdatesQueued = true;
+            requestAnimationFrame(this.immediateUpdateDims);
+        }
+    }
 
     renderCell(row: any, col: any, fromBlockRender?: boolean) {
         if (this.maxRows && row > this.maxRows || this.maxCols && col > this.maxCols) return;
@@ -3113,15 +3209,30 @@ export default class Sheet {
         }
     }
 
-    renderCellText(ctx: any, row: number, col: number, _text = '') {
+    setTextCtx(ctx: any, row: number, col: number) {
+        const cell = this.getCellOrMerge(row,col);
+        if (this.getCellColor(cell.row, cell.col)) {
+            ctx.fillStyle = this.getCellColor(cell.row, cell.col);
+        } else if (isNumeric(cell.text) && cell.text < 0) {
+            ctx.fillStyle = 'red';
+        }
+        ctx.font = this.getFontString(cell.row, cell.col);
+        if (this.getCell(cell.row, cell.col)?.textBaseline != null) {
+            ctx.textBaseline = this.getCell(cell.row, cell.col).textBaseline;
+        }
+        const textAlign = this.getCellTextAlign(cell.row, cell.col) || 'left';
+        if (textAlign !== 'left') {
+            ctx.textAlign = this.getCellTextAlign(row, col);
+        }
+    }
+
+    renderCellText(ctx: any, row: number, col: number) {
         let left, top, width, height;
         ({ left, top, width, height } = this.getCellCoordsCanvas(row, col));
         const cell = this.getCellOrMerge(row,col);
         row = cell.row, col = cell.col;
         const value = this.getCellText(row, col);
         let text = value !== undefined && value !== null ? String(value) : '';
-        if (_text !== '') text = _text;
-        // if (text === '') return;
         try {
             removeDependents(row,col);
             text = this.parser.evaluateExpression(text, [row,col]);
@@ -3131,17 +3242,8 @@ export default class Sheet {
         }
         if (text === '') return;
         ctx.save(); // Save the current state
-        if (this.getCellColor(row, col)) {
-            ctx.fillStyle = this.getCellColor(row, col);
-        } else if (isNumeric(cell.text) && cell.text < 0) {
-            ctx.fillStyle = 'red';
-        }
-        ctx.font = this.getFontString(row, col);
-        if (this.getCell(row, col)?.textBaseline != null) {
-            ctx.textBaseline = this.getCell(row, col).textBaseline;
-        }
 
-        ctx.beginPath();
+        this.setTextCtx(ctx, row, col);
         let textX = left;
         const textAlign = this.getCellTextAlign(row, col) || 'left';
         if (textAlign !== 'left') {
@@ -3150,42 +3252,9 @@ export default class Sheet {
             } else if (textAlign === 'right') {
                 textX += width - 4;
             }
-            ctx.textAlign = this.getCellTextAlign(row, col);
         } else {
             textX += 4;
         }
-        // const m = ctx.measureText(text);
-        // // console.log(this.widthOverrides[cell.col], m)
-        // if (this.widthMaxByCol[cell.col]) {
-        //     if (Math.max(this.cellWidth, m.width) > this.widthMaxByCol[cell.col].max) {
-        //         // this.widthOverrides[c.col] = m.width;
-        //         this.widthMaxByCol[cell.col] = {max: Math.max(this.cellWidth, m.width), row: cell.row};
-        //         console.log('setting width overrride::', m.width, m)
-        //         this.setWidthOverride(cell.col, Math.max(this.cellWidth, m.width*.8));
-        //         this.updateWidthAccum();
-        //         this.renderHeaders();
-        //         this.forceRerender();
-        //         this.updateSelection();
-        //     } else if (Math.max(this.cellWidth, m.width) < this.widthMaxByCol[cell.col].max &&
-        //         this.widthMaxByCol[cell.col].row === cell.row
-        //     ) {
-        //         this.widthMaxByCol[cell.col] = {max: Math.max(this.cellWidth, m.width), row: cell.row};
-        //         console.log('setting width overrride::', m.width)
-        //         this.setWidthOverride(cell.col, Math.max(this.cellWidth, m.width*.8));
-        //         this.updateWidthAccum();
-        //         this.renderHeaders();
-        //         this.forceRerender();
-        //         this.updateSelection();
-        //     }
-        // } else if (text?.length > 3 && m.width > this.cellWidth) {
-        //     console.log('setting width overrride::', m.width)
-        //     this.widthMaxByCol[cell.col] = {max: Math.max(this.cellWidth, m.width), row: cell.row};
-        //     this.setWidthOverride(cell.col, Math.max(this.cellWidth, m.width*.8));
-        //     this.updateWidthAccum();
-        //     this.renderHeaders();
-        //     this.forceRerender();
-        //     this.updateSelection();
-        // }
         ctx.rect((left+1.4) * devicePixelRatio, (top+1.4) * devicePixelRatio, (width-2.8) * devicePixelRatio, (this.rowHeight(row)-1) * devicePixelRatio); // Adjust y position based on your text baseline
         ctx.clip();
         ctx.fillText(text, (textX) * devicePixelRatio, ((top + this.rowHeight(row) / 2)+1) * devicePixelRatio);

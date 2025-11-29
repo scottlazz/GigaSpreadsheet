@@ -1,6 +1,7 @@
 export const fininit = {
   "cellHeight": 14,
   "cellWidth": 45,
+  "autosize": true,
   "mergedCells": [
     {
       "startRow": 1,

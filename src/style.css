@@ -493,7 +493,7 @@ body {
   flex-shrink: 0;
   background-color: #e6e6e6;
   padding: 7px 8px;
-  font-family: Calibri;
+  font-family: sans-serif;
   /* font-family: Aptos Narrow, Calibri, "sans-serif", Mongolian Baiti, Microsoft Yi Baiti, Javanese Text, Yu Gothic; */
 }
 .gigasheet-name-box {
@@ -538,6 +538,7 @@ body {
   outline: none;
   border-radius: 4px;
   font-size: 11px;
+  padding-top: 6px;
 }
 .gigasheet-formulabar textarea:focus {
   border: 2px solid #000;
