@@ -47,3 +47,39 @@ export const arrows = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'
 
 export const isNumeric = (num: any) => !isNaN(num) &&
     !Number.isNaN(parseFloat(num));
+
+
+export function extractClassesFromStyle(styleElement: any) {
+    if (!styleElement) return null;
+    document.head.appendChild(styleElement);
+    const sheet = styleElement.sheet;
+    const classes: any = {};
+    
+    try {
+        const rules = sheet.cssRules || sheet.rules;
+        
+        for (let rule of rules) {
+            if (rule.type === CSSRule.STYLE_RULE) {
+                const selector = rule.selectorText;
+                if (selector.startsWith('.')) {
+                    const className = selector.slice(1);
+                    classes[className] = {
+                        cssText: rule.style.cssText,
+                        properties: Object.fromEntries(
+                            Array.from(rule.style).map(prop => [
+                                prop, 
+                                rule.style.getPropertyValue(prop)
+                            ])
+                        )
+                    };
+                }
+            }
+        }
+    } catch (e) {
+        // console.warn('Error parsing CSS:', e);
+    } finally {
+        // document.head.removeChild(styleElement);
+    }
+    
+    return classes;
+}
