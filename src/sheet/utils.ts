@@ -83,3 +83,43 @@ export function extractClassesFromStyle(styleElement: any) {
     
     return classes;
 }
+
+
+export function rgbToHex(rgbString: string) {
+    if (!rgbString) return '';
+    if (rgbString.startsWith('#')) return rgbString;
+  // Extract the R, G, B values from the string
+  const match = rgbString.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+
+  if (!match) {
+    return rgbString; // Invalid RGB string format
+  }
+
+  const r = parseInt(match[1], 10);
+  const g = parseInt(match[2], 10);
+  const b = parseInt(match[3], 10);
+
+  // Convert each component to its hexadecimal representation
+  // and ensure it's always two digits long by padding with a leading '0' if needed.
+  const toHex = (c: number) => {
+    const hex = c.toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+
+  const hexR = toHex(r);
+  const hexG = toHex(g);
+  const hexB = toHex(b);
+
+  return `#${hexR}${hexG}${hexB}`;
+}
+
+// function replaceRgbWithHex(input: string): string {
+//     if (!input) return input;
+//     return input.replace(/rgba?\(\s*[^)]+\)/gi, (match) => {
+//         try {
+//             return rgbToHex(match) || match;
+//         } catch {
+//             return match;
+//         }
+//     });
+// }

@@ -1,4 +1,4 @@
-import { addBorderStr, hasBorderStr } from "./utils";
+import { addBorderStr, hasBorderStr, rgbToHex } from "./utils";
 
 export function parseXML(xml: string) {
     if (!xml) return;
@@ -54,8 +54,10 @@ export function parseXML(xml: string) {
             if (top && top !== '0px') b = addBorderStr(b, 'top'); if (right && right !== '0px') b = addBorderStr(b, 'right');
             if (bottom && bottom !== '0px') b = addBorderStr(b, 'bottom'); if (left && left !== '0px') b = addBorderStr(b, 'left');
             const cell: any = {text: col.innerText, row: r, col: c};
-            const color = s.getPropertyValue('color');
-            if (color && color !== 'rgb(0, 0, 0)') cell.color = color;
+            const fontEl: any = col.querySelector('font');
+            const fontElColor = fontEl?.getAttribute('color');
+            const color = fontElColor || s.getPropertyValue('color');
+            if (color && color !== 'rgb(0, 0, 0)') cell.color = rgbToHex(color);
             const bc = s.getPropertyValue('background-color');
             if (bc && bc !== 'rgba(0, 0, 0, 0)') cell.bc = s.getPropertyValue('background-color');
             if (s.getPropertyValue('text-align') && s.getPropertyValue('text-align') !== 'left') cell.ta = s.getPropertyValue('text-align');
@@ -68,6 +70,7 @@ export function parseXML(xml: string) {
                 const match = fontSize.match(/^\d+/);
                 if (match) cell.fontSize = parseInt(match[0]);
             }
+            // console.log(s.getPropertyPriority('font-family'))
             if (s.getPropertyValue('font-family')) {
                 cell.ff = s.getPropertyValue('font-family');
             }
@@ -150,26 +153,37 @@ export function toXML(cells: any[], getMerge: Function) {
         tbody.appendChild(tr);
         for(let cell of row) {
             const td: any = document.createElement('td');
+            const fontEl: any = document.createElement('font'); // libreoffice
+            td.appendChild(fontEl);
             const merge = getMerge(cell.row,cell.col);
             if (merge) {
                 td.setAttribute('colspan', (merge.endCol-merge.startCol)+1);
                 td.setAttribute('rowspan', (merge.endRow-merge.startRow)+1);
             }
             tr.appendChild(td);
-            if (cell.color) td.style.color = cell.color;
+            // const color = cell.color || '#000000';
+            if (cell.color) {
+                td.style.color = rgbToHex(cell.color);
+                td.setAttribute('color', rgbToHex(cell.color));
+                fontEl.setAttribute('color', rgbToHex(cell.color));
+            }
             if (cell.bold) td.style['font-weight'] = 'bold';
             if (cell.italic) td.style['font-style'] = 'italic';
             // pt = px * (72 / 96)
             td.style['font-size'] = cell.fontSize ? `${cell.fontSize}px` : '12px';
             // td.style['font-size'] = cell.fontSize ? `${cell.fontSize*(72 / 96)}pt` : `${12*(72 / 96)}pt`;
+            if (cell.ff) {
+                td.style['font-family'] = cell.ff;
+                fontEl.setAttribute('Face', cell.ff);
+            }
             if (cell.bc) {
                 td.style['background-color'] = cell.bc;
-                td.setAttribute('bgcolor', cell.bc);
+                td.setAttribute('bgcolor', rgbToHex(cell.bc));
                 td.style['background'] = cell.bc;
             } // #104861;
             td.style['text-align'] = cell.ta || 'left';
             td.setAttribute('align', cell.ta || 'left');
-            td.innerText = cell.text || '';
+            fontEl.innerText = cell.text || '';
             if (hasBorderStr(cell.border, 'top')) {
                 td.style['border-top-width'] = '1px';
                 td.style['border-top-style'] = 'solid';
@@ -193,6 +207,6 @@ export function toXML(cells: any[], getMerge: Function) {
         }
     }
     tbody.append(document.createComment('EndFragment'));
-    // console.log(root.outerHTML)
+    // console.log(root.outerHTML);
     return root.outerHTML;
 }
