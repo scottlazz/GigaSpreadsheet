@@ -9,10 +9,13 @@ export function parseXML(xml: string) {
     if (!table) {
         return;
     }
+    const isGs = !!d.querySelector('google-sheets-html-origin');
     const styleEl: any = d.querySelector('style');
-    if (styleEl) {
-        const cleanedStyle = styleEl.innerHTML.replace(/<!--[\s\S]*?-->/g, "");
-        styleEl.innerHTML = cleanedStyle;
+    if (isGs && styleEl) {
+        styleEl.remove();
+        // console.log(styleEl)
+        // const cleanedStyle = styleEl.innerHTML.replace(/<!--[\s\S]*?-->/g, "");
+        // styleEl.innerHTML = cleanedStyle;
     }
 
     table.removeAttribute('border');
