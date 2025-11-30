@@ -2888,7 +2888,7 @@ export default class Sheet {
     updateDim(row: any, col: any) {
         if (!this.isValid(row,col)) return;
         if (!this.options?.autosize) return;
-        if (col in this.widthOverrides) return;
+        if (col in this.widthOverrides && !this.getCell(row,col)?.ul) return;
         this.needDims[[row,col].toString()] = [row,col];
         if (!this.dimUpdatesQueued) {
             this.dimUpdatesQueued = true;

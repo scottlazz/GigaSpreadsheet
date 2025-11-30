@@ -54,7 +54,8 @@ export function parseXML(xml: string) {
             if (top && top !== '0px') b = addBorderStr(b, 'top'); if (right && right !== '0px') b = addBorderStr(b, 'right');
             if (bottom && bottom !== '0px') b = addBorderStr(b, 'bottom'); if (left && left !== '0px') b = addBorderStr(b, 'left');
             const cell: any = {text: col.innerText, row: r, col: c};
-            if (s.getPropertyValue('color')) cell.color = s.getPropertyValue('color');
+            const color = s.getPropertyValue('color');
+            if (color && color !== 'rgb(0, 0, 0)') cell.color = color;
             const bc = s.getPropertyValue('background-color');
             if (bc && bc !== 'rgba(0, 0, 0, 0)') cell.bc = s.getPropertyValue('background-color');
             if (s.getPropertyValue('text-align') && s.getPropertyValue('text-align') !== 'left') cell.ta = s.getPropertyValue('text-align');
@@ -63,7 +64,7 @@ export function parseXML(xml: string) {
             if (s.getPropertyValue('font-style') === 'italic') cell.italic = true;
             if (s.getPropertyValue('text-decoration') === 'underline') cell.ul = true;
             const fontSize = s.getPropertyValue('font-size');
-            if (fontSize && fontSize !== '12px') {
+            if (fontSize && (fontSize !== '12px')) {
                 const match = fontSize.match(/^\d+/);
                 if (match) cell.fontSize = parseInt(match[0]);
             }
@@ -158,6 +159,9 @@ export function toXML(cells: any[], getMerge: Function) {
             if (cell.color) td.style.color = cell.color;
             if (cell.bold) td.style['font-weight'] = 'bold';
             if (cell.italic) td.style['font-style'] = 'italic';
+            // pt = px * (72 / 96)
+            td.style['font-size'] = cell.fontSize ? `${cell.fontSize}px` : '12px';
+            // td.style['font-size'] = cell.fontSize ? `${cell.fontSize*(72 / 96)}pt` : `${12*(72 / 96)}pt`;
             if (cell.bc) {
                 td.style['background-color'] = cell.bc;
                 td.setAttribute('bgcolor', cell.bc);
