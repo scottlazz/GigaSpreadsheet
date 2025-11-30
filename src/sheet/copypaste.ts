@@ -9,6 +9,14 @@ export function parseXML(xml: string) {
     if (!table) {
         return;
     }
+    const styleEl: any = d.querySelector('style');
+    if (styleEl) {
+        const cleanedStyle = styleEl.innerHTML.replace(/<!--[\s\S]*?-->/g, "");
+        styleEl.innerHTML = cleanedStyle;
+    }
+
+    table.removeAttribute('border');
+    // console.log(table)
 
     // table.style.position = 'absolute';
     // table.style.background = 'white';
@@ -47,9 +55,21 @@ export function parseXML(xml: string) {
             if (bottom && bottom !== '0px') b = addBorderStr(b, 'bottom'); if (left && left !== '0px') b = addBorderStr(b, 'left');
             const cell: any = {text: col.innerText, row: r, col: c};
             if (s.getPropertyValue('color')) cell.color = s.getPropertyValue('color');
-            if (s.getPropertyValue('background-color')) cell.bc = s.getPropertyValue('background-color');
+            const bc = s.getPropertyValue('background-color');
+            if (bc && bc !== 'rgba(0, 0, 0, 0)') cell.bc = s.getPropertyValue('background-color');
             if (s.getPropertyValue('text-align') && s.getPropertyValue('text-align') !== 'left') cell.ta = s.getPropertyValue('text-align');
-            if (s.getPropertyValue('font-weight') === 'bold') cell.bold = true;
+            const fw = s.getPropertyValue('font-weight');
+            if (fw && (fw === 'bold' || parseInt(fw) >= 500)) cell.bold = true;
+            if (s.getPropertyValue('font-style') === 'italic') cell.italic = true;
+            if (s.getPropertyValue('text-decoration') === 'underline') cell.ul = true;
+            const fontSize = s.getPropertyValue('font-size');
+            if (fontSize && fontSize !== '12px') {
+                const match = fontSize.match(/^\d+/);
+                if (match) cell.fontSize = parseInt(match[0]);
+            }
+            if (s.getPropertyValue('font-family')) {
+                cell.ff = s.getPropertyValue('font-family');
+            }
             // const rowspan = col.getAttribute('rowspan'), colspan = col.getAttribute('colspan');
             const rowspan = parseInt(col.getAttribute('rowspan') || '1', 10);
             const colspan = parseInt(col.getAttribute('colspan') || '1', 10);
@@ -112,7 +132,7 @@ export function toXML(cells: any[], getMerge: Function) {
     const table = document.createElement('table');
     // table.appendChild(document.createElement('div'))
     root.appendChild(table);
-    table.appendChild(document.createElement('div'));
+    table.appendChild(document.createElement('col'));
     const tbody = document.createElement('tbody');
     table.appendChild(tbody);
     // table.children[1].rows = [];
@@ -121,6 +141,7 @@ export function toXML(cells: any[], getMerge: Function) {
         accum[cell.row].push(cell);
         return accum;
     }, {});
+    tbody.append(document.createComment('StartFragment'));
     // console.log('grouped:', grid);
     for(let rowKey in grid) {
         const row = grid[rowKey];
@@ -135,8 +156,15 @@ export function toXML(cells: any[], getMerge: Function) {
             }
             tr.appendChild(td);
             if (cell.color) td.style.color = cell.color;
-            if (cell.bc) td.style['background-color'] = cell.bc;
+            if (cell.bold) td.style['font-weight'] = 'bold';
+            if (cell.italic) td.style['font-style'] = 'italic';
+            if (cell.bc) {
+                td.style['background-color'] = cell.bc;
+                td.setAttribute('bgcolor', cell.bc);
+                td.style['background'] = cell.bc;
+            } // #104861;
             td.style['text-align'] = cell.ta || 'left';
+            td.setAttribute('align', cell.ta || 'left');
             td.innerText = cell.text || '';
             if (hasBorderStr(cell.border, 'top')) {
                 td.style['border-top-width'] = '1px';
@@ -160,9 +188,7 @@ export function toXML(cells: any[], getMerge: Function) {
             }
         }
     }
+    tbody.append(document.createComment('EndFragment'));
     // console.log(root.outerHTML)
     return root.outerHTML;
-    // <tr>
-    //     <td></td>
-    // </tr>
 }

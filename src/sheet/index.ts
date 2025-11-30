@@ -394,6 +394,7 @@ export default class Sheet {
                 return this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
             }
             this.handlePasteData(data,e);
+            this.updateSelection();
         });
         this.ctxmenu.onClick(async (action: string) => {
             if (action === 'copy') {
@@ -3215,6 +3216,15 @@ export default class Sheet {
         ctx.rect((left+1.4) * devicePixelRatio, (top+1.4) * devicePixelRatio, (width-2.8) * devicePixelRatio, (this.rowHeight(row)-1) * devicePixelRatio); // Adjust y position based on your text baseline
         ctx.clip();
         ctx.fillText(text, (textX) * devicePixelRatio, ((top + this.rowHeight(row) / 2)+1) * devicePixelRatio);
+        if (cell.ul && cell._dims) { // TODO fix underlines
+            ctx.beginPath();
+            ctx.strokeStyle = cell.color || 'black'; // Set underline color
+            ctx.lineWidth = cell.fontSize ? cell.fontSize/6 : 2; // Set underline thickness
+            const y = ((top + this.rowHeight(row) / 2)+(cell.fontSize/4)) * devicePixelRatio;
+            ctx.moveTo((textX) * devicePixelRatio, y);
+            ctx.lineTo(((textX) * devicePixelRatio)+(cell._dims.width*devicePixelRatio), y);
+            ctx.stroke();
+        }
         ctx.restore(); // Restore the state to remove clipping
     }
 
