@@ -1082,8 +1082,8 @@ export default class Sheet {
             const data = this.data.save();
             const save = {
                 mergedCells: this.mergedCells,
-                heightOverrides: this.heightOverrides,
-                widthOverrides: this.widthOverrides,
+                heightOverrides: Object.assign({}, this.heightOverrides),
+                widthOverrides: Object.assign({}, this.widthOverrides),
                 gridlinesOn: this.gridlinesOn,
                 data
             }
@@ -1123,13 +1123,17 @@ export default class Sheet {
             } catch {
                 return false;
             }
-            this.widthOverrides = save.widthOverrides;
-            this.heightOverrides = save.heightOverrides;
+            this.widthOverrides = this.buildOverrides(save.widthOverrides);
+            this.heightOverrides = this.buildOverrides(save.heightOverrides);
             this.mergedCells = save.mergedCells;
             this.gridlinesOn = save.gridlinesOn;
             const g = new SparseGrid();
             g.restore(save.data);
             this.setData(g);
+            this.updateGridDimensions();
+            this.renderHeaders();
+            this.renderRowNumbers();
+            this.updateVisibleGrid(true);
             this.updateSelection();
             return true;
         }
