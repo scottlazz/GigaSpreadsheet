@@ -12,7 +12,7 @@ export const tickerReg = {
 
 function isEmpty(obj) {
     for(let i in obj) {
-        if (Object.hasOwn(obj,i)) return false;
+        if (obj.hasOwnProperty(i)) return false;
     }
     return true;
 }

@@ -265,6 +265,9 @@ export default class Sheet {
                     let mul = 1;
                     if (Math.random() > .8) mul = -1;
                     this.setText(cell.row,cell.col, (Math.random()*10*mul).toFixed(3));
+                    // const _cell = this.getCell(cell.row,cell.col);
+                    // _cell.text = (Math.random()*10*mul).toFixed(3);
+                    // this.putCellObj(cell.row,cell.col,Object.assign({}, _cell))
                     this.renderCell(cell.row,cell.col);
                 }
             }

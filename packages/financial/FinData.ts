@@ -1,6 +1,6 @@
 export default class FinData {
     static _instance: any;
-    _data: Object;
+    _data: any;
     constructor() {
         if (FinData._instance) {
             return FinData._instance
@@ -14,7 +14,7 @@ export default class FinData {
     }
     get(namespace: string, key: string) {
         if (!this._data[namespace]) return null;
-        if (!Object.hasOwn(this._data[namespace], key)) return null;
+        if (!this._data[namespace]?.hasOwnProperty(key)) return null;
         return this._data[namespace][key];
     }
 }

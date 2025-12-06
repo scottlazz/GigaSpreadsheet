@@ -100,7 +100,7 @@ export default class SparseGrid {
         }
 
         const isNewRow = !this._data[row];
-        const isNewCell = isNewRow || !Object.hasOwn(this._data[row], col);
+        const isNewCell = isNewRow || !this._data[row][col];
         const isNewCol = isNewCell && !this._colCounts[col];
 
         if (isNewRow) {
@@ -281,15 +281,15 @@ export default class SparseGrid {
     }
 
     get(row, col) {
-        if (!this._data[row] || !Object.hasOwn(this._data[row], col)) {
+        if (!this._data[row] || !this._data[row][col]) {
             return { row, col };
         }
         return this._data[row][col];
     }
 
     has(row, col = null) {
-        if (col == null) return Object.hasOwn(this._data, row);
-        return Object.hasOwn(this._data, row) && Object.hasOwn(this._data[row], col);
+        if (col == null) return !!this._data[row];
+        return this._data.hasOwnProperty(row) && this._data[row].hasOwnProperty(col);
     }
 
     deleteCells(coordinates) {
