@@ -46,13 +46,23 @@ export default class ExpressionParser {
             expression = expression.slice(1);
         }
 
+        // const tokens = [];
+        // const regex = /\s*(=>|[-+*/^()]|[A-Za-z_]\w*|\d*\.?\d+|\S)\s*/dg;
+        // let match: any;
+        // while ((match = regex.exec(expression)) !== null) {
+        //     tokens.push([match[1], match.indices[1]]);
+        // }
+        // res = '';
+
+        const arr = expression.split(/(\s*=>|[-+*/^()]|[A-Za-z_]\w*|\d*\.?\d+|\S\s*)/g);
         const tokens = [];
-        const regex = /\s*(=>|[-+*/^()]|[A-Za-z_]\w*|\d*\.?\d+|\S)\s*/dg;
-        let match: any;
-        while ((match = regex.exec(expression)) !== null) {
-            tokens.push([match[1], match.indices[1]]);
-        }
-        // console.log(expression, 'tokens:', JSON.parse(JSON.stringify(tokens)))
+        let idx = 0;
+        arr.forEach((s,i) => {
+            if (i%2 === 1) {
+                tokens.push([s, [idx,idx+s.length]]);
+            }
+            idx = idx + s.length;
+        });
         return tokens;
     }
 
