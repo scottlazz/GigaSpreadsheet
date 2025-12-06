@@ -1,14 +1,10 @@
-// @ts-ignore
-import SparseGrid from 'packages/sparsegrid';
-// @ts-ignore
-import ExpressionParser from 'packages/expressionparser';
-// @ts-ignore
+
+import SparseGrid from '../packages/sparsegrid';
+import ExpressionParser from '../packages/expressionparser';
 import { launchFormatMenu } from './windows/format';
-// @ts-ignore
 import { createLineChart } from './graphs/linechart.js';
-import FinancialSubscriber from 'src/packages/financial/index';
-// @ts-ignore
-import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "packages/dependencytracker";
+// import FinancialSubscriber from '../packages/financial/index';
+import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "../packages/dependencytracker";
 
 import { hasBorderStr, addBorder, addBorderStr, arrows, isNumeric, extractClassesFromStyle } from "./utils";
 import { shiftTextRefs, rowColToRef } from "./shiftops";
@@ -16,7 +12,7 @@ import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
 import ContextMenu from './components/contextmenu';
 import { FormulaBar } from './components/formulaBar';
 import { Toolbar } from './components/toolbar';
-import scrollIntoView from 'src/packages/scrollIntoView';
+import scrollIntoView from '../packages/scrollIntoView';
 import { parseXML, toXML } from './copypaste';
 
 export default class Sheet {
@@ -183,7 +179,7 @@ export default class Sheet {
             this.cornerCell.style.marginTop = `-${this.headerRowHeight + 1}px`; // -1 for border
         }
         if (options.subscribeFinance) {
-            this.subscribeFinance();
+            // this.subscribeFinance();
         }
 
         // State
@@ -291,16 +287,16 @@ export default class Sheet {
     }
 
     subscribeFinance() {
-        const f = new FinancialSubscriber();
-        f.listenYA(["API", "^GSPC", "^DJI", "^IXIC", "^RUT", "CL=F", "GC=F", "NVDA", "GME", "RKT", "GAP", "BLD", "IBP"]);
-        f.onTick((data: any) => {
-            const cells = tickerReg[data.id] || {};
-            for (let key in cells) {
-                const [row,col] = key.split(',');
-                this.renderCell(row,col,false);
-            }
-            console.log('gigasheet::ontick', data)
-        });
+        // const f = new FinancialSubscriber();
+        // f.listenYA(["API", "^GSPC", "^DJI", "^IXIC", "^RUT", "CL=F", "GC=F", "NVDA", "GME", "RKT", "GAP", "BLD", "IBP"]);
+        // f.onTick((data: any) => {
+        //     const cells = tickerReg[data.id] || {};
+        //     for (let key in cells) {
+        //         const [row,col] = key.split(',');
+        //         this.renderCell(row,col,false);
+        //     }
+        //     console.log('gigasheet::ontick', data)
+        // });
     }
 
     initEventListeners() {
@@ -535,7 +531,7 @@ export default class Sheet {
         row = row != null ? row : this.selectionStart?.row;
         if (row == null) return;
         const cellsNeedingShift = shiftDependenciesUp(row);
-        for (let [row, col] of cellsNeedingShift) {
+        for (let [row, col] of (Object.values(cellsNeedingShift) as any)) {
             const newText = shiftTextRefs(this.getCellText(row, col), 'up');
             this.setText(parseInt(row), parseInt(col), newText)
         }
@@ -561,7 +557,7 @@ export default class Sheet {
         col = col != null ? col : this.selectionStart?.col;
         if (col == null) return;
         const cellsNeedingShift = shiftDependenciesLeft(col);
-        for (let [row, col] of cellsNeedingShift) {
+        for (let [row, col] of (Object.values(cellsNeedingShift) as any)) {
             const newText = shiftTextRefs(this.getCellText(row, col), 'left');
             this.setText(parseInt(row), parseInt(col), newText)
         }
@@ -606,7 +602,7 @@ export default class Sheet {
         row = row != null ? row : this.selectionStart?.row;
         if (row == null) return;
         const cellsNeedingShift = shiftDependenciesDown(row);
-        for (let [row, col] of cellsNeedingShift) {
+        for (let [row, col] of (Object.values(cellsNeedingShift) as any)) {
             const newText = shiftTextRefs(this.getCellText(row, col), 'down');
             this.setText(parseInt(row), parseInt(col), newText)
         }
@@ -631,7 +627,7 @@ export default class Sheet {
         col = col != null ? col : this.selectionStart?.col;
         if (col == null) return;
         const cellsNeedingShift = shiftDependenciesRight(col);
-        for (let [row, col] of cellsNeedingShift) {
+        for (let [row, col] of (Object.values(cellsNeedingShift) as any)) {
             const newText = shiftTextRefs(this.getCellText(row, col), 'right');
             this.setText(parseInt(row), parseInt(col), newText)
         }

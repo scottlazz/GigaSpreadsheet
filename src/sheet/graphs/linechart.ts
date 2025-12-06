@@ -63,9 +63,9 @@ export function createLineChart(data, container, width, height) {
             // Add points
             const point = document.createElementNS("http://www.w3.org/2000/svg", "circle");
             point.setAttribute("class", "point");
-            point.setAttribute("cx", x);
-            point.setAttribute("cy", y);
-            point.setAttribute("r", 4);
+            point.setAttribute("cx", String(x));
+            point.setAttribute("cy", String(y));
+            point.setAttribute("r", String(4));
             point.setAttribute("data-value", d.value);
             point.setAttribute("data-date", d.date);
 
@@ -98,8 +98,8 @@ export function createLineChart(data, container, width, height) {
                 if (xPos >= 0 && xPos <= chartWidth) {
                     const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     label.setAttribute("class", "x-axis");
-                    label.setAttribute("x", xPos);
-                    label.setAttribute("y", chartHeight + 20);
+                    label.setAttribute("x", String(xPos));
+                    label.setAttribute("y", String(chartHeight + 20));
                     label.setAttribute("text-anchor", "middle");
 
                     // Shorten date format if needed
@@ -110,12 +110,12 @@ export function createLineChart(data, container, width, height) {
                     const textLength = labelText.length * 6; // Approximate width
                     if (xPos + textLength / 2 > chartWidth) {
                         label.setAttribute("text-anchor", "end");
-                        label.setAttribute("x", chartWidth - labelPadding);
+                        label.setAttribute("x", String(chartWidth - labelPadding));
                     }
                     // Check if label would extend beyond left edge
                     else if (xPos - textLength / 2 < 0) {
                         label.setAttribute("text-anchor", "start");
-                        label.setAttribute("x", labelPadding);
+                        label.setAttribute("x", String(labelPadding));
                     }
 
                     chartGroup.appendChild(label);
@@ -128,8 +128,8 @@ export function createLineChart(data, container, width, height) {
             const value = (maxValue / 5) * i;
             const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
             label.setAttribute("class", "y-axis");
-            label.setAttribute("x", -10);
-            label.setAttribute("y", yScale(value));
+            label.setAttribute("x", '-10');
+            label.setAttribute("y", String(yScale(value)));
             label.setAttribute("text-anchor", "end");
             label.setAttribute("dy", "0.35em");
             label.textContent = value.toFixed(1);
@@ -137,10 +137,10 @@ export function createLineChart(data, container, width, height) {
 
             // Add grid line
             const gridLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            gridLine.setAttribute("x1", 0);
-            gridLine.setAttribute("y1", yScale(value));
-            gridLine.setAttribute("x2", chartWidth);
-            gridLine.setAttribute("y2", yScale(value));
+            gridLine.setAttribute("x1", '0');
+            gridLine.setAttribute("y1", String(yScale(value)));
+            gridLine.setAttribute("x2", String(chartWidth));
+            gridLine.setAttribute("y2", String(yScale(value)));
             gridLine.setAttribute("stroke", "#eee");
             gridLine.setAttribute("stroke-dasharray", "2,2");
             chartGroup.insertBefore(gridLine, chartGroup.firstChild);
@@ -149,8 +149,8 @@ export function createLineChart(data, container, width, height) {
         // Add axis titles
         const xAxisTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
         xAxisTitle.setAttribute("class", "x-axis");
-        xAxisTitle.setAttribute("x", chartWidth / 2);
-        xAxisTitle.setAttribute("y", chartHeight + 40);
+        xAxisTitle.setAttribute("x", String(chartWidth / 2));
+        xAxisTitle.setAttribute("y", String(chartHeight + 40));
         xAxisTitle.setAttribute("text-anchor", "middle");
         xAxisTitle.textContent = "Date";
         chartGroup.appendChild(xAxisTitle);
@@ -158,8 +158,8 @@ export function createLineChart(data, container, width, height) {
         const yAxisTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
         yAxisTitle.setAttribute("class", "y-axis");
         yAxisTitle.setAttribute("transform", "rotate(-90)");
-        yAxisTitle.setAttribute("x", -chartHeight / 2);
-        yAxisTitle.setAttribute("y", -40); // Adjusted to not overlap with labels
+        yAxisTitle.setAttribute("x", String(-chartHeight / 2));
+        yAxisTitle.setAttribute("y", String(-40)); // Adjusted to not overlap with labels
         yAxisTitle.setAttribute("text-anchor", "middle");
         yAxisTitle.textContent = "Value";
         chartGroup.appendChild(yAxisTitle);

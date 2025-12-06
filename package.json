@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "source": "src/index.html",
   "types": "dist/index.d.ts",
-  "main": "dist/index.js",
+  "module": "dist/index.js",
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -16,10 +16,6 @@
       "require": "./dist/sheet/index.js",
       "types": "./dist/sheet/index.d.ts"
     }
-  },
-  "alias": {
-    "packages": "./src/packages",
-    "src": "./src"
   },
   "scripts": {
     "start": "parcel",

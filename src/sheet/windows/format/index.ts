@@ -1,5 +1,6 @@
 export function launchFormatMenu() {
-    const formatWindow = window.open('', 'target=_blank', 'width=190,height=400');
+    const formatWindow: any = window.open('', 'target=_blank', 'width=190,height=400');
+
     formatWindow.document.body.innerHTML = `
         <style>
             .format-menu {
@@ -182,35 +183,35 @@ export function launchFormatMenu() {
             </div>
         </div>
     `;
-    const cbs = [];
-    function onChange(type, value) {
+    const cbs: any = [];
+    function onChange(type: string, value: any) {
         for(let cb of cbs) {
             cb(type,value);
         }
     }
     formatWindow.document.title = 'Format Menu';
-    formatWindow.document.getElementById('fontSize').addEventListener('change', function () {
+    formatWindow.document.getElementById('fontSize').addEventListener('change', function (this: HTMLSelectElement) {
         onChange('fontSize', this.value);
     });
-    formatWindow.document.getElementById('cellType').addEventListener('change', function () {
+    formatWindow.document.getElementById('cellType').addEventListener('change', function (this: HTMLSelectElement) {
         onChange('cellType', this.value);
     });
-    formatWindow.document.getElementById('fontColor').addEventListener('input', function () {
+    formatWindow.document.getElementById('fontColor').addEventListener('input', function (this: HTMLInputElement) {
         onChange('color', this.value);
     });
     // Quick color options
-    formatWindow.document.querySelectorAll('.color-option').forEach(option => {
-        option.addEventListener('click', function () {
+    formatWindow.document.querySelectorAll('.color-option').forEach((option: any) => {
+        option.addEventListener('click', function (this: HTMLElement) {
             const color = this.getAttribute('data-color');
             formatWindow.document.getElementById('fontColor').value = color;
             onChange('color', color);
         });
     });
     // Alignment buttons
-    formatWindow.document.querySelectorAll('.alignment-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
+    formatWindow.document.querySelectorAll('.alignment-btn').forEach(function (btn: any) {
+        btn.addEventListener('click', function (this: HTMLElement) {
             // Remove active class from all buttons
-            formatWindow.document.querySelectorAll('.alignment-btn').forEach(function (b) {
+            formatWindow.document.querySelectorAll('.alignment-btn').forEach(function (b: any) {
                 b.classList.remove('active');
             });
             // Add active class to clicked button
@@ -220,11 +221,11 @@ export function launchFormatMenu() {
         });
     });
     // Border buttons
-    formatWindow.document.querySelectorAll('.border-btn').forEach(function (btn) {
-        btn.addEventListener('click', function () {
+    formatWindow.document.querySelectorAll('.border-btn').forEach(function (btn: any) {
+        btn.addEventListener('click', function (this: HTMLElement) {
             this.classList.toggle('active');
             let border = 0;
-            formatWindow.document.querySelectorAll('.border-btn.active').forEach(function (b) {
+            formatWindow.document.querySelectorAll('.border-btn.active').forEach(function (b: any) {
                 const databorder = b.getAttribute('data-border');
                 border |= databorder;
             });
@@ -233,17 +234,17 @@ export function launchFormatMenu() {
             onChange('border', border);
         });
     });
-    formatWindow.document.querySelectorAll('.border-btn-apply').forEach(function (btn) {
-        btn.addEventListener('click', function () {
+    formatWindow.document.querySelectorAll('.border-btn-apply').forEach(function (btn: any) {
+        btn.addEventListener('click', function (this: HTMLElement) {
             const border = this.getAttribute('data-border');
             console.log('border:', border)
             onChange('border-apply', border);
         });
     });
     // Baseline buttons
-    formatWindow.document.querySelectorAll('[data-baseline]').forEach(function (btn) {
+    formatWindow.document.querySelectorAll('[data-baseline]').forEach(function (btn: any) {
         // Update baseline visual demonstration
-        const baselineOptions = {
+        const baselineOptions: any = {
             'alphabetic': { position: 30, description: 'Normal text baseline' },
             'top': { position: 5, description: 'Top of the em square' },
             'middle': { position: 20, description: 'Middle of the em square' },
@@ -251,7 +252,8 @@ export function launchFormatMenu() {
             'hanging': { position: 5, description: 'Hanging baseline (like Hindi)' },
             'ideographic': { position: 35, description: 'Ideographic baseline (like CJK)' }
         };
-        function updateBaselineVisual(baseline) {
+        function updateBaselineVisual(baseline: string | null) {
+            if (!baseline) return;
             const demo = formatWindow.document.getElementById('baselineDemo');
             const indicator = formatWindow.document.getElementById('baselineIndicator');
             const text = formatWindow.document.getElementById('baselineText');
@@ -262,13 +264,13 @@ export function launchFormatMenu() {
                 text.textContent = baseline;
             }
         }
-        btn.addEventListener('click', function () {
-            formatWindow.document.querySelectorAll('[data-baseline]').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
+        btn.addEventListener('click', function (this: HTMLElement) {
+            formatWindow.document.querySelectorAll('[data-baseline]').forEach((b: any) => b.classList.remove('active'));
+            (this as HTMLElement).classList.add('active');
             const baseline = this.getAttribute('data-baseline');
             updateBaselineVisual(baseline);
             onChange('textBaseline', baseline);
         });
     });
-    return {win: formatWindow, addListener: (fn) => cbs.push(fn)};
+    return {win: formatWindow, addListener: (fn: Function) => cbs.push(fn)};
 }

@@ -1,14 +1,16 @@
-import FinData from "./financial/FinData";
+// import FinData from "./financial/FinData";
 import { dependencyTree, reverseDependencyTree, tickerReg } from "./dependencytracker";
 
 export default class ExpressionParser {
-    constructor(data) {
+    data: any;
+    // finData: FinData;
+    constructor(data: any) {
         this.data = data; // Spreadsheet data
-        this.finData = new FinData();
+        // this.finData = new FinData();
     }
 
     // Add a dependency relationship
-    addDependency(source, target) {
+    addDependency(source:any, target:any) {
         const sr = source[0], sc = source[1];
         const tr = target[0], tc = target[1];
         if (!dependencyTree[tr]) dependencyTree[tr] = {};
@@ -23,7 +25,7 @@ export default class ExpressionParser {
     }
 
     // Tokenize the input expression
-    tokenize(expression) {
+    tokenize(expression: string) {
         // Remove leading '=' if present
         if (expression.startsWith('=')) {
             expression = expression.slice(1);
@@ -38,7 +40,7 @@ export default class ExpressionParser {
         return tokens;
     }
 
-    static tokenizeWithIndex(expression) {
+    static tokenizeWithIndex(expression: string) {
         // Remove leading '=' if present
         if (expression.startsWith('=')) {
             expression = expression.slice(1);
@@ -46,18 +48,19 @@ export default class ExpressionParser {
 
         const tokens = [];
         const regex = /\s*(=>|[-+*/^()]|[A-Za-z_]\w*|\d*\.?\d+|\S)\s*/dg;
-        let match;
+        let match: any;
         while ((match = regex.exec(expression)) !== null) {
             tokens.push([match[1], match.indices[1]]);
         }
+        // console.log(expression, 'tokens:', JSON.parse(JSON.stringify(tokens)))
         return tokens;
     }
 
     // Parse the tokens into an AST
-    parse(tokens) {
+    parse(tokens: any) {
         let index = 0;
 
-        const parseExpression = () => {
+        const parseExpression: any = () => {
             let left = parseTerm();
             while (index < tokens.length && (tokens[index] === '+' || tokens[index] === '-')) {
                 const operator = tokens[index];
@@ -123,7 +126,7 @@ export default class ExpressionParser {
     }
 
     // Evaluate the AST
-    evaluate(ast, source) {
+    evaluate(ast:any, source?:any):any {
         // if (source) {
         //     // Remove old dependencies before evaluating
         //     this.removeDependencies(source);
@@ -160,7 +163,7 @@ export default class ExpressionParser {
     }
 
     // Evaluate binary expressions (e.g., +, -, *, /, ^)
-    evaluateBinaryExpression(ast, source) {
+    evaluateBinaryExpression(ast:any, source:any) {
         const left = this.evaluate(ast.left, source);
         const right = this.evaluate(ast.right, source);
         switch (ast.operator) {
@@ -180,40 +183,41 @@ export default class ExpressionParser {
     }
 
     // Evaluate functions (e.g., SUM, AVERAGE)
-    evaluateFunction(ast, source) {
-        const args = ast.args.map(arg => this.evaluate(arg));
+    evaluateFunction(ast:any, source:any) {
+        const args = ast.args.map((arg:any) => this.evaluate(arg));
         switch (ast.name.toUpperCase()) {
             case 'SUM':
-                return args.flat().reduce((sum, val) => sum + val, 0);
+                return args.flat().reduce((sum:number, val:number) => sum + val, 0);
             case 'AVERAGE':
                 const values = args.flat();
-                return values.reduce((sum, val) => sum + val, 0) / values.length;
+                return values.reduce((sum:number, val:number) => sum + val, 0) / values.length;
             case 'ERROR':
                 return 'ERROR';
             case 'REFERROR':
                 return 'REFERROR';
             default:
+                return '';
                 // tickerReg[source[0]]
-                console.log('subbing', ast.name)
-                if (!tickerReg[ast.name]) tickerReg[ast.name] = {};
-                tickerReg[ast.name][`${source[0]},${source[1]}`] = true;
-                if (this.finData.get('YA', ast.name)) {
-                    return this.finData.get('YA', ast.name).price;
-                } else {
-                    return '';
-                }
+                // console.log('subbing', ast.name)
+                // if (!tickerReg[ast.name]) tickerReg[ast.name] = {};
+                // tickerReg[ast.name][`${source[0]},${source[1]}`] = true;
+                // if (this.finData.get('YA', ast.name)) {
+                //     return this.finData.get('YA', ast.name).price;
+                // } else {
+                //     return '';
+                // }
                 // throw new Error(`Unknown function: ${ast.name}`);
         }
     }
 
-    getCellText(row, col) {
+    getCellText(row:number, col:number) {
         return this.data.get(row, col)?.text ?? '';
     }
 
     // Get the value of a cell reference (e.g., A1, B2)
-    getCellValue(cellRef) {
+    getCellValue(cellRef:any) {
         const { row, col } = this.parseCellReference(cellRef);
-        if (row < 0 || row > this.bottomRow || col < 0 || col > this.data.rightCol) {
+        if (row < 0 || row > this.data.bottomRow || col < 0 || col > this.data.rightCol) {
             return '';
             throw new Error(`Invalid cell reference: ${cellRef}`);
         }
@@ -229,7 +233,7 @@ export default class ExpressionParser {
     }
 
     // Get the values of a range reference (e.g., A1:B2)
-    getRangeValues(rangeRef) {
+    getRangeValues(rangeRef:any) {
         const [startCell, endCell] = rangeRef.split(':');
         const start = this.parseCellReference(startCell);
         const end = this.parseCellReference(endCell);
@@ -237,7 +241,7 @@ export default class ExpressionParser {
         const values = [];
         for (let row = start.row; row <= end.row; row++) {
             for (let col = start.col; col <= end.col; col++) {
-                if (row < 0 || row >= this.data.bottomRow || col < 0 || col >= this.rightCol) {
+                if (row < 0 || row >= this.data.bottomRow || col < 0 || col >= this.data.rightCol) {
                     throw new Error(`Invalid cell in range: ${rangeRef}`);
                 }
                 const value = this.getCellText(row, col);
@@ -255,7 +259,7 @@ export default class ExpressionParser {
     }
 
     // Parse a cell reference (e.g., A1 => { row: 0, col: 0 })
-    parseCellReference(cellRef) {
+    parseCellReference(cellRef:any) {
         const colLetter = cellRef.match(/[A-Za-z]+/)?.[0];
         const rowNumber = cellRef.match(/\d+/)?.[0];
 
@@ -263,13 +267,13 @@ export default class ExpressionParser {
             throw new Error(`Invalid cell reference: ${cellRef}`);
         }
 
-        const col = colLetter.split('').reduce((acc, char) => acc * 26 + (char.toUpperCase().charCodeAt(0) - 64), 0) - 1;
+        const col = colLetter.split('').reduce((acc:any, char:string) => acc * 26 + (char.toUpperCase().charCodeAt(0) - 64), 0) - 1;
         const row = parseInt(rowNumber, 10) - 1;
 
         return { row, col };
     }
 
-    static parseCellReference(cellRef) {
+    static parseCellReference(cellRef:any) {
         const colLetter = cellRef.match(/[A-Za-z]+/)?.[0];
         const rowNumber = cellRef.match(/\d+/)?.[0];
 
@@ -277,13 +281,13 @@ export default class ExpressionParser {
             throw new Error(`Invalid cell reference: ${cellRef}`);
         }
 
-        const col = colLetter.split('').reduce((acc, char) => acc * 26 + (char.toUpperCase().charCodeAt(0) - 64), 0) - 1;
+        const col = colLetter.split('').reduce((acc:any, char:any) => acc * 26 + (char.toUpperCase().charCodeAt(0) - 64), 0) - 1;
         const row = parseInt(rowNumber, 10) - 1;
 
         return { row, col };
     }
 
-    getAst(expression) {
+    getAst(expression:string) {
         if (expression.startsWith('=')) {
             const tokens = this.tokenize(expression);
             return this.parse(tokens);
@@ -292,7 +296,7 @@ export default class ExpressionParser {
     }
 
     // Main function to parse and evaluate an expression
-    evaluateExpression(expression, source) {
+    evaluateExpression(expression:any, source:any) {
         if (typeof expression !== 'string') {
             return expression; // Return non-string values as-is
         }
@@ -305,6 +309,6 @@ export default class ExpressionParser {
         }
 
         // If the expression does not start with '=', treat it as a literal value
-        return !isNaN(expression) && !Number.isNaN(parseFloat(expression)) ? parseFloat(expression) : expression;
+        return !isNaN(expression as any) && !Number.isNaN(parseFloat(expression)) ? parseFloat(expression) : expression;
     }
 }

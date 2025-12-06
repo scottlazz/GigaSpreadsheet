@@ -1,6 +1,6 @@
 import { copy, undo, paste, bold, italic, borders, merge, redo, growFont, shrinkFont, leftAlign, centerAlign, rightAlign } from "./icons";
 import Dropdown from '../dropdown';
-import tooltip from 'src/packages/tooltip';
+import tooltip from '../../../packages/tooltip';
 
 export class Toolbar {
     container: HTMLDivElement;

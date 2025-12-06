@@ -1,5 +1,4 @@
-// @ts-ignore
-import ExpressionParser from 'packages/expressionparser';
+import ExpressionParser from '../packages/expressionparser';
 
 export function rowColToRef(row: number, col: number) {
     // Validate inputs

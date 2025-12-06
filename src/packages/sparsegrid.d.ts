@@ -1,0 +1,63 @@
+export default class SparseGrid {
+    private _data: { [row: number]: { [col: number]: any } };
+    private _colCounts: { [col: number]: number };
+    private _topRow: number;
+    private _bottomRow: number;
+    private _leftCol: number;
+    private _rightCol: number;
+    private _totalValues: number;
+    private _totalRows: number;
+    private _totalCols: number;
+    private _valueCount: number;
+
+    constructor();
+    save(): string;
+    restore(json: string): this;
+    setCellProperty(row: number, col: number, property: string, value: any): void;
+    setRowSize(row: number, size: number): void;
+    incrementRowSize(row: number): void;
+    decrementRowSize(row: number): void;
+    set(row: number, col: number, value: any): boolean;
+    decrementColSize(col: number): void;
+    incrementColSize(col: number): void;
+    deleteRow(row: number): any;
+    addRow(row: number, data?: any[]): void;
+    addCol(col: number, data?: any[]): void;
+    getCol(col: number): any[];
+    deleteCol(col: number): any[];
+    delete(row: number, col: number): boolean;
+    private _recalculateBoundaries(): void;
+    get(row: number, col: number): any;
+    has(row: number, col?: number): boolean;
+    deleteCells(coordinates: [number, number][]): number;
+    getRowCount(row: number): number;
+    getRowCounts(): { [row: number]: number };
+    deleteCellsArea(startRow: number, startCol: number, endRow: number, endCol: number): number;
+    getAllCells(): any[];
+    getAllCellsInRange(startRow: number, startCol: number, endRow: number, endCol: number): any[];
+    getAllData(): any[];
+    getCells(startRow: number, startCol: number, endRow: number, endCol: number): { row: number; col: number; value: any }[];
+    getCellsForce(startRow: number, startCol: number, endRow: number, endCol: number): { row: number; col: number; }[];
+    clear(): void;
+    forEach(callback: (cell: any, row: number, col: number, index: number) => void): void;
+
+    readonly topRow: number | null;
+    readonly bottomRow: number | null;
+    readonly leftCol: number | null;
+    readonly rightCol: number | null;
+    readonly totalRows: number;
+    readonly totalColumns: number;
+    readonly totalValues: number;
+    readonly rowCount: number;
+    readonly colCount: number;
+    readonly valueCount: number;
+    readonly allDimensions: {
+        topRow: number | null;
+        bottomRow: number | null;
+        leftCol: number | null;
+        rightCol: number | null;
+        rowCount: number;
+        colCount: number;
+        totalValues: number;
+    };
+}

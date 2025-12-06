@@ -2,14 +2,13 @@
     "allowJs": true,
     "compilerOptions": {
         "baseUrl": ".",
-        "target": "es2020",
-        "module": "es2020",
+        "target": "es2019",
+        "module": "es6",
         "rootDir": "src",
         "outDir": "dist",
         "declaration": true,
         "declarationMap": false,
-        "skipLibCheck": true,
-        "strict": true,
+        // "strict": true,
         "esModuleInterop": true,
         "moduleResolution": "node"
     },

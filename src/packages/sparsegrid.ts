@@ -6,6 +6,17 @@ function createUuid() {
 }
 const uuid = createUuid();
 export default class SparseGrid {
+    private _data: any[];
+    private _colCounts: any[];
+    private _topRow: number;
+    private _bottomRow: number;
+    private _leftCol: number;
+    private _rightCol: number;
+    private _totalValues: number;
+    private _totalRows: number;
+    private _totalCols: number;
+    private _valueCount: number;
+    private _rows: any;
     constructor() {
         this._data = [];           // {row: {col: value}}
         this._colCounts = [];      // {col: count}
@@ -183,7 +194,7 @@ export default class SparseGrid {
     }
 
     getCol(col) {
-        const colData = [];
+        const colData: any = [];
         for (let row in this._data) {
             if (row === 'count') continue;
             if (col in this._data[row] && this._data[row][col]) {
@@ -258,17 +269,17 @@ export default class SparseGrid {
             return;
         }
 
-        let minRow = Infinity;
-        let maxRow = -Infinity;
-        let minCol = Infinity;
-        let maxCol = -Infinity;
+        let minRow:any = Infinity;
+        let maxRow:any = -Infinity;
+        let minCol:any = Infinity;
+        let maxCol:any = -Infinity;
 
         for (let row in this._data) {
-            row = parseInt(row);
+            (row as any) = parseInt(row);
             if (row < minRow) minRow = row;
             if (row > maxRow) maxRow = row;
             for (let col in this._data[row]) {
-                col = parseInt(col);
+                (col as any) = parseInt(col);
                 if (col < minCol) minCol = col;
                 if (col > maxCol) maxCol = col;
             }
@@ -346,56 +357,6 @@ export default class SparseGrid {
     }
 
     deleteCellsArea(startRow, startCol, endRow, endCol) {
-        const [minRow, maxRow] = [Math.min(startRow, endRow), Math.max(startRow, endRow)];
-        const [minCol, maxCol] = [Math.min(startCol, endCol), Math.max(startCol, endCol)];
-        let deletedCount = 0;
-        let boundariesChanged = false;
-
-        // We need to collect rows first to avoid modifying while iterating
-        const rowsToProcess = [];
-        for (const row in this._rows) {
-            if (row >= minRow && row <= maxRow) {
-                rowsToProcess.push(row);
-            }
-        }
-
-        for (const row of rowsToProcess) {
-            const rowArr = this._rows[row];
-
-            // Collect columns to delete
-            const colsToDelete = [];
-            for (const col in rowArr) {
-                if (col >= minCol && col <= maxCol) {
-                    colsToDelete.push(col);
-                }
-            }
-
-            // Delete the collected columns
-            for (const col of colsToDelete) {
-                delete rowArr[col];
-                this.decrementRowSize(row);
-                this._colCounts[col]--;
-                deletedCount++;
-
-                if (col == this._leftCol || col == this._rightCol) {
-                    boundariesChanged = true;
-                }
-            }
-
-            // Clean empty rows
-            if (this._data[row].size === 0) {
-                delete this._data[row];
-                this._totalRows--;
-                boundariesChanged = true;
-            }
-        }
-
-        this._valueCount -= deletedCount;
-        if (boundariesChanged) {
-            this._recalculateBoundaries();
-        }
-
-        return deletedCount;
     }
 
     getAllCells() {

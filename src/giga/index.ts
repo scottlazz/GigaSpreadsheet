@@ -1,5 +1,4 @@
-// @ts-ignore
-import { BottomBar } from 'src/sheet/components/bottomBar';
+import { BottomBar } from '../sheet/components/bottomBar';
 import Sheet from '../sheet';
 // import Sheet from "src/sheet";
 

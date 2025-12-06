@@ -1,0 +1,1 @@
+export function createLineChart(data: any, wrapper: any, width: any, height: any): any;

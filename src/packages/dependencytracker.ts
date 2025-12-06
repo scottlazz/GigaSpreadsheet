@@ -1,26 +1,26 @@
-export const dependencyTree = {
+export const dependencyTree: any = {
 
 };
 
-export const reverseDependencyTree = {
+export const reverseDependencyTree: any = {
 
 };
 
-export const tickerReg = {
+export const tickerReg: any = {
 
 };
 
-function isEmpty(obj) {
+function isEmpty(obj: any) {
     for(let i in obj) {
         if (obj.hasOwnProperty(i)) return false;
     }
     return true;
 }
 
-export function shiftDependenciesUp(pivotRow) {
-    const cellsToUpdate = [];
-    function helper(tree, depth = 0, didShift = false) {
-        const newDeps = {};
+export function shiftDependenciesUp(pivotRow: any) {
+    const cellsToUpdate: any = {};
+    function helper(tree: any, depth = 0, didShift = false) {
+        const newDeps: any = {};
         if (depth === 2) {
             for (let row in tree) {
                 let tmp = tree[row];
@@ -30,7 +30,7 @@ export function shiftDependenciesUp(pivotRow) {
                 }
                 if (didShift) {
                     for (let col in tmp) {
-                        cellsToUpdate.push([row, col]);
+                        cellsToUpdate[`${row},${col}`] = [row,col];
                     }
 
                 }
@@ -60,10 +60,10 @@ export function shiftDependenciesUp(pivotRow) {
     helper(dependencyTree);
     return cellsToUpdate;
 }
-export function shiftDependenciesDown(pivotRow) {
-    const cellsToUpdate = [];
-    function helper(tree, depth = 0,didShift=false) {
-        const newDeps = {};
+export function shiftDependenciesDown(pivotRow: any) {
+    const cellsToUpdate: any = {};
+    function helper(tree: any, depth = 0,didShift=false) {
+        const newDeps: any = {};
         if (depth === 2) {
             for (let row in tree) {
                 let tmp = tree[row];
@@ -73,7 +73,7 @@ export function shiftDependenciesDown(pivotRow) {
                 }
                 if (didShift) {
                     for (let col in tmp) {
-                        cellsToUpdate.push([row, col]);
+                        cellsToUpdate[`${row},${col}`] = [row,col];
                     }
 
                 }
@@ -100,10 +100,10 @@ export function shiftDependenciesDown(pivotRow) {
     helper(dependencyTree);
     return cellsToUpdate;
 }
-export function shiftDependenciesRight(pivotCol) {
-    const cellsToUpdate = [];
-    function helper(tree, depth = 0, didshift, _row) {
-        const newDeps = {};
+export function shiftDependenciesRight(pivotCol: any) {
+    const cellsToUpdate: any = {};
+    function helper(tree: any, depth = 0, didshift?: any, _row?: any) {
+        const newDeps: any = {};
         if (depth === 0 || depth === 2) {
             for (let row in tree) {
                 helper(tree[row], depth + 1, didshift, row);
@@ -125,7 +125,7 @@ export function shiftDependenciesRight(pivotCol) {
                     delete tree[col];
                 }
                 if (didshift) {
-                    cellsToUpdate.push([_row, col]);
+                    cellsToUpdate[`${_row},${col}`] = [_row,col];
                 }
             }
         }
@@ -137,10 +137,10 @@ export function shiftDependenciesRight(pivotCol) {
     helper(dependencyTree);
     return cellsToUpdate;
 }
-export function shiftDependenciesLeft(pivotCol) {
-    const cellsToUpdate = [];
-    function helper(tree, depth = 0, didshift, _row) {
-        const newDeps = {};
+export function shiftDependenciesLeft(pivotCol: any) {
+    const cellsToUpdate: any = {};
+    function helper(tree: any, depth = 0, didshift?: any, _row?: any) {
+        const newDeps: any = {};
         if (depth === 0 || depth === 2) {
             for (let row in tree) {
                 helper(tree[row], depth + 1, didshift, row);
@@ -165,7 +165,7 @@ export function shiftDependenciesLeft(pivotCol) {
                     delete tree[col];
                 }
                 if (didshift) {
-                    cellsToUpdate.push([_row, col]);
+                    cellsToUpdate[`${_row},${col}`] = [_row,col];
                 }
             }
         }
@@ -178,7 +178,7 @@ export function shiftDependenciesLeft(pivotCol) {
     return cellsToUpdate;
 }
 
-export function removeDependents(deptRow, deptCol) {
+export function removeDependents(deptRow:any, deptCol: any) {
     const dependencies = getDependencies(deptRow, deptCol);
     for(const [drow, dcol] of dependencies) {
         const dcell = dependencyTree[drow]?.[dcol];
@@ -192,7 +192,7 @@ export function removeDependents(deptRow, deptCol) {
     }
     removeDependencies(deptRow, deptCol);
 }
-export function getDependencies(row,col) {
+export function getDependencies(row: number,col: number) {
     const deps = [];
     const t = reverseDependencyTree;
     const cell = t[row]?.[col];
@@ -204,7 +204,7 @@ export function getDependencies(row,col) {
     }
     return deps;
 }
-export function removeDependencies(row, col) {
+export function removeDependencies(row:any, col:any) {
     const t = reverseDependencyTree;
     if (!t[row]?.[col]) return;
     delete t[row][col];
