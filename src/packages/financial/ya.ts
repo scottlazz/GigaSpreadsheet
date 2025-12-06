@@ -37,7 +37,7 @@ export default class YA {
     hasSubs() {
         return this.tickers.size > 0;
     }
-    addListener(cb) {
+    addListener(cb: any) {
         this.cbs.push(cb);
     }
     updateSubs() {
@@ -57,7 +57,7 @@ export default class YA {
         }
         return this.connection;
     }
-    updateListeners(data) {
+    updateListeners(data: any) {
         for(let cb of this.cbs) {
             cb(data);
         }
@@ -83,7 +83,7 @@ export default class YA {
             console.log(e)
         }
     }
-    async fetchTicker(symbol) {
+    async fetchTicker(symbol: any) {
 
     }
     addSubs(subs: string[]) {

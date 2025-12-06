@@ -3,17 +3,35 @@
   "private": false,
   "version": "0.0.1",
   "source": "src/index.html",
+  "types": "dist/index.d.ts",
+  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./sheet": {
+      "import": "./dist/sheet/index.js",
+      "require": "./dist/sheet/index.js",
+      "types": "./dist/sheet/index.d.ts"
+    }
+  },
   "alias": {
-    "packages": "./packages",
+    "packages": "./src/packages",
     "src": "./src"
   },
   "scripts": {
     "start": "parcel",
     "build": "parcel build",
+    "build:ts": "tsc -p tsconfig.json",
+    "build:lib": "npm run build:ts",
+    "prepare": "npm run build:ts",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist"
   },
   "devDependencies": {
+    "typescript": "^5.4.0",
     "gh-pages": "^6.3.0",
     "golden-layout": "^2.6.0",
     "parcel": "^2.16.1"

@@ -6,18 +6,17 @@ import ExpressionParser from 'packages/expressionparser';
 import { launchFormatMenu } from './windows/format';
 // @ts-ignore
 import { createLineChart } from './graphs/linechart.js';
-import FinancialSubscriber from 'packages/financial/index';
+import FinancialSubscriber from 'src/packages/financial/index';
 // @ts-ignore
 import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "packages/dependencytracker";
 
 import { hasBorderStr, addBorder, addBorderStr, arrows, isNumeric, extractClassesFromStyle } from "./utils";
 import { shiftTextRefs, rowColToRef } from "./shiftops";
-import { header } from './templates';
 import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
 import ContextMenu from './components/contextmenu';
 import { FormulaBar } from './components/formulaBar';
 import { Toolbar } from './components/toolbar';
-import scrollIntoView from 'packages/scrollIntoView';
+import scrollIntoView from 'src/packages/scrollIntoView';
 import { parseXML, toXML } from './copypaste';
 
 export default class Sheet {

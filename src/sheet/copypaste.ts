@@ -82,7 +82,7 @@ export function parseXML(xml: string) {
             const colspan = parseInt(col.getAttribute('colspan') || '1', 10);
             if (rowspan > 1 || colspan > 1) {
                 merges.push({startRow: r, startCol: c,
-                    endRow: r + parseInt(rowspan)-1, endCol: c + parseInt(colspan)-1});
+                    endRow: r + rowspan-1, endCol: c + colspan-1});
                     // c+= parseInt(colspan)-1;
                     markOccupied(r, c, rowspan, colspan);
             } else {

@@ -4,12 +4,16 @@
         "baseUrl": ".",
         "target": "es2020",
         "module": "es2020",
+        "rootDir": "src",
+        "outDir": "dist",
+        "declaration": true,
+        "declarationMap": false,
+        "skipLibCheck": true,
         "strict": true,
         "esModuleInterop": true,
         "moduleResolution": "node"
     },
     "include": [
-        "src/**/*",
-        "packages/**/*"
+        "src/**/*"
     ]
 }
