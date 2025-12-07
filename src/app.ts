@@ -17,6 +17,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
     //     }
     // }
     new Sheet(wrapper,
-        fininit
+        Object.assign(fininit, {cellHeaders: true})
     );
 });

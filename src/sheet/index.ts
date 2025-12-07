@@ -96,6 +96,8 @@ export default class Sheet {
     copyHandler: CopyHandler;
     pasteHandler: PasteHandler;
     metrics: GridMetrics;
+    renderRowNumberElems: HTMLDivElement;
+    renderRowNumberPadder: HTMLDivElement;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.toolbar = null;
         this.renderQueued = false;
@@ -148,6 +150,17 @@ export default class Sheet {
         this.container.scrollTop = 0;
         this.headerContainer = _container.querySelector('.header-container')!;
         this.rowNumberContainer = _container.querySelector('.row-number-container')!;
+        this.rowNumberContainer.onmousedown = (e: any) => {
+            if (e.button !== 0) return;
+            if (e.target.getAttribute('data-row') != null) {
+                this.draggingRow = { origTop: e.target.style.top, el: e.target, row: parseInt(e.target.getAttribute('data-row')) };
+            }
+        }
+        this.renderRowNumberPadder = document.createElement('div');
+        this.renderRowNumberElems = document.createElement('div');
+        this.renderRowNumberElems.style.position = 'relative';
+        this.rowNumberContainer.appendChild(this.renderRowNumberPadder);
+        this.rowNumberContainer.appendChild(this.renderRowNumberElems);
         this.cornerCell = _container.querySelector('.corner-cell')!;
         this.selectionLayer = _container.querySelector('.selection-layer')!;
         // this.mergeButton = _container.querySelector('.merge-button')!;
@@ -234,6 +247,7 @@ export default class Sheet {
         this.addNewSelection();
         this.probe = document.createElement('div');
         this.probe.style.position = 'absolute';
+        this.probe.style.display = 'none';
         // this.probe.style.display = 'none';
         this.probe.style.visibility = 'hidden';
         this.probe.style.width = '10px';
@@ -242,14 +256,17 @@ export default class Sheet {
         // this.probe.style.background = 'red';
         this.selectionLayer.appendChild(this.probe);
 
-        this.initRender();
         this.data = null;
         this.parser = null;
+        this.initialCells = options.initialCells;
         // if (!this.restoreSave()) {
             this.setData(new SparseGrid(), options.initialCells);
-        // }
-        this.initialCells = options.initialCells;
-        // this.intervalSetRandomData();
+            // }
+            // this.intervalSetRandomData();
+            // setTimeout(() => {
+                this.initRender();
+
+            // })
     }
 
     intervalSetRandomData() {
@@ -305,16 +322,20 @@ export default class Sheet {
 
     initEventListeners() {
         this.container.addEventListener('scroll', () => {
-            requestAnimationFrame(() => this.handleScroll());
+            requestAnimationFrame(() => {
+                this.handleScroll()
+            });
         });
 
         const resizeObserver = new ResizeObserver(() => {
             this.updateGridDimensions();
+
+            this.renderRowNumbers();
+            this.renderHeaders();
+
             this.updateVisibleGrid();
             this.updateSelection();
             this.updateRenderingQuality();
-            // this.contextMenu.style.width = `${130 * this.scaler()}px`;
-            // this.contextMenu.style.fontSize = `${14 * this.scaler()}px`;
         });
         resizeObserver.observe(this.container);
 
@@ -849,10 +870,10 @@ export default class Sheet {
         return this.gridlinesOn && this.quality() !== 'performance';
     }
     get totalRows() {
-        return Math.max(this.data?.rowCount || 0, this.blockRows) + (this.blockRows * this.padding);
+        return Math.max(this.data?.bottomRow  || 0, this.blockRows) + (this.blockRows * this.padding);
     }
     get totalCols() {
-        return Math.max(this.data?.colCount || 0, this.blockCols) + (this.blockCols * this.padding);
+        return Math.max(this.data?.rightCol || 0, this.blockCols) + (this.blockCols * this.padding);
     }
     getMerge = (row: number, col: number) =>{
         // Check if the cell is part of a merged range
@@ -1152,6 +1173,7 @@ export default class Sheet {
             const rect = this.container.getBoundingClientRect();
             this.draggingRow.el.style.top = `${scrollTop + e.clientY - this.headerRowHeight - rect.y - 5}px`;
         } else if (this.isSelecting) {
+            this.probe.style.display = 'block';
             const { row, col } = this.getCellFromEvent(e);
             if (row !== -1 && col !== -1) {
                 this.selectionEnd = { row, col };
@@ -1201,6 +1223,8 @@ export default class Sheet {
     handleMouseUp(e: any) {
         if (this.isSelecting) {
             this.isSelecting = false;
+            this.probe.style.display = 'none';
+            // this.activeSelection.style.display = 'none';
             const { row, col } = this.getCellFromEvent(e);
             if (row !== -1 && col !== -1) {
                 if (!this.selectionStart) return;
@@ -1389,11 +1413,16 @@ export default class Sheet {
 
         if (!this.selectionBoundRect) return;
 
-        const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
+        let { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
 
         let left = this.metrics.getWidthOffset(startCol);
         let width = this.metrics.getWidthBetweenColumns(startCol, endCol+1);
 
+        if (this.visibleEndRow < startRow) {
+            this.activeSelection.style.display = 'none';
+            return;
+        }
+        endRow = Math.min(endRow, this.visibleEndRow);
         const top = this.metrics.getHeightOffset(startRow); // Below header
         const height = this.metrics.getHeightBetweenRows(startRow, endRow+1);
 
@@ -1542,18 +1571,25 @@ export default class Sheet {
             this.rowNumberContainer.style.background = 'transparent';
             return;
         }
-        this.rowNumberContainer.innerHTML = '';
-        this.rowNumberContainer.onmousedown = (e: any) => {
-            if (e.button !== 0) return;
-            if (e.target.getAttribute('data-row') != null) {
-                this.draggingRow = { origTop: e.target.style.top, el: e.target, row: parseInt(e.target.getAttribute('data-row')) };
-            }
-        }
-
+        // this.rowNumberContainer.innerHTML = '';
+        // this.rowNumberContainer.onmousedown = (e: any) => {
+        //     if (e.button !== 0) return;
+        //     if (e.target.getAttribute('data-row') != null) {
+        //         this.draggingRow = { origTop: e.target.style.top, el: e.target, row: parseInt(e.target.getAttribute('data-row')) };
+        //     }
+        // }
         // Create or reuse row numbers for visible rows
         // let totalHeight = 0;
         let totalHeight = 0;
-        for (let row: any = 0; row <= this.totalRowBounds; row++) {
+        // console.log('rownums::', this.visibleStartRow, this.visibleStartCol, this.visibleEndRow, this.visibleEndCol);
+        let sr = this.visibleStartRow;
+        let ve = this.visibleEndRow;
+        let diff = sr % this.blockRows;
+        sr = sr - diff;
+        ve = ve + (this.blockRows - (ve % this.blockRows) - 1);
+        this.renderRowNumberPadder.style.height = `${this.metrics.getHeightOffset(sr)}px`;
+        this.renderRowNumberElems.innerHTML = '';
+        for (let row: any = sr; row <= ve; row++) {
             // if (row >= this.totalRows) break;
 
             const rowNumberEl: any = this.createRowNumber(row + 1);
@@ -1562,18 +1598,18 @@ export default class Sheet {
             rowNumberEl.style.height = `${this.metrics.rowHeight(row)}px`;
             rowNumberEl.style.lineHeight = `${this.metrics.rowHeight(row)}px`;
             rowNumberEl.setAttribute('data-rnrow', row);
-            this.rowNumberContainer.appendChild(rowNumberEl);
+            this.renderRowNumberElems.appendChild(rowNumberEl);
 
             const rowNumberHandle = document.createElement('div');
             rowNumberHandle.className = 'row-handle';
             rowNumberHandle.setAttribute('data-row', row);
             rowNumberHandle.style.top = `${totalHeight - 5}px`;
-            this.rowNumberContainer.appendChild(rowNumberHandle);
+            this.renderRowNumberElems.appendChild(rowNumberHandle);
         }
         // this.totalHeight = totalHeight;
         // const extra = (this.maxRows && this.totalRowBounds === this.maxRows-1) ? 0 : 20;
         const extra = 20;
-        this.rowNumberContainer.style.height = `${totalHeight + extra}px`; // extra pixels fixes slight alignment issue on scroll
+        this.rowNumberContainer.style.height = `${this.metrics.getHeightOffset(ve+1, true) + extra}px`; // extra pixels fixes slight alignment issue on scroll
     }
 
     get totalRowBounds() {
@@ -1599,7 +1635,17 @@ export default class Sheet {
         this.heightAccum = [this.headerRowHeight];
         let heightSum = this.headerRowHeight;
         const updateVisHeight = (this.container.clientHeight + this.container.scrollTop) >= (this.container.scrollHeight - 150);
-        for (let row = 0; row < oldHeight - 1 || row % this.blockRows !== 0 || row < this.totalRows || (updateVisHeight && row < (prevRowBounds + this.blockRows)); row++) {
+        // console.log(this.container.clientHeight, this.container.scrollTop, this.container.scrollHeight, updateVisHeight);
+        for (
+            let row = 0; 
+            row < oldHeight - 1 ||
+            row % this.blockRows !== 0 || // render full blocks
+            row < this.totalRows || // render til bottom row that has data
+            // this.heightAccum[this.heightAccum.length - 1] < this.container.scrollTop + this.container.clientHeight + 150 || // render til bottom of visible area
+            this.heightAccum[this.heightAccum.length - 1] < this.container.clientHeight + 150 || // render til bottom of visible area
+            (updateVisHeight && row < (prevRowBounds + this.blockRows)); // render extra block if near end
+            row++
+        ) {
             this.heightAccum.push(heightSum += this.heightOverrides[row] ?? this.cellHeight);
         }
     }
@@ -1610,7 +1656,15 @@ export default class Sheet {
         this.widthAccum = [this.rowNumberWidth];
         let widthSum = this.rowNumberWidth;
         const updateVisWidth = (this.container.clientWidth + this.container.scrollLeft) >= (this.container.scrollWidth - 150);
-        for (let col = 0; col < oldWidth - 1 || col % this.blockCols !== 0 || col < this.totalCols || (updateVisWidth && col < (prevColBounds + this.blockCols)); col++) {
+        for (
+            let col = 0;
+            col < oldWidth - 1 ||
+            col % this.blockCols !== 0 ||
+            col < this.totalCols ||
+            this.widthAccum[this.widthAccum.length - 1] < this.container.clientWidth + 150 || // render til right of visible area
+            (updateVisWidth && col < (prevColBounds + this.blockCols));
+            col++
+        ) {
             this.widthAccum.push(widthSum += this.metrics.getColWidth(col));
         }
     }
@@ -1634,14 +1688,28 @@ export default class Sheet {
     handleScroll() {
         const updateVisHeight = (this.container.clientHeight + this.container.scrollTop) >= (this.container.scrollHeight - 150);
         const updateVisWidth = (this.container.clientWidth + this.container.scrollLeft) >= (this.container.scrollWidth - 150);
+        // this.activeSelection.style.display = 'none';
+        // console.log(this.visibleStartRow, this.visibleStartCol, this.visibleEndRow, this.visibleEndCol);
+        // if (this.selectionBoundRect) {
+        //     if (this.selectionBoundRect.startRow >= this.visibleEndRow) {
+        //         this.activeSelection.style.display = 'none';
+        //     } else {
+        //         this.activeSelection.style.display = 'block';
+        //     }
+
+        // }
         if (updateVisHeight || updateVisWidth) {
             console.log('SCROLL UPDATE VIS HEIGHT OR WIDTH')
             this.updateGridDimensions();
+            this.metrics.calculateVisibleRange();
             this.renderRowNumbers();
-            this.renderHeaders();
+            // this.renderHeaders();
             // this.forceRerender();
             this.updateVisibleGrid();
         } else {
+            this.updateGridDimensions();
+            this.metrics.calculateVisibleRange();
+            this.renderRowNumbers();
             this.updateVisibleGrid();
         }
         this.updateSelection();
@@ -1680,6 +1748,9 @@ export default class Sheet {
         });
 
         toRemove.forEach((key: any) => this.activeBlocks.delete(key));
+        // if (toRemove.length > 0) {
+        //     this.renderHeaders();
+        // }
         // this.updatePlaceholders();
 
         // TODO: when zoom is >= 170%, subdivide blocks

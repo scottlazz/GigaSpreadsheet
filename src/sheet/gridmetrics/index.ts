@@ -176,7 +176,6 @@ export default class Metrics {
 
         // if (this.maxRows) row = Math.min(row, this.maxRows);
         // if (this.maxCols) col = Math.min(col, this.maxCols);
-
         return {
             row,
             col
