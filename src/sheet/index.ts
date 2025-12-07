@@ -149,6 +149,13 @@ export default class Sheet {
         this.container.scrollLeft = 0;
         this.container.scrollTop = 0;
         this.headerContainer = _container.querySelector('.header-container')!;
+        this.headerContainer.innerHTML = `<div class="header-cell" style="width:${this.rowNumberWidth}px;"></div>`;
+        this.headerContainer.onmousedown = (e: any) => {
+            if (e.button !== 0) return;
+            if (e.target.getAttribute('data-col') != null) {
+                this.draggingHeader = { origLeft: e.target.style.left, el: e.target, col: parseInt(e.target.getAttribute('data-col')) };
+            }
+        }
         this.rowNumberContainer = _container.querySelector('.row-number-container')!;
         this.rowNumberContainer.onmousedown = (e: any) => {
             if (e.button !== 0) return;
@@ -158,6 +165,8 @@ export default class Sheet {
         }
         this.renderRowNumberPadder = document.createElement('div');
         this.renderRowNumberElems = document.createElement('div');
+        // this.renderHeaderPadder = document.createElement('div');
+        // this.renderHeaderElems = document.createElement('div');
         this.renderRowNumberElems.style.position = 'relative';
         this.rowNumberContainer.appendChild(this.renderRowNumberPadder);
         this.rowNumberContainer.appendChild(this.renderRowNumberElems);
@@ -1418,10 +1427,11 @@ export default class Sheet {
         let left = this.metrics.getWidthOffset(startCol);
         let width = this.metrics.getWidthBetweenColumns(startCol, endCol+1);
 
-        if (this.visibleEndRow < startRow) {
+        if (this.visibleEndRow < startRow || this.visibleEndCol < startCol) {
             this.activeSelection.style.display = 'none';
             return;
         }
+        this.activeSelection.style.display = 'block';
         endRow = Math.min(endRow, this.visibleEndRow);
         const top = this.metrics.getHeightOffset(startRow); // Below header
         const height = this.metrics.getHeightBetweenRows(startRow, endRow+1);
@@ -1548,6 +1558,37 @@ export default class Sheet {
         // const extra = (this.maxCols && this.totalColBounds === this.maxCols-1) ? 0 : 10;
         const extra = 10;
         this.headerContainer.style.width = `${totalWidth + extra}px`;
+
+
+        // let totalHeight = 0;
+        // let sr = this.visibleStartRow;
+        // let ve = this.visibleEndRow;
+        // let diff = sr % this.blockRows;
+        // sr = sr - diff;
+        // ve = ve + (this.blockRows - (ve % this.blockRows) - 1);
+        // this.renderRowNumberPadder.style.height = `${this.metrics.getHeightOffset(sr)}px`;
+        // this.renderRowNumberElems.innerHTML = '';
+        // for (let row: any = sr; row <= ve; row++) {
+        //     // if (row >= this.totalRows) break;
+
+        //     const rowNumberEl: any = this.createRowNumber(row + 1);
+        //     // rowNumberEl.textContent = row + 1;
+        //     totalHeight += this.metrics.rowHeight(row);
+        //     rowNumberEl.style.height = `${this.metrics.rowHeight(row)}px`;
+        //     rowNumberEl.style.lineHeight = `${this.metrics.rowHeight(row)}px`;
+        //     rowNumberEl.setAttribute('data-rnrow', row);
+        //     this.renderRowNumberElems.appendChild(rowNumberEl);
+
+        //     const rowNumberHandle = document.createElement('div');
+        //     rowNumberHandle.className = 'row-handle';
+        //     rowNumberHandle.setAttribute('data-row', row);
+        //     rowNumberHandle.style.top = `${totalHeight - 5}px`;
+        //     this.renderRowNumberElems.appendChild(rowNumberHandle);
+        // }
+        // // this.totalHeight = totalHeight;
+        // // const extra = (this.maxRows && this.totalRowBounds === this.maxRows-1) ? 0 : 20;
+        // const extra = 20;
+        // this.rowNumberContainer.style.height = `${this.metrics.getHeightOffset(ve+1, true) + extra}px`; // extra pixels fixes slight alignment issue on scroll
     }
 
     createRowNumber(label: string) {
@@ -1571,17 +1612,7 @@ export default class Sheet {
             this.rowNumberContainer.style.background = 'transparent';
             return;
         }
-        // this.rowNumberContainer.innerHTML = '';
-        // this.rowNumberContainer.onmousedown = (e: any) => {
-        //     if (e.button !== 0) return;
-        //     if (e.target.getAttribute('data-row') != null) {
-        //         this.draggingRow = { origTop: e.target.style.top, el: e.target, row: parseInt(e.target.getAttribute('data-row')) };
-        //     }
-        // }
-        // Create or reuse row numbers for visible rows
-        // let totalHeight = 0;
         let totalHeight = 0;
-        // console.log('rownums::', this.visibleStartRow, this.visibleStartCol, this.visibleEndRow, this.visibleEndCol);
         let sr = this.visibleStartRow;
         let ve = this.visibleEndRow;
         let diff = sr % this.blockRows;
@@ -1703,13 +1734,14 @@ export default class Sheet {
             this.updateGridDimensions();
             this.metrics.calculateVisibleRange();
             this.renderRowNumbers();
-            // this.renderHeaders();
+            this.renderHeaders();
             // this.forceRerender();
             this.updateVisibleGrid();
         } else {
             this.updateGridDimensions();
             this.metrics.calculateVisibleRange();
             this.renderRowNumbers();
+            this.renderHeaders();
             this.updateVisibleGrid();
         }
         this.updateSelection();
@@ -1748,9 +1780,9 @@ export default class Sheet {
         });
 
         toRemove.forEach((key: any) => this.activeBlocks.delete(key));
-        // if (toRemove.length > 0) {
-        //     this.renderHeaders();
-        // }
+        if (toRemove.length > 0) {
+            this.renderHeaders();
+        }
         // this.updatePlaceholders();
 
         // TODO: when zoom is >= 170%, subdivide blocks
