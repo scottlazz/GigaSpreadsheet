@@ -14,6 +14,8 @@ import { FormulaBar } from './components/formulaBar';
 import { Toolbar } from './components/toolbar';
 import scrollIntoView from '../packages/scrollIntoView';
 import { parseXML, toXML } from './copypaste';
+import { Block } from './components/block';
+import HistoryManager from './history';
 
 export default class Sheet {
     wrapper: HTMLElement;
@@ -40,12 +42,9 @@ export default class Sheet {
     widthOverrides: any;
     gridlinesOn: boolean;
     padding: number; // number of adjacent blocks to render
-    readonly MAX_HISTORY_SIZE: number;
 
     activeBlocks: Map<any, any>;
     mergedCells: Rect[];
-    undoStack: any;
-    redoStack: any;
     elRegistry: any;
     heightAccum: any;
     widthAccum: any;
@@ -87,15 +86,14 @@ export default class Sheet {
     maxRows: number | null;
     maxCols: number | null;
     initialCells: any;
-    changes: any[];
     widthMaxByCol: any;
     needDims: any;
     dimUpdatesQueued: any;
     measureCanvas: any;
     maxWidthInCol: any;
+    historyManager: HistoryManager;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.toolbar = null;
-        this.changes = [];
         this.renderQueued = false;
         this.dimUpdatesQueued = false;
         this.options = options;
@@ -162,10 +160,9 @@ export default class Sheet {
         this.blockCols = options.blockCols ?? 30;  // Max cols per canvas block
         this.paddingBlocks = options.paddingBlocks ?? 1; // Extra blocks to render around visible area
         this.padding = options.padding || 1; // number of adjacent blocks to render
-        this.MAX_HISTORY_SIZE = 100;
         // this.headerContainer.style.height = `${this.headerRowHeight}px`;
         this.headerRowHeight = 0;
-        this.rowNumberWidth =0;
+        this.rowNumberWidth = 0;
         if (options.cellHeaders !== false) {
         this.headerRowHeight = this.cellHeight || 30;
         this.rowNumberWidth = 42;
@@ -183,6 +180,7 @@ export default class Sheet {
         }
 
         // State
+        this.historyManager = new HistoryManager(this);
         this.mergedCells = options.mergedCells || [];
         this.heightOverrides = this.buildOverrides(options.heightOverrides);
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
@@ -192,8 +190,6 @@ export default class Sheet {
         this.activeBlocks = new Map(); // Track active canvas blocks
         // window.activeBlocks = this.activeBlocks;
         // window.renderBlock = this.renderBlock.bind(this);
-        this.undoStack = [];
-        this.redoStack = [];
         this.elRegistry = {};
         this.heightAccum = [];
         this.widthAccum = [];
@@ -437,9 +433,9 @@ export default class Sheet {
                 const clipboardText = await navigator.clipboard.readText();
                 this.handlePaste(clipboardText);
             } else if (action === 'Undo') {
-                this.undo();
+                this.historyManager.undo();
             } else if (action === 'Redo') {
-                this.redo();
+                this.historyManager.redo();
             } else if (action === 'Left align') {
                 const textAlign = 'left';
                 const selectedCells = this.getSelectedCells();
@@ -547,7 +543,7 @@ export default class Sheet {
         this.shiftHeightOverrides(row, -1);
         this.updateHeightAccum();
         this.renderRowNumbers();
-        record && this.recordChanges([{ changeKind: 'deleteEntireRow', row, rowData, heightOverride }]);
+        record && this.historyManager.recordChanges([{ changeKind: 'deleteEntireRow', row, rowData, heightOverride }]);
         this.forceRerender();
         this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
         this.updateSelection();
@@ -574,7 +570,7 @@ export default class Sheet {
         this.updateWidthAccum();
         this.renderHeaders();
         
-        record && this.recordChanges([{ changeKind: 'deleteEntireCol', col, colData, widthOverride }]);
+        record && this.historyManager.recordChanges([{ changeKind: 'deleteEntireCol', col, colData, widthOverride }]);
         this.forceRerender();
         this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
         this.updateSelection();
@@ -617,7 +613,7 @@ export default class Sheet {
         if (heightOverride != null) this.heightOverrides[row] = heightOverride;
         this.updateHeightAccum();
         this.renderRowNumbers();
-        record && this.recordChanges([{ changeKind: 'insertEntireRow', row }]);
+        record && this.historyManager.recordChanges([{ changeKind: 'insertEntireRow', row }]);
         this.forceRerender();
         this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
         this.updateSelection();
@@ -643,7 +639,7 @@ export default class Sheet {
         this.updateWidthAccum();
         this.renderHeaders();
         
-        record && this.recordChanges([{ changeKind: 'insertEntireCol', col }]);
+        record && this.historyManager.recordChanges([{ changeKind: 'insertEntireCol', col }]);
         this.forceRerender();
         this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
         this.updateSelection();
@@ -678,7 +674,7 @@ export default class Sheet {
             }
         }
         this.data.deleteCells(deletions);
-        this.recordChanges(changes);
+        this.historyManager.recordChanges(changes);
 
         // for (let [row, col] of deletions) {
         //     this.renderCell(row, col);
@@ -736,7 +732,7 @@ export default class Sheet {
             changes.push({ changeKind: 'merge', bounds: { ...newMerge } });
         }
         if (changes.length > 0) {
-            this.recordChanges(changes);
+            this.historyManager.recordChanges(changes);
         }
     }
 
@@ -767,21 +763,7 @@ export default class Sheet {
         }
         // Record the changes in the undo stack
         if (changes.length > 0) {
-            this.recordChanges(changes);
-        }
-    }
-
-    // Function to record a change in the history
-    recordChanges(changes: any) {
-        // Clear redo stack when a new change is made
-        this.redoStack = [];
-
-        // Add the change to the undo stack
-        this.undoStack.push(changes);
-
-        // Limit the size of the undo stack
-        if (this.undoStack.length > this.MAX_HISTORY_SIZE) {
-            this.undoStack.shift(); // Remove the oldest change
+            this.historyManager.recordChanges(changes);
         }
     }
 
@@ -791,12 +773,7 @@ export default class Sheet {
             attr,
             changeKind: 'valchange'
         };
-        this.changes.push(obj);
-    }
-
-    flushChanges() {
-        this.recordChanges(this.changes);
-        this.changes = [];
+        this.historyManager.changes.push(obj);
     }
 
     setWidthOverride(col: any, width: any) {
@@ -813,73 +790,6 @@ export default class Sheet {
         } else {
             this.heightOverrides[row] = height;
         }
-    }
-
-    // Function to undo the last change
-    undo() {
-        if (this.undoStack.length === 0) return; // Nothing to undo
-
-        const changes: any = this.undoStack.pop(); // Get the last change
-        const redoChanges = [];
-        const updatedCells = [];
-        let rerender = false;
-        for (const change of changes) {
-            const { row, col, previousValue, changeKind, prevData } = change;
-            if (changeKind === 'merge') {
-                this.unmergeSelectedCells(change.bounds, false); rerender = true;
-                redoChanges.push({ changeKind: 'unmerge', bounds: change.bounds });
-            } else if (changeKind === 'unmerge') {
-                this.mergeSelectedCells(change.bounds, false); rerender = true;
-                redoChanges.push({ changeKind: 'merge', bounds: change.bounds });
-            } else if (changeKind === 'deleteEntireRow') {
-                this.insertRow(change.row, change.rowData, false, change.heightOverride); rerender = true;
-                // this.data.addRow(change.row, change.rowData);
-                redoChanges.push({ changeKind: 'deleteEntireRow', row: change.row, rowData: change.rowData, heightOverride: change.heightOverride });
-            } else if (changeKind === 'deleteEntireCol') {
-                this.insertCol(change.col, change.colData, false, change.widthOverride); rerender = true;
-                redoChanges.push({ changeKind: 'deleteEntireCol', col: change.col, colData: change.colData, widthOverride: change.widthOverride });
-            } else if (changeKind === 'insertEntireRow') {
-                this.deleteRow(change.row, false); rerender = true;
-                redoChanges.push({ changeKind: 'insertEntireRow', row: change.row });
-            } else if (changeKind === 'insertEntireCol') {
-                this.deleteCol(change.col, false); rerender = true;
-                redoChanges.push({ changeKind: 'insertEntireCol', col: change.col });
-            } else if (changeKind === 'widthOverrideUpdate') {
-                const prev = this.widthOverrides[change.col];
-                this.setWidthOverride(change.col, change.value);
-                this.updateWidthAccum();
-                this.renderHeaders();
-                rerender = true;
-                redoChanges.push({ changeKind: 'widthOverrideUpdate', col: change.col, value: prev });
-            } else if (changeKind === 'heightOverrideUpdate') {
-                const prev = this.heightOverrides[change.row];
-                this.setHeightOverride(change.row, change.value);
-                this.updateHeightAccum();
-                this.renderRowNumbers();
-                rerender = true;
-                redoChanges.push({ changeKind: 'heightOverrideUpdate', row: change.row, value: prev });
-            } else if (changeKind === 'valchange') {
-                // Record the current value for redo
-                redoChanges.push({ row, col, prevData: Object.assign({}, this.getCell(row,col)), previousValue: this.getCellText(row, col), newValue: previousValue, changeKind: 'valchange' });
-                // Revert the cell to its previous value
-                if (change.attr) {
-                    this.setCell(row, col, change.attr, prevData[change.attr]);
-                } else {
-                    this.putCellObj(row,col, prevData);
-                }
-                updatedCells.push([row, col]);
-            } else {
-                console.log('UNHANDLED UNDO:', changeKind)
-            }
-        }
-        this.redoStack.push(redoChanges);
-
-        if (rerender) {
-            this.forceRerender();
-        } else {
-            this.rerenderCells(updatedCells);
-        }
-        this.updateSelection();
     }
 
     rerenderCellsForce(arr: any) {
@@ -919,72 +829,6 @@ export default class Sheet {
                 this.renderCell(merge.startRow, merge.startCol, block);
             }
         }
-    }
-
-    // Function to redo the last undone change
-    redo() {
-        if (this.redoStack.length === 0) return; // Nothing to redo
-
-        const changes = this.redoStack.pop(); // Get the last undone change
-        const undoChanges = [];
-        const updatedCells = [];
-        let rerender = false;
-        for (const change of changes) {
-            const { row, col, newValue, previousValue, changeKind, prevData } = change;
-            if (changeKind === 'unmerge') {
-                this.mergeSelectedCells(change.bounds, false); rerender = true;
-                undoChanges.push({ changeKind: 'merge', bounds: change.bounds });
-            } else if (changeKind === 'merge') {
-                this.unmergeSelectedCells(change.bounds, false); rerender = true;
-                undoChanges.push({ changeKind: 'unmerge', bounds: change.bounds });
-            } else if (changeKind === 'deleteEntireRow') {
-                this.deleteRow(change.row, false); rerender = true;
-                undoChanges.push({ changeKind: 'deleteEntireRow', row: change.row, rowData: change.rowData, heightOverride: change.heightOverride });
-            } else if (changeKind === 'deleteEntireCol') {
-                this.deleteCol(change.col, false); rerender = true;
-                undoChanges.push({ changeKind: 'deleteEntireCol', col: change.col, colData: change.colData, widthOverride: change.widthOverride });
-            } else if (changeKind === 'insertEntireRow') {
-                this.insertRow(change.row, null, false); rerender = true;
-                undoChanges.push({ changeKind: 'insertEntireRow', row: change.row });
-            } else if (changeKind === 'insertEntireCol') {
-                this.insertCol(change.col, null, false); rerender = true;
-                undoChanges.push({ changeKind: 'insertEntireCol', col: change.col });
-            } else if (changeKind === 'widthOverrideUpdate') {
-                const prev = this.widthOverrides[change.col];
-                this.setWidthOverride(change.col, change.value);
-                this.updateWidthAccum();
-                this.renderHeaders();
-                rerender = true;
-                undoChanges.push({ changeKind: 'widthOverrideUpdate', col: change.col, value: prev });
-            } else if (changeKind === 'heightOverrideUpdate') {
-                const prev = this.heightOverrides[change.row];
-                this.setHeightOverride(change.row, change.value);
-                this.updateHeightAccum();
-                this.renderRowNumbers();
-                rerender = true;
-                undoChanges.push({ changeKind: 'heightOverrideUpdate', row: change.row, value: prev });
-            } else if (changeKind === 'valchange') {
-                // Record the current value for undo
-                undoChanges.push({ row, col, prevData: Object.assign({}, this.getCell(row,col)), previousValue: this.getCellText(row, col), newValue, changeKind: 'valchange' });
-                // Apply the new value to the cell
-                if (change.attr) {
-                    this.setCell(row, col, change.attr, prevData[change.attr]);
-                } else {
-                    this.putCellObj(row,col, prevData);
-                }
-                updatedCells.push([row, col]);
-            } else {
-                console.log('UNHANDLED REDO:', changeKind)
-            }
-        }
-        this.undoStack.push(undoChanges);
-
-        if (rerender) {
-            this.forceRerender();
-        } else {
-            this.rerenderCells(updatedCells);
-        }
-        this.updateSelection();
     }
 
     rowColInBounds(row: number, col: number, bounds: any) {
@@ -1098,10 +942,10 @@ export default class Sheet {
             if (this.editingCell) return;
             if (key === 'y' || (e.shiftKey && key === 'z')) {
                 e.preventDefault(); // Prevent default behavior
-                this.redo();
+                this.historyManager.redo();
             } else if (key === 'z') {
                 e.preventDefault(); // Prevent default behavior (e.g., browser undo)
-                this.undo();
+                this.historyManager.undo();
             }
         } else if (key === 'arrowup' || key === 'arrowdown' || key === 'arrowleft' || key === 'arrowright' || key === 'enter' || key === 'tab') {
             if (!this.selectionEnd || this.editingCell) return;
@@ -1373,7 +1217,7 @@ export default class Sheet {
             this.updateDim(cell.row, cell.col);
             this.renderCell(cell.row, cell.col);
         }
-        this.flushChanges();
+        this.historyManager.flushChanges();
     }
     setCells(cells: any, field: string, value: any) {
         for (let cell of cells) {
@@ -1381,7 +1225,7 @@ export default class Sheet {
             this.setCell(cell.row, cell.col, field, value);
             this.renderCell(cell.row, cell.col);
         }
-        this.flushChanges();
+        this.historyManager.flushChanges();
         if (field === 'cellType') {
             console.log('forcing rerender')
             this.forceRerender();
@@ -1400,7 +1244,7 @@ export default class Sheet {
             this.cancelCellEdit();
             return;
         }
-        this.recordChanges([{ row, col, prevData: Object.assign({}, this.getCell(row,col)), previousValue: this.getCellText(row, col), newValue: this.editInput.value, changeKind: 'valchange' }]);
+        this.historyManager.recordChanges([{ row, col, prevData: Object.assign({}, this.getCell(row,col)), previousValue: this.getCellText(row, col), newValue: this.editInput.value, changeKind: 'valchange' }]);
         this.setText(row, col, this.editInput.value);
         // Hide input and redraw cell
         this.cancelCellEdit();
@@ -1419,7 +1263,7 @@ export default class Sheet {
         const blockSet = new Set();
         for (let i = merge.startRow; i <= merge.endRow; i++) {
             for (let j = merge.startCol; j <= merge.endCol; j++) {
-                const block = this.getBlockOrSubBlock(i, j);
+                const block = this.getSubBlock(i, j);
                 if (!block) continue;
                 if (blockSet.has(block)) continue;
                 blockSet.add(block);
@@ -1456,13 +1300,9 @@ export default class Sheet {
                     setTimeout(() => {
                         this.busy = true;
                         this.activeBlocks.forEach(block => {
-                            if (block.subBlocks.length < 2) {
-                                this.renderBlock(block, true);
-                            } else {
-                                block.subBlocks.forEach((subBlock: any) => {
-                                    this.renderBlock(subBlock, true);
-                                })
-                            }
+                            block.subBlocks.forEach((subBlock: any) => {
+                                subBlock.renderBlock(true);
+                            })
                         });
                         this.busy = false;
                         this.rqtimeout = null;
@@ -1685,7 +1525,7 @@ export default class Sheet {
                 return;
             }
             this.setWidthOverride(col, change);
-            this.recordChanges([{ changeKind: 'widthOverrideUpdate', col, value: prevOverride }]);
+            this.historyManager.recordChanges([{ changeKind: 'widthOverrideUpdate', col, value: prevOverride }]);
             this.updateWidthAccum();
             this.renderHeaders();
             this.forceRerender();
@@ -1705,7 +1545,7 @@ export default class Sheet {
                 return;
             }
             this.setHeightOverride(row, change);
-            this.recordChanges([{ changeKind: 'heightOverrideUpdate', row, value: prevOverride }]);
+            this.historyManager.recordChanges([{ changeKind: 'heightOverrideUpdate', row, value: prevOverride }]);
             this.updateHeightAccum();
             this.renderRowNumbers();
             this.forceRerender();
@@ -1840,7 +1680,7 @@ export default class Sheet {
 
         // Add the merged range to the list
         this.mergedCells.push({ startRow, endRow, startCol, endCol });
-        recordChanges && this.recordChanges([{ changeKind: 'merge', bounds: { startRow, endRow, startCol, endCol } }]);
+        recordChanges && this.historyManager.recordChanges([{ changeKind: 'merge', bounds: { startRow, endRow, startCol, endCol } }]);
 
         recordChanges && this.forceRerender();
     }
@@ -1872,7 +1712,7 @@ export default class Sheet {
             }
         }
         if (!merged) return;
-        recordChanges && this.recordChanges([{
+        recordChanges && this.historyManager.recordChanges([{
             changeKind: 'unmerge', bounds: { startRow: merged.startRow, endRow: merged.endRow, startCol: merged.startCol, endCol: merged.endCol }
         }])
         recordChanges && this.forceRerender();
@@ -2006,24 +1846,9 @@ export default class Sheet {
         grid = grid || new SparseGrid();
         this.parser = new ExpressionParser(grid);
         this.data = grid;
-        // if (initialData) {
-        //     initialData.forEach(((cell: any) => {
-        //         grid.set(cell.row, cell.col, cell);
-        //     }))
-        // }
         if (initialData) {
-            this.rerenderCellsForce(initialData)
+            this.rerenderCellsForce(initialData);
         }
-        // for (let i = 0; i < 2000; i++) {
-        //     for (let j = 0; j < 2000; j++) {
-        //         data.set(i, j, { text: (Math.random() * 1000).toFixed(2), _id: uuid() })
-        //     }
-        // }
-
-        // this.updateGridDimensions();
-        // this.renderHeaders();
-        // this.renderRowNumbers();
-        // this.updateVisibleGrid(true);
     }
 
     renderHeaders() {
@@ -2254,7 +2079,8 @@ export default class Sheet {
                 } else {
                     // Ensure existing blocks are properly positioned
                     const block = this.activeBlocks.get(key);
-                    this.positionBlock(block);
+                    block.positionBlock();
+                    // this.positionBlock(block);
                 }
             });
         })
@@ -2267,47 +2093,6 @@ export default class Sheet {
             return 2;
         } else {
             return 1;
-        }
-    }
-
-    positionBlock(block: any) {
-        // Calculate horizontal position (left)
-        let left = this.rowNumberWidth; // Account for row numbers column
-        for (let col = 0; col < block.startCol; col++) {
-            left += this.getColWidth(col);
-        }
-
-        // Calculate vertical position (top)
-
-        const top = this.heightAccum[block.startRow];
-
-        // Round positions in device pixels so the container aligns with integer
-        // canvas pixel sizes and avoids sub-pixel gaps between blocks.
-        const dpr = this.effectiveDevicePixelRatio();
-        const leftDp = Math.round(left * dpr);
-        const topDp = Math.round(top * dpr);
-        const styleLeft = leftDp / dpr;
-        const styleTop = topDp / dpr;
-
-        block.blockContainer.style.left = `${styleLeft}px`;
-        block.blockContainer.style.top = `${styleTop}px`;
-        block.blockContainer.style.display = 'block';
-
-        // block.left = left;
-    }
-
-    positionSubBlock(block: any, i: number) {
-        if (i === 0) return;
-
-        // Calculate vertical position (top)
-        const dpr = this.effectiveDevicePixelRatio();
-        if (i === 1 || i === 3) {
-            const leftCss = Math.round(block.parentBlock.subBlocks[0].styleWidth * dpr) / dpr;
-            block.canvas.style.left = `${leftCss}px`;
-        }
-        if (i >= 2) {
-            const topCss = Math.round(block.parentBlock.subBlocks[0].styleHeight * dpr) / dpr;
-            block.canvas.style.top = `${topCss}px`;
         }
     }
 
@@ -2324,15 +2109,7 @@ export default class Sheet {
         // blockContainer.id = `${blockRow},${blockCol}`;
         blockContainer.className = 'canvas-block-container';
 
-        const createCanvas = (idx: number | null = null) => {
-            // const canvas = this.pool.pop() || document.createElement('canvas');
-            const canvas = document.createElement('canvas');
-            canvas.className = 'canvas-block';
-            // canvas.id = `canvas-${blockRow},${blockCol}${idx != null ? '__' + idx : ''}`;
-            return canvas;
-        }
-
-        const block: any = {
+        const block = new Block({
             startRow,
             endRow,
             startCol,
@@ -2340,112 +2117,22 @@ export default class Sheet {
             blockRow,
             blockCol,
             blockContainer,
-            canvas: null,
-            subBlocks: []
-        };
+            subBlocks: [],
+            count: this.blockCanvases()
+        }, this);
         const key = `${blockRow},${blockCol}`;
         this.activeBlocks.set(key, block);
-
-        // const subBlockTemplate = () => {
-        //     return { startRow, startCol, endRow, endCol, canvas: createCanvas(), parentBlock: block, isSubBlock: true, index: 0 };
-        // }
-
-        // this.calculateBlockDimensionsContainer(block);
-        this.positionBlock(block);
 
         // Add to DOM if not already present
         if (!blockContainer.parentNode) {
             this.container.appendChild(blockContainer);
         }
-        if (this.blockCanvases() === 1) {
-            block.canvas = createCanvas();
-            blockContainer.appendChild(block.canvas)
-            this.calculateBlockDimensions(block);
-            this.renderBlock(block);
-        } else {
-            if (this.blockCanvases() === 2) {
-                block.subBlocks.push(
-                    { startRow, startCol, endRow, endCol: Math.floor((startCol + endCol) / 2), canvas: createCanvas(0), parentBlock: block, isSubBlock: true, index: 0 }, // left half
-                    { startRow, startCol: Math.floor((startCol + endCol) / 2), endRow, endCol, canvas: createCanvas(1), parentBlock: block, isSubBlock: true, index: 1 }, // right half
-                )
-            } else { // 4
-                block.subBlocks.push(
-                    { startRow, startCol, endRow: Math.floor((startRow + endRow) / 2), endCol: Math.floor((startCol + endCol) / 2), canvas: createCanvas(0), parentBlock: block, isSubBlock: true, index: 0 }, // top left
-                    { startRow, startCol: Math.floor((startCol + endCol) / 2), endRow: Math.floor((startRow + endRow) / 2), endCol, canvas: createCanvas(1), parentBlock: block, isSubBlock: true, index: 1 }, // top right
-                    { startRow: Math.floor((startRow + endRow) / 2), startCol, endRow, endCol: Math.floor((startCol + endCol) / 2), canvas: createCanvas(2), parentBlock: block, isSubBlock: true, index: 2 }, // bottom left
-                    { startRow: Math.floor((startRow + endRow) / 2), startCol: Math.floor((startCol + endCol) / 2), endRow, endCol, canvas: createCanvas(3), parentBlock: block, isSubBlock: true, index: 3 }, // bottom right
-                )
-            }
-            for (let i = 0; i < this.blockCanvases(); i++) {
-                blockContainer.appendChild(block.subBlocks[i].canvas);
-                this.calculateBlockDimensions(block.subBlocks[i]);
-                this.positionSubBlock(block.subBlocks[i], i);
-                this.renderBlock(block.subBlocks[i]);
-            }
-        }
 
         return block;
     }
 
-    calculateBlockDimensions(block: any) {
-        let scaleFactor = this.effectiveDevicePixelRatio();
-        // Compute integer canvas pixel sizes to avoid gaps between adjacent blocks
-        let widthSum = 0;
-        for (let col = block.startCol; col < block.endCol; col++) {
-            widthSum += this.getColWidth(col);
-        }
-        let widthDp = Math.round(widthSum * scaleFactor);
-        const styleWidth = widthDp / scaleFactor;
-
-        // Calculate block height based on rows (in device pixels)
-        let heightDp = Math.round((this.heightAccum[block.endRow] - this.heightAccum[block.startRow]) * scaleFactor);
-        const styleHeight = heightDp / scaleFactor;
-
-
-        // console.log(styleHeight, block.index)
-
-        // Set canvas dimensions (use integer device-pixel sizes)
-        block.canvas.width = widthDp;
-        block.canvas.height = heightDp;
-        block.canvas.style.width = `${styleWidth}px`;
-        block.canvas.style.height = `${styleHeight}px`;
-
-        block.styleHeight = styleHeight;
-        block.styleWidth = styleWidth;
-    }
-
-    calculateBlockDimensionsContainer(block: any) {
-        const scaleFactor = this.effectiveDevicePixelRatio();
-        // Calculate block width based on columns
-        block.width = 0;
-        for (let col = block.startCol; col < block.endCol; col++) {
-            block.width += this.getColWidth(col) * scaleFactor;
-        }
-        block.width = Math.round(block.width);
-        block.width = block.width / scaleFactor;
-
-        // Calculate block height based on rows
-        block.height = (this.heightAccum[block.endRow] - this.heightAccum[block.startRow]) * scaleFactor;
-        block.height = Math.round(block.height)
-        block.height = block.height / scaleFactor;
-        // block.height = (block.endRow - block.startRow) * this.cellHeight;
-        block.blockContainer.style.width = `${block.width}px`;
-        block.blockContainer.style.height = `${block.height}px`;
-        block.styleWidth = block.width;
-        block.styleHeight = block.height;
-    }
-
     effectiveDevicePixelRatio() {
         return devicePixelRatio;
-        // return devicePixelRatio * devicePixelRatio;
-        if (this.blockCanvases() > 2) {
-            return Math.min(window.devicePixelRatio || 1, 4);
-            // return Math.min(window.devicePixelRatio || 1, 3.6);
-        }
-        if (this.blockCanvases() == 2) {
-            return Math.min(window.devicePixelRatio || 1, 3);
-        }
-        return Math.min(window.devicePixelRatio || 1, 1.4);
     }
 
     blockKey(block: any) {
@@ -2454,41 +2141,6 @@ export default class Sheet {
 
     rowHeight(row: any) {
         return this.heightOverrides[row] ?? this.cellHeight;
-    }
-
-    leftBlock(block: any) {
-        if (block.isSubBlock) {
-            if (block.index === 0) {
-                const leftBlock = this.getBlock(block.parentBlock.blockRow, block.parentBlock.blockCol - 1);
-                if (!leftBlock) return;
-                return leftBlock.subBlocks?.[1];
-            } else if (block.index === 1) {
-                return block.parentBlock.subBlocks?.[0];
-            } else if (block.index === 2) {
-                const leftBlock = this.getBlock(block.parentBlock.blockRow, block.parentBlock.blockCol - 1);
-                if (!leftBlock) return;
-                return leftBlock.subBlocks?.[leftBlock.subBlocks?.length - 1];
-            } else if (block.index === 3) {
-                return block.parentBlock.subBlocks?.[2];
-            }
-            return null;
-        } else {
-            return this.getBlock(block.blockRow, block.blockCol - 1)
-        }
-    }
-
-    blockFromRc(row: number, col: number) {
-        const blockRow = Math.floor(row / 34);
-        const blockCol = Math.floor(col / 34);
-        const block = this.getBlock(blockRow, blockCol);
-        if (!block) return null; // todo: left block might be pruned because not in view
-        if (block.subBlocks.length === 0) return block;
-        for (let subBlock of block.subBlocks) {
-            if (row >= subBlock.startRow && row <= subBlock.endRow && col >= subBlock.startCol && col <= subBlock.endCol) {
-                return subBlock;
-            }
-        }
-        return null;
     }
 
     getKey(row: number, col: number) {
@@ -2520,11 +2172,11 @@ export default class Sheet {
         return null;
     }
 
-    getBlockOrSubBlock(row: number, col: number) {
+    getSubBlock(row: number, col: number) {
         const parentBlock = this.getBlock(row, col);
         if (!parentBlock) return null;
-        if (parentBlock.subBlocks.length === 0) {
-            return parentBlock;
+        if (parentBlock.subBlocks.length === 1) {
+            return parentBlock.subBlocks[0];
         }
         if (parentBlock.subBlocks.length === 2) {
             let ncol = col % this.blockCols;
@@ -2570,15 +2222,15 @@ export default class Sheet {
         return { left, top, width, height, row, col };
     }
     getCellCoordsCanvas(row: number, col: number): CellCoordsRect {
-        const block = this.getBlockOrSubBlock(row, col);
+        const block = this.getSubBlock(row, col);
         // if (!block) return null;
         const merge = this.getMerge(row, col);
         let left, top, width, height;
         if (merge) {
             const cell = this.getCellOrMerge(row,col);
         // check not in bounds
-            const srcblock = this.getBlockOrSubBlock(row,col);
-            const mergeStartBlock = this.getBlockOrSubBlock(cell.row,cell.col);
+            const srcblock = this.getSubBlock(row,col);
+            const mergeStartBlock = this.getSubBlock(cell.row,cell.col);
             if (srcblock !== mergeStartBlock) {
                 row = merge.startRow, col = merge.startCol;
                 width = this.getMergeWidth(merge);
@@ -2742,7 +2394,7 @@ export default class Sheet {
     }
 
     getCtx(row: number,col:number) {
-        let block = this.getBlockOrSubBlock(row, col);
+        let block = this.getSubBlock(row, col);
         if (!block) return;
         return block?.canvas.getContext('2d');
     }
@@ -2750,7 +2402,7 @@ export default class Sheet {
     immediateRenderCell(row: any, col: any, fromBlockRender: boolean) {
         if (!this.isValid(row,col)) return;
 
-        let block = this.getBlockOrSubBlock(row, col);
+        let block = this.getSubBlock(row, col);
         if (!block) return;
         let ctx = block?.canvas.getContext('2d');
         let left, top, width, height;
@@ -2782,7 +2434,7 @@ export default class Sheet {
     immedateOffBlockRender(row: any, col: any, fromBlockRender: boolean,block:any) {
         // if (!this.isValid(row,col)) return;
         // console.log(row,col)
-        // let block = this.getBlockOrSubBlock(row, col);
+        // let block = this.getSubBlock(row, col);
         if (!block) return;
         try {
             this.getCellCoordsCanvas(row,col);
@@ -2907,7 +2559,7 @@ export default class Sheet {
         this.scheduledRenders[`${row},${col}`] = [row,col,fromBlockRender];
         const merge = this.getMerge(row,col);
         if (merge) {
-            const startBlock = this.getBlockOrSubBlock(merge.startRow,merge.startCol);
+            const startBlock = this.getSubBlock(merge.startRow,merge.startCol);
             for (let block of this.getBlocksInMerge(merge)) {
                 if (block[0] === startBlock) continue;
                 // console.log(row,col)
@@ -2925,73 +2577,6 @@ export default class Sheet {
         return devicePixelRatio;
     }
 
-    renderGridlines(block: any, ctx: any) {
-        let y;
-        let x = 0;
-        if (this.gridlinesOn && this.quality() !== 'performance') {
-            ctx.save();
-            const dpr = this.effectiveDevicePixelRatio();
-            for (let row = block.startRow; row < block.endRow; row++) {
-                // Align stroke to half-pixel so 1px lines render sharply
-                y = Math.round((this.heightAccum[row] - this.heightAccum[block.startRow]) * dpr) + 0.5;
-                ctx.beginPath();
-                ctx.moveTo(0.5, y);
-                ctx.lineTo(block.canvas.width - 0.5, y);
-                ctx.stroke();
-            }
-            // draw col grid lines
-            for (let col = block.startCol; col < block.endCol; col++) {
-                const colWidth = this.getColWidth(col);
-                // draw col gridlines
-                const xCoord = Math.round(x * dpr) + 0.5;
-                ctx.beginPath();
-                ctx.moveTo(xCoord, 0.5);
-                ctx.lineTo(xCoord, block.canvas.height - 0.5);
-                ctx.stroke();
-                x += colWidth;
-            }
-            ctx.restore();
-        }
-    }
-
-    setBlockCtx(ctx: any) {
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#333333';
-        // const scaler = 88;
-        // ctx.strokeStyle = `hsl(0,0%,88%)`;
-        ctx.strokeStyle = '#dddddd';
-        ctx.lineWidth = 1;
-        ctx.font = this.getFontString();
-    }
-
-    renderBlock(block: any, calcDimensions = false) {
-        // console.log([block.startRow,block.startCol],[block.endRow,block.endCol])
-        if (calcDimensions) {
-            this.calculateBlockDimensions(block);
-            this.positionSubBlock(block, block.index);
-        }
-        const ctx = block.canvas.getContext('2d');
-
-        this.applyRenderingQuality(ctx);
-
-        this.setBlockCtx(ctx);
-
-        this.renderGridlines(block, ctx);
-
-        for (let col = block.startCol; col < block.endCol; col++) {
-            for (let row = block.startRow; row < block.endRow; row++) {
-                this.renderCell(row,col, true);
-            }
-        }
-    }
-    // renderMergesOnBlock(block: any, ctx: any) {
-    //     const merges: Array<Rect> = this.getMergesInRange(block);
-    //     for(let merge of merges) {
-    //         const row = merge.startRow, col = merge.startCol;
-    //         this.renderCell(row,col,block,ctx);
-    //     }
-    // }
     clearElRegistry(row: number, col: number) {
         const _id = this.getCellId(row, col);
         if (this.elRegistry[_id]) {
@@ -3267,8 +2852,8 @@ export default class Sheet {
     }
 
     releaseBlock(block: any) {
-        if (block.subBlocks.length > 1) {
-            while (block.subBlocks.length > 1) {
+        if (block.subBlocks.length >= 1) {
+            while (block.subBlocks.length >= 1) {
                 block.subBlocks.pop();
             }
         }
