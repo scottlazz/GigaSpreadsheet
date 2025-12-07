@@ -38,7 +38,7 @@ export class Block {
         // for (let col = 0; col < block.startCol; col++) {
         //     left += this.getColWidth(col);
         // }
-        const left = this.sheet.getWidthOffset(this.startCol, true);
+        const left = this.sheet.metrics.getWidthOffset(this.startCol, true);
 
         // Calculate vertical position (top)
 
@@ -124,12 +124,12 @@ class SubBlock {
     calculateBlockDimensions() {
         let scaleFactor = this.parentBlock.sheet.effectiveDevicePixelRatio();
         // Compute integer canvas pixel sizes to avoid gaps between adjacent blocks
-        const widthSum = this.parentBlock.sheet.getWidthBetweenColumns(this.startCol, this.endCol);
+        const widthSum = this.parentBlock.sheet.metrics.getWidthBetweenColumns(this.startCol, this.endCol);
         let widthDp = Math.round(widthSum * scaleFactor);
         const styleWidth = widthDp / scaleFactor;
 
         // Calculate block height based on rows (in device pixels)
-        let heightDp = Math.round(this.parentBlock.sheet.getHeightBetweenRows(this.startRow, this.endRow) * scaleFactor);
+        let heightDp = Math.round(this.parentBlock.sheet.metrics.getHeightBetweenRows(this.startRow, this.endRow) * scaleFactor);
         const styleHeight = heightDp / scaleFactor;
         this.canvas.width = widthDp;
         this.canvas.height = heightDp;
@@ -157,7 +157,7 @@ class SubBlock {
             const dpr = this.sheet.effectiveDevicePixelRatio();
             for (let row = this.startRow; row < this.endRow; row++) {
                 // Align stroke to half-pixel so 1px lines render sharply
-                y = Math.round(this.sheet.getHeightBetweenRows(row, this.startRow) * dpr) + 0.5;
+                y = Math.round(this.sheet.metrics.getHeightBetweenRows(row, this.startRow) * dpr) + 0.5;
                 ctx.beginPath();
                 ctx.moveTo(0.5, y);
                 ctx.lineTo(this.canvas.width - 0.5, y);
@@ -165,7 +165,7 @@ class SubBlock {
             }
             // draw col grid lines
             for (let col = this.startCol; col < this.endCol; col++) {
-                const colWidth = this.sheet.getColWidth(col);
+                const colWidth = this.sheet.metrics.getColWidth(col);
                 // draw col gridlines
                 const xCoord = Math.round(x * dpr) + 0.5;
                 ctx.beginPath();

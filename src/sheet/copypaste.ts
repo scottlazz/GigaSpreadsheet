@@ -1,3 +1,4 @@
+import Sheet from ".";
 import { addBorderStr, hasBorderStr, rgbToHex } from "./utils";
 
 export function parseXML(xml: string) {
@@ -212,4 +213,132 @@ export function toXML(cells: any[], getMerge: Function) {
     tbody.append(document.createComment('EndFragment'));
     // console.log(root.outerHTML);
     return root.outerHTML;
+}
+
+export class CopyHandler {
+    sheet: Sheet;
+    constructor(sheet: Sheet) {
+        this.sheet = sheet;
+    }
+    onCopy(e: ClipboardEvent) {
+        const { startRow, startCol, endRow, endCol } = this.sheet.selectionBoundRect;
+
+        let clipboardData = '';
+        for (let row = startRow; row <= endRow; row++) {
+            for (let col = startCol; col <= endCol; col++) {
+                const value = this.sheet.getCellText(row, col);
+                clipboardData += value;
+                if (col < endCol) clipboardData += '\t';
+            }
+            if (row < endRow) clipboardData += '\n';
+        }
+
+        e.clipboardData!.setData('text/plain', clipboardData);
+        e.clipboardData!.setData('json/pasteData', JSON.stringify({
+            srcCell: {row: startRow, col: startCol},
+            configs: this.sheet.getSelectedCellDataSparse(),
+            merges: this.sheet.getMergesInRange(this.sheet.selectionBoundRect)
+        }));
+        e.clipboardData!.setData('text/html', toXML(this.sheet.getSelectedCellsOrVirtual(), this.sheet.getMerge));
+        e.preventDefault();
+    }
+}
+
+export class PasteHandler {
+    sheet: Sheet;
+    constructor(sheet: Sheet) {
+        this.sheet = sheet;
+    }
+    onPaste(e: ClipboardEvent) {
+        if (this.sheet.editingCell) return;
+            // this.handlePaste(e.clipboardData!.getData('text/plain'));
+            // this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+            // for (const type of e.clipboardData!.types) {
+                // const data = e.clipboardData!.getData(type);
+                // console.log(data)
+            // }
+            e.preventDefault();
+            if (e.clipboardData!.getData('json/pasteData')) {
+                return this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+            }
+            const xml = e.clipboardData!.getData('text/html');
+            let data = parseXML(xml);
+            // if (!data) {
+            //     return this.sheet.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+            // }
+            this.handlePasteData(data,e);
+            this.sheet.updateSelection();
+    }
+
+    handlePastePlaintext(text: string) {
+        if (!this.sheet.selectionBoundRect) return;
+        const { startRow, startCol } = this.sheet.selectionBoundRect;
+
+        const clipboardData = text;
+        const rowsData = clipboardData.split('\n');
+        const changes = []; // To record changes for undo/redo
+
+        for (let i = 0; i < rowsData.length; i++) {
+            const rowData = rowsData[i].split('\t');
+            for (let j = 0; j < rowData.length; j++) {
+                const row = startRow + i;
+                const col = startCol + j;
+                if (row <= this.sheet.totalRowBounds && col <= this.sheet.totalColBounds) {
+                    changes.push({
+                        row,
+                        col,
+                        prevData: Object.assign({}, this.sheet.getCell(row,col)),
+                        changeKind: 'valchange'
+                    });
+                    this.sheet.setText(row, col, rowData[j]);
+                    this.sheet.renderCell(row, col);
+                }
+            }
+        }
+        // Record the changes in the undo stack
+        if (changes.length > 0) {
+            this.sheet.historyManager.recordChanges(changes);
+        }
+    }
+
+    handlePasteData(text: string, e: any) {
+        let pasteData;
+        try {
+            pasteData = JSON.parse(text);
+        } catch {
+            this.handlePastePlaintext(e.clipboardData!.getData('text/plain'));
+            return;
+        }
+        const changes = [];
+        const { startRow, startCol, endRow, endCol } = this.sheet.selectionBoundRect;
+        const destCell = {row: startRow, col: startCol};
+        const srcCell = pasteData.srcCell;
+        const offsetRow = destCell.row-srcCell.row;
+        const offsetCol = destCell.col-srcCell.col;
+        const configs = pasteData.configs;
+        for (let config of configs) {
+            config.row = config.row + offsetRow;
+            config.col = config.col + offsetCol;
+            changes.push({
+                row: config.row,
+                col: config.col,
+                prevData: Object.assign({}, this.sheet.getCell(config.row,config.col)),
+                changeKind: 'valchange'
+            });
+            this.sheet.putCellObj(config.row, config.col, config);
+            this.sheet.renderCell(config.row, config.col);
+        }
+        for(let merge of pasteData.merges) {
+            const newMerge = {...merge};
+            newMerge.startRow = newMerge.startRow + offsetRow;
+            newMerge.endRow = newMerge.endRow + offsetRow;
+            newMerge.startCol = newMerge.startCol + offsetCol;
+            newMerge.endCol = newMerge.endCol + offsetCol;
+            this.sheet.mergeSelectedCells(newMerge, false);
+            changes.push({ changeKind: 'merge', bounds: { ...newMerge } });
+        }
+        if (changes.length > 0) {
+            this.sheet.historyManager.recordChanges(changes);
+        }
+    }
 }

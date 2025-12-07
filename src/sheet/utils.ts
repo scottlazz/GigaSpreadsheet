@@ -43,8 +43,6 @@ export function mkel(tag='div', className='', children?: string) {
     return el;
 }
 
-export const arrows = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']);
-
 export const isNumeric = (num: any) => !isNaN(num) &&
     !Number.isNaN(parseFloat(num));
 
