@@ -162,6 +162,7 @@ html {
   cursor: ew-resize;
   position: absolute;
   width: 16px;
+  display: inline-block;
   z-index: 1;
 }
 
@@ -177,16 +178,19 @@ html {
   display: inline-block;
   position: absolute;
   left: 8px;
+  display: inline-block;
 }
 
 .handle-row-selected::after {
   border-right: 1px solid #1a73e8;
+  display: inline-block;
 }
 
 .header-container {
   position: sticky;
   top: 0;
-  left: 0;
+  /* left: 0; */
+  white-space: nowrap;
   background: #e6e6e6;
   z-index: 100;
   display: flex;
@@ -199,6 +203,7 @@ html {
 .header-cell {
   text-align: center;
   user-select: none;
+  display: inline-block;
   /* box-sizing: border-box; */
   border-bottom: 1px solid rgb(153, 153, 153, 0.5);
 }

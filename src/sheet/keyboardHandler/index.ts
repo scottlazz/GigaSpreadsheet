@@ -80,6 +80,7 @@ export default class KeyboardHandler {
         } else if (key === 'arrowup' || key === 'arrowdown' || key === 'arrowleft' || key === 'arrowright' || key === 'enter' || key === 'tab') {
             if (!this.sheet.selectionEnd || this.sheet.editingCell) return;
             e.preventDefault();
+            this.sheet.probe.style.display = 'block';
             this.handleArrowKeyDown(e);
         } else if (this.sheet.selectionStart && e.key?.length === 1) {
             if (this.sheet.editingCell) return;
@@ -169,6 +170,7 @@ export default class KeyboardHandler {
                     else if (side === 'l') { this.sheet.probe.style.left = `${-20 - this.sheet.rowNumberWidth}px`; }
                     else if (side === 'r') { this.sheet.probe.style.right = '-20px'; }
                 });
+                this.sheet.probe.style.display = 'block';
                 scrollIntoView(this.sheet.probe, {
                     scrollMode: 'if-needed',
                     block: 'nearest',
@@ -181,6 +183,7 @@ export default class KeyboardHandler {
                 this.sheet.probe.style.height = `${h+this.sheet.headerRowHeight}px`;
                 this.sheet.probe.style.left = `-${(w/4)+this.sheet.rowNumberWidth}px`;
                 this.sheet.probe.style.top = `-${(h/4)+this.sheet.headerRowHeight}px`;
+                this.sheet.probe.style.display = 'block';
                 scrollIntoView(this.sheet.probe, {
                     scrollMode: 'if-needed',
                     block: 'nearest',

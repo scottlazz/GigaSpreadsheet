@@ -17,11 +17,12 @@ import { Block } from './components/block';
 import HistoryManager from './history';
 import KeyboardHandler from './keyboardHandler';
 import GridMetrics from './gridmetrics';
+import RowNumbers from './rownumbers';
+import HeaderIdentifiers from './headeridentifiers';
+
 export default class Sheet {
     wrapper: HTMLElement;
     container: HTMLElement;
-    headerContainer: HTMLElement;
-    rowNumberContainer: HTMLElement;
     cornerCell: HTMLElement;
     selectionLayer: HTMLElement;
     editInput: HTMLInputElement;
@@ -96,8 +97,8 @@ export default class Sheet {
     copyHandler: CopyHandler;
     pasteHandler: PasteHandler;
     metrics: GridMetrics;
-    renderRowNumberElems: HTMLDivElement;
-    renderRowNumberPadder: HTMLDivElement;
+    rowNumbers: RowNumbers;
+    headerIdentifiers: HeaderIdentifiers;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.toolbar = null;
         this.renderQueued = false;
@@ -148,36 +149,11 @@ export default class Sheet {
         this.container.style.overflow = 'auto';
         this.container.scrollLeft = 0;
         this.container.scrollTop = 0;
-        this.headerContainer = _container.querySelector('.header-container')!;
-        this.headerContainer.innerHTML = `<div class="header-cell" style="width:${this.rowNumberWidth}px;"></div>`;
-        this.headerContainer.onmousedown = (e: any) => {
-            if (e.button !== 0) return;
-            if (e.target.getAttribute('data-col') != null) {
-                this.draggingHeader = { origLeft: e.target.style.left, el: e.target, col: parseInt(e.target.getAttribute('data-col')) };
-            }
-        }
-        this.rowNumberContainer = _container.querySelector('.row-number-container')!;
-        this.rowNumberContainer.onmousedown = (e: any) => {
-            if (e.button !== 0) return;
-            if (e.target.getAttribute('data-row') != null) {
-                this.draggingRow = { origTop: e.target.style.top, el: e.target, row: parseInt(e.target.getAttribute('data-row')) };
-            }
-        }
-        this.renderRowNumberPadder = document.createElement('div');
-        this.renderRowNumberElems = document.createElement('div');
-        // this.renderHeaderPadder = document.createElement('div');
-        // this.renderHeaderElems = document.createElement('div');
-        this.renderRowNumberElems.style.position = 'relative';
-        this.rowNumberContainer.appendChild(this.renderRowNumberPadder);
-        this.rowNumberContainer.appendChild(this.renderRowNumberElems);
         this.cornerCell = _container.querySelector('.corner-cell')!;
         this.selectionLayer = _container.querySelector('.selection-layer')!;
-        // this.mergeButton = _container.querySelector('.merge-button')!;
         this.formatButton = _container.querySelector('.format-button')!;
         this.lastDevicePixelRatio = window.devicePixelRatio;
         this.lastBlockCanvases = this.blockCanvases();
-        // const rect = this.container.getBoundingClientRect();
-        // this.cornerCell.style.top = `${rect.y}px`;
 
         // Configuration
         this.cellWidth = options.cellWidth ?? 64;
@@ -186,17 +162,13 @@ export default class Sheet {
         this.blockCols = options.blockCols ?? 30;  // Max cols per canvas block
         this.paddingBlocks = options.paddingBlocks ?? 1; // Extra blocks to render around visible area
         this.padding = options.padding || 1; // number of adjacent blocks to render
-        // this.headerContainer.style.height = `${this.headerRowHeight}px`;
         this.headerRowHeight = 0;
         this.rowNumberWidth = 0;
         if (options.cellHeaders !== false) {
-        this.headerRowHeight = this.cellHeight || 30;
-        this.rowNumberWidth = 42;
-        this.headerContainer.style.lineHeight = `${this.headerRowHeight}px`;
-        this.selectionLayer.style.top = `${this.headerRowHeight}px`;
-        this.selectionLayer.style.left = `${this.rowNumberWidth}px`;
-        this.rowNumberContainer.style.width = `${this.rowNumberWidth}px`;
-        this.rowNumberContainer.style.lineHeight = `${this.headerRowHeight}px`;
+            this.headerRowHeight = this.cellHeight || 30;
+            this.rowNumberWidth = 42;
+            this.selectionLayer.style.top = `${this.headerRowHeight}px`;
+            this.selectionLayer.style.left = `${this.rowNumberWidth}px`;
             this.cornerCell.style.width = `${this.rowNumberWidth}px`;
             this.cornerCell.style.height = `${this.headerRowHeight}px`;
             this.cornerCell.style.marginTop = `-${this.headerRowHeight + 1}px`; // -1 for border
@@ -211,6 +183,8 @@ export default class Sheet {
         this.copyHandler = new CopyHandler(this);
         this.pasteHandler = new PasteHandler(this);
         this.metrics = new GridMetrics(this);
+        this.rowNumbers = new RowNumbers(this);
+        this.headerIdentifiers = new HeaderIdentifiers(this);
         this.mergedCells = options.mergedCells || [];
         this.heightOverrides = this.buildOverrides(options.heightOverrides);
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
@@ -301,8 +275,8 @@ export default class Sheet {
 
     initRender() {
         this.updateGridDimensions();
-        this.renderHeaders();
-        this.renderRowNumbers();
+        this.headerIdentifiers.renderHeaders();
+        this.rowNumbers.renderRowNumbers();
         this.updateVisibleGrid();
     }
 
@@ -338,9 +312,9 @@ export default class Sheet {
 
         const resizeObserver = new ResizeObserver(() => {
             this.updateGridDimensions();
-
-            this.renderRowNumbers();
-            this.renderHeaders();
+            this.metrics.calculateVisibleRange();
+            this.rowNumbers.renderRowNumbers();
+            this.headerIdentifiers.renderHeaders();
 
             this.updateVisibleGrid();
             this.updateSelection();
@@ -547,7 +521,7 @@ export default class Sheet {
         delete this.heightOverrides[row];
         this.shiftHeightOverrides(row, -1);
         this.updateHeightAccum();
-        this.renderRowNumbers();
+        this.rowNumbers.renderRowNumbers();
         record && this.historyManager.recordChanges([{ changeKind: 'deleteEntireRow', row, rowData, heightOverride }]);
         this.forceRerender();
         this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
@@ -573,7 +547,7 @@ export default class Sheet {
         delete this.widthOverrides[col];
         this.shiftWidthOverrides(col, -1);
         this.updateWidthAccum();
-        this.renderHeaders();
+        this.headerIdentifiers.renderHeaders();
         
         record && this.historyManager.recordChanges([{ changeKind: 'deleteEntireCol', col, colData, widthOverride }]);
         this.forceRerender();
@@ -617,7 +591,7 @@ export default class Sheet {
         this.shiftHeightOverrides(row, 1);
         if (heightOverride != null) this.heightOverrides[row] = heightOverride;
         this.updateHeightAccum();
-        this.renderRowNumbers();
+        this.rowNumbers.renderRowNumbers();
         record && this.historyManager.recordChanges([{ changeKind: 'insertEntireRow', row }]);
         this.forceRerender();
         this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
@@ -642,7 +616,7 @@ export default class Sheet {
         this.shiftWidthOverrides(col, 1);
         if (widthOverride != null) this.widthOverrides[col] = widthOverride;
         this.updateWidthAccum();
-        this.renderHeaders();
+        this.headerIdentifiers.renderHeaders();
         
         record && this.historyManager.recordChanges([{ changeKind: 'insertEntireCol', col }]);
         this.forceRerender();
@@ -831,8 +805,8 @@ export default class Sheet {
             g.restore(save.data);
             this.setData(g);
             this.updateGridDimensions();
-            this.renderHeaders();
-            this.renderRowNumbers();
+            this.headerIdentifiers.renderHeaders();
+            this.rowNumbers.renderRowNumbers();
             this.updateVisibleGrid(true);
             this.updateSelection();
             return true;
@@ -1122,7 +1096,7 @@ export default class Sheet {
         this.selectionEnd = { row, col };
         if (!this.selectionStart) return;
         this.selectionBoundRect = this.getBoundingRectCells(this.selectionStart.row, this.selectionStart.col, row, col);
-        this.updateSelection();
+        this.updateSelection(true);
 
         // this.forceRerender(); // debug purposes, remove
     }
@@ -1176,11 +1150,18 @@ export default class Sheet {
             const scrollLeft = this.container.scrollLeft;
             let x = e.clientX;
             x = x - this._container.getBoundingClientRect().x;
-            this.draggingHeader.el.style.left = `${scrollLeft + x - 8}px`;
+            let padderOffset = this.headerIdentifiers.renderHeaderPadder.getBoundingClientRect().width;
+            if (padderOffset > 0) {
+                padderOffset += 42;
+            }
+            this.draggingHeader.el.style.left = `${scrollLeft + x - 8 - padderOffset}px`;
         } else if (this.draggingRow) {
             const scrollTop = this.container.scrollTop;
             const rect = this.container.getBoundingClientRect();
-            this.draggingRow.el.style.top = `${scrollTop + e.clientY - this.headerRowHeight - rect.y - 5}px`;
+            // this.draggingRow.el.style.top = `${scrollTop + e.clientY - this.headerRowHeight - rect.y - 5}px`;
+            // console.log('dragging', (scrollTop + e.clientY - this.headerRowHeight - rect.y - 5) - this.renderRowNumberPadder.offsetTop);
+            const top = (scrollTop + e.clientY - this.headerRowHeight - rect.y - 5) - this.rowNumbers.renderRowNumberPadder.getBoundingClientRect().height;
+            this.draggingRow.el.style.top = `${top}px`;
         } else if (this.isSelecting) {
             this.probe.style.display = 'block';
             const { row, col } = this.getCellFromEvent(e);
@@ -1261,7 +1242,7 @@ export default class Sheet {
             this.setWidthOverride(col, change);
             this.historyManager.recordChanges([{ changeKind: 'widthOverrideUpdate', col, value: prevOverride }]);
             this.updateWidthAccum();
-            this.renderHeaders();
+            this.headerIdentifiers.renderHeaders();
             this.forceRerender();
             this.updateSelection();
             e.stopPropagation();
@@ -1281,7 +1262,7 @@ export default class Sheet {
             this.setHeightOverride(row, change);
             this.historyManager.recordChanges([{ changeKind: 'heightOverrideUpdate', row, value: prevOverride }]);
             this.updateHeightAccum();
-            this.renderRowNumbers();
+            this.rowNumbers.renderRowNumbers();
             this.forceRerender();
             this.updateSelection();
             e.stopPropagation();
@@ -1412,7 +1393,7 @@ export default class Sheet {
         this.toolbar?.set('italic', italic);
     }
 
-    updateSelection() {
+    updateSelection(fromKeyInput: boolean = false) {
         this.onSelectionChange();
         if (!this.activeSelection) return;
         // Clear previous selection
@@ -1427,11 +1408,12 @@ export default class Sheet {
         let left = this.metrics.getWidthOffset(startCol);
         let width = this.metrics.getWidthBetweenColumns(startCol, endCol+1);
 
-        if (this.visibleEndRow < startRow || this.visibleEndCol < startCol) {
+        if (!fromKeyInput && (this.visibleEndRow < startRow || this.visibleEndCol < startCol)) {
             this.activeSelection.style.display = 'none';
-            return;
+            // return;
+        } else {
+            this.activeSelection.style.display = 'block';
         }
-        this.activeSelection.style.display = 'block';
         endRow = Math.min(endRow, this.visibleEndRow);
         const top = this.metrics.getHeightOffset(startRow); // Below header
         const height = this.metrics.getHeightBetweenRows(startRow, endRow+1);
@@ -1453,7 +1435,7 @@ export default class Sheet {
         for(let col of this.selectedCols) {
             if (col < startCol || col > endCol) {
                 this.selectedCols.delete(col);
-                const el: HTMLDivElement | null = this.headerContainer.querySelector(`[data-hccol='${col}']`);
+                const el: HTMLDivElement | null = this.headerIdentifiers.headerContainer.querySelector(`[data-hccol='${col}']`);
                 if (!el) continue;
                 el.classList.remove('col-selected');
                 const handle: any = el.nextSibling;
@@ -1465,7 +1447,7 @@ export default class Sheet {
                 continue;
             }
             this.selectedCols.add(i);
-            const el: HTMLDivElement | null = this.headerContainer.querySelector(`[data-hccol='${i}']`);
+            const el: HTMLDivElement | null = this.headerIdentifiers.headerContainer.querySelector(`[data-hccol='${i}']`);
             if (!el) continue;
             el.classList.add('col-selected');
             const handle: any = el.nextSibling;
@@ -1474,7 +1456,7 @@ export default class Sheet {
         for (let row of this.selectedRows) {
             if (row < startRow || row > endRow) {
                 this.selectedRows.delete(row);
-                const el: HTMLDivElement | null = this.rowNumberContainer.querySelector(`[data-rnrow='${row}']`);
+                const el: HTMLDivElement | null = this.rowNumbers.rowNumberContainer.querySelector(`[data-rnrow='${row}']`);
                 if (!el) continue;
                 el.classList.remove('row-selected');
                 const handle: any = el.nextSibling;
@@ -1486,7 +1468,7 @@ export default class Sheet {
                 continue;
             }
             this.selectedRows.add(i);
-            const el: HTMLDivElement | null = this.rowNumberContainer.querySelector(`[data-rnrow='${i}']`);
+            const el: HTMLDivElement | null = this.rowNumbers.rowNumberContainer.querySelector(`[data-rnrow='${i}']`);
             if (!el) continue;
             el.classList.add('row-selected');
             const handle: any = el.nextSibling;
@@ -1513,134 +1495,12 @@ export default class Sheet {
         }
     }
 
-    renderHeaders() {
-        if (this.options.cellHeaders === false) {
-            let totalWidth = this.rowNumberWidth;
-            for (let col: any = 0; col <= this.totalColBounds; col++) {
-                const width = this.metrics.getColWidth(col);
-                totalWidth += width;
-            };
-            this.headerContainer.style.width = `${totalWidth + 10}px`;
-            this.headerContainer.style.height = '1px';
-            this.headerContainer.style.position = 'absolute';
-            this.headerContainer.style.background = 'transparent';
-            return;
-        }
-        this.headerContainer.innerHTML = `<div class="header-cell" style="width:${this.rowNumberWidth}px;"></div>`;
-        this.headerContainer.onmousedown = (e: any) => {
-            if (e.button !== 0) return;
-            if (e.target.getAttribute('data-col') != null) {
-                this.draggingHeader = { origLeft: e.target.style.left, el: e.target, col: parseInt(e.target.getAttribute('data-col')) };
-            }
-        }
-
-        // Calculate total width needed for columns
-        let totalWidth = this.rowNumberWidth;
-        for (let col: any = 0; col <= this.totalColBounds; col++) {
-            const width = this.metrics.getColWidth(col);
-            totalWidth += width;
-
-            const headerCell = document.createElement('div');
-            headerCell.className = 'header-cell';
-            headerCell.setAttribute('data-hccol', col);
-            headerCell.textContent = this.getColumnName(col);
-            headerCell.style.width = `${width}px`;
-
-            const headerHandle = document.createElement('div');
-            headerHandle.className = 'header-handle';
-            headerHandle.style.height = `${this.headerRowHeight}px`;
-            headerHandle.setAttribute('data-col', col);
-            headerHandle.style.left = `${totalWidth - 8}px`;
-
-            this.headerContainer.appendChild(headerCell);
-            this.headerContainer.appendChild(headerHandle);
-        };
-        // const extra = (this.maxCols && this.totalColBounds === this.maxCols-1) ? 0 : 10;
-        const extra = 10;
-        this.headerContainer.style.width = `${totalWidth + extra}px`;
-
-
-        // let totalHeight = 0;
-        // let sr = this.visibleStartRow;
-        // let ve = this.visibleEndRow;
-        // let diff = sr % this.blockRows;
-        // sr = sr - diff;
-        // ve = ve + (this.blockRows - (ve % this.blockRows) - 1);
-        // this.renderRowNumberPadder.style.height = `${this.metrics.getHeightOffset(sr)}px`;
-        // this.renderRowNumberElems.innerHTML = '';
-        // for (let row: any = sr; row <= ve; row++) {
-        //     // if (row >= this.totalRows) break;
-
-        //     const rowNumberEl: any = this.createRowNumber(row + 1);
-        //     // rowNumberEl.textContent = row + 1;
-        //     totalHeight += this.metrics.rowHeight(row);
-        //     rowNumberEl.style.height = `${this.metrics.rowHeight(row)}px`;
-        //     rowNumberEl.style.lineHeight = `${this.metrics.rowHeight(row)}px`;
-        //     rowNumberEl.setAttribute('data-rnrow', row);
-        //     this.renderRowNumberElems.appendChild(rowNumberEl);
-
-        //     const rowNumberHandle = document.createElement('div');
-        //     rowNumberHandle.className = 'row-handle';
-        //     rowNumberHandle.setAttribute('data-row', row);
-        //     rowNumberHandle.style.top = `${totalHeight - 5}px`;
-        //     this.renderRowNumberElems.appendChild(rowNumberHandle);
-        // }
-        // // this.totalHeight = totalHeight;
-        // // const extra = (this.maxRows && this.totalRowBounds === this.maxRows-1) ? 0 : 20;
-        // const extra = 20;
-        // this.rowNumberContainer.style.height = `${this.metrics.getHeightOffset(ve+1, true) + extra}px`; // extra pixels fixes slight alignment issue on scroll
-    }
-
     createRowNumber(label: string) {
         const el = document.createElement('div');
         el.className = 'row-number';
         // el.textContent = label;
         el.innerHTML = `<div>${label}</div>`
         return el;
-    }
-
-    renderRowNumbers() {
-        if (this.options.cellHeaders === false) {
-            let totalHeight = 0;
-            for (let row: any = 0; row <= this.totalRowBounds; row++) {
-                totalHeight += this.metrics.rowHeight(row);
-            }
-            // this.totalHeight = totalHeight;
-            this.rowNumberContainer.style.height = `${totalHeight + 20}px`;
-            this.rowNumberContainer.style.width = '1px';
-            this.rowNumberContainer.style.position = 'absolute';
-            this.rowNumberContainer.style.background = 'transparent';
-            return;
-        }
-        let totalHeight = 0;
-        let sr = this.visibleStartRow;
-        let ve = this.visibleEndRow;
-        let diff = sr % this.blockRows;
-        sr = sr - diff;
-        ve = ve + (this.blockRows - (ve % this.blockRows) - 1);
-        this.renderRowNumberPadder.style.height = `${this.metrics.getHeightOffset(sr)}px`;
-        this.renderRowNumberElems.innerHTML = '';
-        for (let row: any = sr; row <= ve; row++) {
-            // if (row >= this.totalRows) break;
-
-            const rowNumberEl: any = this.createRowNumber(row + 1);
-            // rowNumberEl.textContent = row + 1;
-            totalHeight += this.metrics.rowHeight(row);
-            rowNumberEl.style.height = `${this.metrics.rowHeight(row)}px`;
-            rowNumberEl.style.lineHeight = `${this.metrics.rowHeight(row)}px`;
-            rowNumberEl.setAttribute('data-rnrow', row);
-            this.renderRowNumberElems.appendChild(rowNumberEl);
-
-            const rowNumberHandle = document.createElement('div');
-            rowNumberHandle.className = 'row-handle';
-            rowNumberHandle.setAttribute('data-row', row);
-            rowNumberHandle.style.top = `${totalHeight - 5}px`;
-            this.renderRowNumberElems.appendChild(rowNumberHandle);
-        }
-        // this.totalHeight = totalHeight;
-        // const extra = (this.maxRows && this.totalRowBounds === this.maxRows-1) ? 0 : 20;
-        const extra = 20;
-        this.rowNumberContainer.style.height = `${this.metrics.getHeightOffset(ve+1, true) + extra}px`; // extra pixels fixes slight alignment issue on scroll
     }
 
     get totalRowBounds() {
@@ -1733,15 +1593,15 @@ export default class Sheet {
             console.log('SCROLL UPDATE VIS HEIGHT OR WIDTH')
             this.updateGridDimensions();
             this.metrics.calculateVisibleRange();
-            this.renderRowNumbers();
-            this.renderHeaders();
+            this.rowNumbers.renderRowNumbers();
+            this.headerIdentifiers.renderHeaders();
             // this.forceRerender();
             this.updateVisibleGrid();
         } else {
             this.updateGridDimensions();
             this.metrics.calculateVisibleRange();
-            this.renderRowNumbers();
-            this.renderHeaders();
+            this.rowNumbers.renderRowNumbers();
+            this.headerIdentifiers.renderHeaders();
             this.updateVisibleGrid();
         }
         this.updateSelection();
@@ -1781,7 +1641,9 @@ export default class Sheet {
 
         toRemove.forEach((key: any) => this.activeBlocks.delete(key));
         if (toRemove.length > 0) {
-            this.renderHeaders();
+            // this.renderHeaders();
+            this.rowNumbers.renderRowNumbers();
+            this.headerIdentifiers.renderHeaders();
         }
         // this.updatePlaceholders();
 
@@ -2177,7 +2039,7 @@ export default class Sheet {
         this.dimUpdatesQueued = false;
         if (needsRerender) {
             this.updateWidthAccum();
-            this.renderHeaders();
+            this.headerIdentifiers.renderHeaders();
             this.forceRerender();
             this.updateSelection();
         }
