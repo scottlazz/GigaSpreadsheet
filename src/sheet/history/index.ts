@@ -60,14 +60,14 @@ export default class HistoryManager {
                 const prev = this.sheet.widthOverrides[change.col];
                 this.sheet.setWidthOverride(change.col, change.value);
                 this.sheet.updateWidthAccum();
-                this.sheet.renderHeaders();
+                this.sheet.headerIdentifiers.renderHeaders();
                 rerender = true;
                 redoChanges.push({ changeKind: 'widthOverrideUpdate', col: change.col, value: prev });
             } else if (changeKind === 'heightOverrideUpdate') {
                 const prev = this.sheet.heightOverrides[change.row];
                 this.sheet.setHeightOverride(change.row, change.value);
                 this.sheet.updateHeightAccum();
-                this.sheet.renderRowNumbers();
+                this.sheet.rowNumbers.renderRowNumbers();
                 rerender = true;
                 redoChanges.push({ changeKind: 'heightOverrideUpdate', row: change.row, value: prev });
             } else if (changeKind === 'valchange') {
@@ -124,14 +124,14 @@ export default class HistoryManager {
                 const prev = this.sheet.widthOverrides[change.col];
                 this.sheet.setWidthOverride(change.col, change.value);
                 this.sheet.updateWidthAccum();
-                this.sheet.renderHeaders();
+                this.sheet.headerIdentifiers.renderHeaders();
                 rerender = true;
                 undoChanges.push({ changeKind: 'widthOverrideUpdate', col: change.col, value: prev });
             } else if (changeKind === 'heightOverrideUpdate') {
                 const prev = this.sheet.heightOverrides[change.row];
                 this.sheet.setHeightOverride(change.row, change.value);
                 this.sheet.updateHeightAccum();
-                this.sheet.renderRowNumbers();
+                this.sheet.rowNumbers.renderRowNumbers();
                 rerender = true;
                 undoChanges.push({ changeKind: 'heightOverrideUpdate', row: change.row, value: prev });
             } else if (changeKind === 'valchange') {

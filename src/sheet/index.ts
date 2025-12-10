@@ -99,6 +99,7 @@ export default class Sheet {
     metrics: GridMetrics;
     rowNumbers: RowNumbers;
     headerIdentifiers: HeaderIdentifiers;
+    freeze: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
         this.toolbar = null;
         this.renderQueued = false;
@@ -190,6 +191,7 @@ export default class Sheet {
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
         this.maxWidthInCol = {};
         this.widthMaxByCol = {};
+        this.freeze = {col: 4};
         this.gridlinesOn = options.gridlinesOn ?? true;
         this.activeBlocks = new Map(); // Track active canvas blocks
         // window.activeBlocks = this.activeBlocks;
@@ -2043,12 +2045,6 @@ export default class Sheet {
             this.forceRerender();
             this.updateSelection();
         }
-
-        // this.updateGridDimensions();
-        //     this.renderRowNumbers();
-        //     this.renderHeaders();
-            // this.forceRerender();
-            // this.updateVisibleGrid();
     }
 
     updateDim(row: any, col: any) {
