@@ -1,5 +1,5 @@
 {
-  "name": "gigagrid",
+  "name": "gigasheet",
   "private": false,
   "version": "0.0.1",
   "source": "src/index.html",
@@ -27,9 +27,9 @@
     "deploy": "gh-pages -d dist"
   },
   "devDependencies": {
-    "typescript": "^5.4.0",
     "gh-pages": "^6.3.0",
     "golden-layout": "^2.6.0",
-    "parcel": "^2.16.1"
+    "parcel": "^2.16.1",
+    "typescript": "^5.4.0"
   }
 }
