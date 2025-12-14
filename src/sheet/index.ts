@@ -1290,7 +1290,7 @@ export default class Sheet {
     }
 
     mergeSelectedCells(bounds: any = null, recordChanges = true) {
-        if (!this.selectionStart || !this.selectionEnd) return;
+        if (bounds == null && (!this.selectionStart || !this.selectionEnd)) return;
         let sr = this.selectionStart.row, sc = this.selectionStart.col,
             er = this.selectionEnd.row, ec = this.selectionEnd.col;
         if (bounds) {
@@ -2274,7 +2274,9 @@ export default class Sheet {
             textX += 4;
         }
         ctx.rect((left+1.4) * devicePixelRatio, (top+1.4) * devicePixelRatio, (width-2.8) * devicePixelRatio, (this.metrics.rowHeight(row)-1) * devicePixelRatio); // Adjust y position based on your text baseline
-        ctx.clip();
+        let region = new Path2D();
+        region.rect((left+1.4) * devicePixelRatio, (top+1.4) * devicePixelRatio, (width-2.8) * devicePixelRatio, (this.metrics.rowHeight(row)-1) * devicePixelRatio);
+        ctx.clip(region);
         ctx.fillText(text, (textX) * devicePixelRatio, ((top + this.metrics.rowHeight(row) / 2)+1) * devicePixelRatio);
         if (cell.ul && cell._dims) { // TODO fix underlines
             ctx.beginPath();
