@@ -26,18 +26,6 @@ export default class HeaderIdentifiers {
         this.headerContainer.appendChild(this.renderHeaderElems);
     }
     renderHeaders() {
-        if (this.sheet.options.cellHeaders === false) {
-            let totalWidth = this.sheet.rowNumberWidth;
-            for (let col: any = 0; col <= this.sheet.totalColBounds; col++) {
-                const width = this.sheet.metrics.getColWidth(col);
-                totalWidth += width;
-            };
-            this.headerContainer.style.width = `${totalWidth + 10}px`;
-            this.headerContainer.style.height = '1px';
-            this.headerContainer.style.position = 'absolute';
-            this.headerContainer.style.background = 'transparent';
-            return;
-        }
         let totalWidth = this.sheet.rowNumberWidth;
         let sc = this.sheet.visibleStartCol;
         let ec = this.sheet.visibleEndCol;
@@ -45,6 +33,19 @@ export default class HeaderIdentifiers {
         sc = sc - diff;
         ec = ec + (this.sheet.blockCols - (ec % this.sheet.blockCols) - 1);
         this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffset(sc)}px`;
+        if (this.sheet.options.cellHeaders === false) {
+            // let totalWidth = this.sheet.rowNumberWidth;
+            // for (let col: any = 0; col <= this.sheet.totalColBounds; col++) {
+            //     const width = this.sheet.metrics.getColWidth(col);
+            //     totalWidth += width;
+            // };
+            // this.headerContainer.style.width = `${totalWidth + 10}px`;
+            this.headerContainer.style.height = '1px';
+            this.headerContainer.style.position = 'absolute';
+            this.headerContainer.style.background = 'transparent';
+            this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffset(ec)}px`;
+            return;
+        }
 
 
         this.renderHeaderElems.innerHTML = `<div class="header-cell" style="width:${this.sheet.rowNumberWidth}px"></div>`; // empty first cell for corner
