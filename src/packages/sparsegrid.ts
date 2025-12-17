@@ -1,10 +1,13 @@
-function createUuid() {
-    let _id = 1;
-    return function () {
-        return _id++;
+class UUIDGenerator {
+    private _id: number;
+    constructor() {
+        this._id = 1;
+    }
+    generate() {
+        return this._id++;
     }
 }
-const uuid = createUuid();
+export const uuid = new UUIDGenerator();
 export default class SparseGrid {
     private _data: any[];
     private _colCounts: any[];
@@ -88,7 +91,9 @@ export default class SparseGrid {
     // Set a value at a specific row and column
     setCellProperty(row, col, property, value) {
         const cell = this.get(row, col);
-        if (!cell._id) cell._id = uuid();
+        if (!cell._id) {
+            cell._id = uuid.generate();
+        }
         cell[property] = value;
         this.set(row, col, cell);
     }
@@ -140,7 +145,9 @@ export default class SparseGrid {
         }
 
         this._data[row][col] = value;
-        if (!value._id) value._id = uuid();
+        if (!value._id) {
+            value._id = uuid.generate();
+        }
         return isNewCell;
     }
 

@@ -1,5 +1,5 @@
 
-import SparseGrid from '../packages/sparsegrid';
+import SparseGrid, {uuid} from '../packages/sparsegrid';
 import ExpressionParser from '../packages/expressionparser';
 import { launchFormatMenu } from './windows/format';
 import { createLineChart } from './graphs/linechart.js';
@@ -100,7 +100,7 @@ export default class Sheet {
     rowNumbers: RowNumbers;
     headerIdentifiers: HeaderIdentifiers;
     freeze: any;
-    constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any, state?: any) {
+    constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.toolbar = null;
         this.renderQueued = false;
         this.dimUpdatesQueued = false;
@@ -1489,6 +1489,9 @@ export default class Sheet {
     }
 
     setData(grid: any = null, initialData: any = null) {
+        for(let cell of initialData || []) {
+            cell._id = uuid.generate();
+        }
         grid = grid || new SparseGrid();
         this.parser = new ExpressionParser(grid);
         this.data = grid;
@@ -2119,6 +2122,10 @@ export default class Sheet {
         button.style.zIndex = 1;
         button.style.position = 'absolute';
         button.style.overflow = 'hidden';
+        button.style.userSelect = 'none';
+        const cell = this.getCellOrMerge(row, col);
+        if (cell.fontSize) button.style.fontSize = `${cell.fontSize}px`;
+        if (cell.color) button.style.color = `${cell.color}`;
         button.style.userSelect = 'none';
         this.elRegistry[_id] = { type: 'button', el: button };
         return this.elRegistry[_id];

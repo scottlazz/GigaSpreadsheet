@@ -594,6 +594,7 @@ body {
   flex-shrink: 0;
     /* width: 35px; */
     /* height: 24px; */
+    height: 100%;
     box-sizing: border-box;
     background-color: inherit;
     line-height: 100%;

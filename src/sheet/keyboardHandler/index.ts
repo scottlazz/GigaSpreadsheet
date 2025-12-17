@@ -36,6 +36,8 @@ export default class KeyboardHandler {
         }
         else if (key === 'k' && e.ctrlKey) {
             if (this.sheet.editingCell) return;
+            let cells = this.sheet.data.getAllCells();
+            cells = cells.filter(cell => Object.keys(cell).length > 3);
             console.log({
                 cellHeight: this.sheet.cellHeight,
                 cellWidth: this.sheet.cellWidth,
@@ -44,7 +46,7 @@ export default class KeyboardHandler {
                 heightOverrides: Object.assign({}, this.sheet.heightOverrides),
                 widthOverrides: Object.assign({}, this.sheet.widthOverrides),
                 gridlinesOn: this.sheet.gridlinesOn,
-                initialCells: this.sheet.data.getAllCells()
+                initialCells: cells
             });
             // data = this.data.
             e.preventDefault();
