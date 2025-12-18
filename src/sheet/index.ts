@@ -833,6 +833,15 @@ export default class Sheet {
         const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
         return cells;
     }
+    getSelectedCellsOrVirtualMultiple() {
+        if (!this.selectionBoundRect) return [];
+        const cells = [];
+        for(let rect of this.getSelectionBoundRects()) {
+            const { startRow, startCol, endRow, endCol } = rect;
+            cells.push(this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col)));
+        }
+        return cells;
+    }
     getSelectedCellDataSparse() {
         const cells: any = [];
         if (!this.selectionBoundRect) return cells;
