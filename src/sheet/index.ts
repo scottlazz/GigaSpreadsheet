@@ -563,8 +563,10 @@ export default class Sheet {
         if (amount === -1) {
             this.heightOverrides.splice(pivot, 1);
         } else if (amount === 1) {
-            this.heightOverrides.splice(pivot, 0, undefined);
-            delete this.heightOverrides[pivot];
+            if (pivot < this.heightOverrides.length) {
+                this.heightOverrides.splice(pivot, 0, undefined);
+                delete this.heightOverrides[pivot];
+            }
         }
     }
 
@@ -572,8 +574,10 @@ export default class Sheet {
         if (amount === -1) {
             this.widthOverrides.splice(pivot, 1);
         } else if (amount === 1) {
-            this.widthOverrides.splice(pivot, 0, undefined);
-            delete this.widthOverrides[pivot];
+            if (pivot < this.widthOverrides.length) {
+                this.widthOverrides.splice(pivot, 0, undefined);
+                delete this.widthOverrides[pivot];
+            }
         }
     }
 
