@@ -8,7 +8,7 @@ export default class KeyboardHandler {
         this.sheet = sheet;
     }
 
-    onKeyDown(e: KeyboardEvent) {
+    async onKeyDown(e: KeyboardEvent) {
         const key = e.key.toLowerCase();
         if ((key === 'f2') && this.sheet.selectionStart) {
             e.preventDefault();
@@ -33,6 +33,11 @@ export default class KeyboardHandler {
             document.execCommand('copy');
             this.sheet.clearSelectedCells();
             e.preventDefault();
+        }
+        else if (key === 'v' && e.shiftKey && e.ctrlKey) {
+            if (this.sheet.editingCell) return;
+            const clipboardText = await navigator.clipboard.readText();
+            this.sheet.pasteHandler.handlePastePlaintext(clipboardText);
         }
         else if (key === 'k' && e.ctrlKey) {
             if (this.sheet.editingCell) return;

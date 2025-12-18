@@ -221,7 +221,7 @@ export class CopyHandler {
         this.sheet = sheet;
     }
     onCopy(e: ClipboardEvent) {
-        const { startRow, startCol, endRow, endCol } = this.sheet.selectionBoundRect;
+        const { startRow, startCol, endRow, endCol } = this.sheet.getSelectionBoundRects()[0];
 
         let clipboardData = '';
         for (let row = startRow; row <= endRow; row++) {
@@ -310,35 +310,37 @@ export class PasteHandler {
             return;
         }
         const changes = [];
-        const { startRow, startCol, endRow, endCol } = this.sheet.selectionBoundRect;
-        const destCell = {row: startRow, col: startCol};
-        const srcCell = pasteData.srcCell;
-        const offsetRow = destCell.row-srcCell.row;
-        const offsetCol = destCell.col-srcCell.col;
-        const configs = pasteData.configs;
-        for (let config of configs) {
-            config.row = config.row + offsetRow;
-            config.col = config.col + offsetCol;
-            changes.push({
-                row: config.row,
-                col: config.col,
-                prevData: Object.assign({}, this.sheet.getCell(config.row,config.col)),
-                changeKind: 'valchange'
-            });
-            this.sheet.putCellObj(config.row, config.col, config);
-            this.sheet.renderCell(config.row, config.col);
-        }
-        for(let merge of pasteData.merges) {
-            const newMerge = {...merge};
-            newMerge.startRow = newMerge.startRow + offsetRow;
-            newMerge.endRow = newMerge.endRow + offsetRow;
-            newMerge.startCol = newMerge.startCol + offsetCol;
-            newMerge.endCol = newMerge.endCol + offsetCol;
-            this.sheet.mergeSelectedCells(newMerge, false);
-            changes.push({ changeKind: 'merge', bounds: { ...newMerge } });
-        }
-        if (changes.length > 0) {
-            this.sheet.historyManager.recordChanges(changes);
+        for(let rect of this.sheet.getSelectionBoundRects()) {
+            const { startRow, startCol, endRow, endCol } = rect;
+            const destCell = {row: startRow, col: startCol};
+            const srcCell = pasteData.srcCell;
+            const offsetRow = destCell.row-srcCell.row;
+            const offsetCol = destCell.col-srcCell.col;
+            const configs = pasteData.configs;
+            for (let config of configs) {
+                config.row = config.row + offsetRow;
+                config.col = config.col + offsetCol;
+                changes.push({
+                    row: config.row,
+                    col: config.col,
+                    prevData: Object.assign({}, this.sheet.getCell(config.row,config.col)),
+                    changeKind: 'valchange'
+                });
+                this.sheet.putCellObj(config.row, config.col, config);
+                this.sheet.renderCell(config.row, config.col);
+            }
+            for(let merge of pasteData.merges) {
+                const newMerge = {...merge};
+                newMerge.startRow = newMerge.startRow + offsetRow;
+                newMerge.endRow = newMerge.endRow + offsetRow;
+                newMerge.startCol = newMerge.startCol + offsetCol;
+                newMerge.endCol = newMerge.endCol + offsetCol;
+                this.sheet.mergeSelectedCells(newMerge, false);
+                changes.push({ changeKind: 'merge', bounds: { ...newMerge } });
+            }
+            if (changes.length > 0) {
+                this.sheet.historyManager.recordChanges(changes);
+            }
         }
     }
 }

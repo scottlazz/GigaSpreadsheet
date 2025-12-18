@@ -100,8 +100,10 @@ export default class Sheet {
     rowNumbers: RowNumbers;
     headerIdentifiers: HeaderIdentifiers;
     freeze: any;
+    _selectionBoundRects: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.toolbar = null;
+        this._selectionBoundRects = [];
         this.renderQueued = false;
         this.dimUpdatesQueued = false;
         this.options = options;
@@ -830,11 +832,13 @@ export default class Sheet {
     getSelectedCellDataSparse() {
         const cells: any = [];
         if (!this.selectionBoundRect) return cells;
-        const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
-        for(let i = startRow; i <= endRow; i++) {
-            for(let j = startCol; j <= endCol; j++) {
-                if (this.data.has(i,j)) {
-                    cells.push(this.getCell(i,j));
+        for(let rect of this.getSelectionBoundRects()) {
+            const { startRow, startCol, endRow, endCol } = rect;
+            for(let i = startRow; i <= endRow; i++) {
+                for(let j = startCol; j <= endCol; j++) {
+                    if (this.data.has(i,j)) {
+                        cells.push(this.getCell(i,j));
+                    }
                 }
             }
         }
@@ -1067,10 +1071,15 @@ export default class Sheet {
         this.handleSelectionMouseDown(e);
     }
 
+    getSelectionBoundRects() {
+        return [...this._selectionBoundRects, this.selectionBoundRect].filter(r => r != null);
+    }
+
     handleSelectionMouseDown(e: any) {
         const { row, col }: {row: number, col: number} = this.getCellFromEvent(e);
         this.lastCol = col;
         if (e.ctrlKey && this.selectionStart) { // start new selection keep old one
+            this._selectionBoundRects.push(this.selectionBoundRect);
             this.selectionStart = null;
             this.selectionEnd = null;
             this.selectionBoundRect = null;
@@ -1082,6 +1091,7 @@ export default class Sheet {
             this.selectCell({ row, col, continuation: true }); // kill old selections start new
         } else {
             this.isSelecting = true;
+            this._selectionBoundRects = [];
             this.selectCell({ row, col, clear: true });
         }
     }
