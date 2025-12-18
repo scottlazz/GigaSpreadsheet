@@ -72,7 +72,9 @@ export default class HistoryManager {
                 redoChanges.push({ changeKind: 'heightOverrideUpdate', row: change.row, value: prev });
             } else if (changeKind === 'valchange') {
                 // Record the current value for redo
-                redoChanges.push({ row, col, prevData: Object.assign({}, this.sheet.getCell(row,col)), previousValue: this.sheet.getCellText(row, col), newValue: previousValue, changeKind: 'valchange' });
+                const cell = this.sheet.getCell(row,col);
+                prevData._id = cell._id; // Preserve cell ID
+                redoChanges.push({ row, col, prevData: Object.assign({}, cell), changeKind: 'valchange' });
                 // Revert the cell to its previous value
                 if (change.attr) {
                     this.sheet.setCell(row, col, change.attr, prevData[change.attr]);
@@ -136,7 +138,7 @@ export default class HistoryManager {
                 undoChanges.push({ changeKind: 'heightOverrideUpdate', row: change.row, value: prev });
             } else if (changeKind === 'valchange') {
                 // Record the current value for undo
-                undoChanges.push({ row, col, prevData: Object.assign({}, this.sheet.getCell(row,col)), previousValue: this.sheet.getCellText(row, col), newValue, changeKind: 'valchange' });
+                undoChanges.push({ row, col, prevData: Object.assign({}, this.sheet.getCell(row,col)), newValue, changeKind: 'valchange' });
                 // Apply the new value to the cell
                 if (change.attr) {
                     this.sheet.setCell(row, col, change.attr, prevData[change.attr]);

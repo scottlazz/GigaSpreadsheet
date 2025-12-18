@@ -320,6 +320,7 @@ export class PasteHandler {
             for (let config of configs) {
                 config.row = config.row + offsetRow;
                 config.col = config.col + offsetCol;
+                config._id = null;
                 changes.push({
                     row: config.row,
                     col: config.col,
