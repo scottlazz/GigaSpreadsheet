@@ -34,6 +34,18 @@ export default class KeyboardHandler {
             this.sheet.clearSelectedCells();
             e.preventDefault();
         }
+        else if (key === 'b' && e.ctrlKey) {
+            if (this.sheet.editingCell) return;
+            e.preventDefault();
+            const selectedCells = this.sheet.getSelectedCells();
+            this.sheet.setCellsMutate(selectedCells, (cell: any) => {
+                cell.bold = !cell.bold;
+            });
+            const c = selectedCells[0];
+            if (c?.row == null) return;
+            const value = this.sheet.getCell(c.row, c.col)?.bold || false;
+            this.sheet.toolbar?.set('bold', value);
+        }
         else if (key === 'v' && e.shiftKey && e.ctrlKey) {
             if (this.sheet.editingCell) return;
             const clipboardText = await navigator.clipboard.readText();
