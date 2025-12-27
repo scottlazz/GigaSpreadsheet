@@ -493,6 +493,56 @@ export default class Sheet {
             } else if (action === 'backgroundColor') {
                 const selectedCells = this.getSelectedCells();
                 this.setCells(selectedCells, 'bc', value);
+            } else if (action === 'borderShape') {
+                const cells = this.getSelectedCellsOrVirtual2D();
+                if (value === 'top') {
+                    this.setCellsMutate(cells[0], (cell: any) => {
+                        if (cell.fontSize == null) {
+                            this.setCell(cell.row, cell.col, 'border', addBorder(cell.border, 1 << 2));
+                        }
+                    });
+                } else if (value === 'bottom') {
+                    this.setCellsMutate(cells[cells.length-1], (cell: any) => {
+                        if (cell.fontSize == null) {
+                            this.setCell(cell.row, cell.col, 'border', addBorder(cell.border, 1 << 4));
+                        }
+                    });
+                } else if (value === 'left') {
+                    const leftCells = cells.map(row => row[0]);
+                    this.setCellsMutate(leftCells, (cell: any) => {
+                        if (cell.fontSize == null) {
+                            this.setCell(cell.row, cell.col, 'border', addBorder(cell.border, 1 << 1));
+                        }
+                    });
+                } else if (value === 'right') {
+                    const rightCells = cells.map(row => row[row.length-1]);
+                    this.setCellsMutate(rightCells, (cell: any) => {
+                        if (cell.fontSize == null) {
+                            this.setCell(cell.row, cell.col, 'border', addBorder(cell.border, 1 << 3));
+                        }
+                    });
+                } else if (value === 'box') {
+                    const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
+                    this.setCellsMutate(this.getSelectedCellsOrVirtual(), (cell: any) => {
+                        let border = cell.border;
+                        if (cell.row === startRow) {
+                            border = addBorder(border, 1 << 2);
+                            this.setCell(cell.row, cell.col, 'border', border);
+                        }
+                        if (cell.row === endRow) {
+                            border = addBorder(border, 1 << 4);
+                            this.setCell(cell.row, cell.col, 'border', border);
+                        }
+                        if (cell.col === startCol) {
+                            border = addBorder(border, 1 << 1);
+                            this.setCell(cell.row, cell.col, 'border', border);
+                        }
+                        if (cell.col === endCol) {
+                            border = addBorder(border, 1 << 3);
+                            this.setCell(cell.row, cell.col, 'border', border);
+                        }
+                    });
+                }
             }
         })
     }
@@ -831,6 +881,16 @@ export default class Sheet {
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
         const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
         return cells;
+    }
+    getSelectedCellsOrVirtual2D() {
+        if (!this.selectionBoundRect) return [];
+        const arr = [];
+        const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
+        for(let i = startRow; i <= endRow; i++) {
+            const cells = this.data.getCellsForce(i, startCol, i, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
+            arr.push(cells);
+        }
+        return arr;
     }
     getSelectedCellsOrVirtualMultiple() {
         if (!this.selectionBoundRect) return [];

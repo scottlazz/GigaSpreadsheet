@@ -1,6 +1,7 @@
-import { copy, undo, paste, bold, italic, borders, merge, redo, growFont, shrinkFont, leftAlign, centerAlign, rightAlign } from "./icons";
+import { copy, undo, paste, bold, italic, borders, borderBox, borderTop, borderLeft, merge, redo, growFont, shrinkFont, leftAlign, centerAlign, rightAlign, borderRight, borderBottom } from "./icons";
 import Dropdown from '../dropdown';
 import tooltip from '../../../packages/tooltip';
+import drawer from '../../../packages/drawer';
 
 export class Toolbar {
     container: HTMLDivElement;
@@ -9,6 +10,7 @@ export class Toolbar {
     fontSize: Dropdown;
     borderButton: any;
     backgroundColorButton: any;
+    borderDrawer: HTMLDivElement;
     constructor() {
         this.container = document.createElement('div');
         this.container.className = 'gigasheet-toolbar';
@@ -94,6 +96,35 @@ export class Toolbar {
             {value: '12', name: '12'}, {value: '13', name: '13'}, {value: '15', name: '15'}, {value: '18', name: '18'}, {value: '22', name: '22'}]);
         this.container.children[0].appendChild(this.fontSize.container);
         this.cb = null;
+        this.borderDrawer = document.createElement('div');
+        this.borderDrawer.style.textAlign = 'center';
+        this.borderDrawer.innerHTML = `
+        <button class="gigasheet-toolbar-btn" data-tooltip="box">
+            <i class="gigasheet-icon">
+                ${borderBox}
+            </i>
+        </button>
+        <button class="gigasheet-toolbar-btn" data-tooltip="top">
+            <i class="gigasheet-icon">
+                ${borderTop}
+            </i>
+        </button>
+        <button class="gigasheet-toolbar-btn" data-tooltip="left">
+            <i class="gigasheet-icon">
+                ${borderLeft}
+            </i>
+        </button>
+        <button class="gigasheet-toolbar-btn" data-tooltip="right">
+            <i class="gigasheet-icon">
+                ${borderRight}
+            </i>
+        </button>
+        <button class="gigasheet-toolbar-btn" data-tooltip="bottom">
+            <i class="gigasheet-icon">
+                ${borderBottom}
+            </i>
+        </button>
+        `;
         this.addListeners();
     }
     set(attr: string, value: string) {
@@ -146,6 +177,16 @@ export class Toolbar {
             el.onmouseenter = onmouseenter;
             el.addEventListener('click', onclick);
         }
+        for(let el of (this.borderDrawer.querySelectorAll('.gigasheet-toolbar-btn') as any)) {
+            // el.onmouseenter = onmouseenter;
+            // el.addEventListener('click', onclick);
+            el.onclick = (e) => {
+                // console.log(el.getAttribute('data-tooltip'))
+                const shape = el.getAttribute('data-tooltip');
+                // this.sheet.applyBorder(shape);
+                this.cb('borderShape', shape);
+            }
+        }
         this.font.container.onchange = (e: any) => {
             if (!this.cb) return;
             this.cb('fontFamily', e.target.value);
@@ -156,7 +197,9 @@ export class Toolbar {
         }
         this.borderButton = this.container.querySelector(`[data-tooltip='Borders']`);
         this.borderButton.addEventListener('click', (e: any) => {
-            alert('border')
+            // alert('border')
+            drawer(e.target, this.borderDrawer, 100);
+
         });
         this.backgroundColorButton = this.container.querySelector(`[data-tooltip='Background Color']`);
         this.backgroundColorButton.addEventListener('change', (e: any) => {
