@@ -80,7 +80,6 @@ export default class Sheet {
     options: any;
     lastCol: number | null;
     probe: HTMLDivElement;
-    lastDirKey: any;
     scheduledRenders: {[key: string]: any};
     scheduledOffBlockRenders: {[key: string]: any};
     renderQueued: boolean;
@@ -129,7 +128,7 @@ export default class Sheet {
             _container.appendChild(this.toolbar.container);
         }
         if (options.formulaBar != false) {
-            this.formulaBar = new FormulaBar();
+            this.formulaBar = new FormulaBar(this);
             _container.appendChild(this.formulaBar.container);
         }
         // _container.innerHTML += header;
@@ -968,7 +967,7 @@ export default class Sheet {
             this.cancelCellEdit();
             return;
         }
-        this.historyManager.recordChanges([{ row, col, prevData: Object.assign({}, this.getCell(row,col)), previousValue: this.getCellText(row, col), newValue: this.editInput.value, changeKind: 'valchange' }]);
+        this.historyManager.recordChanges([{ row, col, prevData: Object.assign({}, this.getCell(row,col)), changeKind: 'valchange' }]);
         this.setText(row, col, this.editInput.value);
         // Hide input and redraw cell
         this.cancelCellEdit();

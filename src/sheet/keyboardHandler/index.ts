@@ -9,14 +9,17 @@ export default class KeyboardHandler {
     }
 
     async onKeyDown(e: KeyboardEvent) {
+        const formulaFocus = this.sheet.formulaBar?.isEditing;
+        const isEditingCellSelect = this.sheet.formulaBar?.isEditingCellSelect;
+        const isLocked = this.sheet.editingCell || formulaFocus || isEditingCellSelect;
         const key = e.key.toLowerCase();
         if ((key === 'f2') && this.sheet.selectionStart) {
             e.preventDefault();
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             this.sheet.startCellEdit(this.sheet.selectionStart.row, this.sheet.selectionStart.col);
         }
         else if (key === 'f3') {
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             this.sheet.openFormatMenu();
             e.preventDefault();
         }
@@ -25,17 +28,17 @@ export default class KeyboardHandler {
             this.sheet.cancelCellEdit();
         }
         else if (key === 'delete') {
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             this.sheet.clearSelectedCells();
         }
         else if (key === 'x' && e.ctrlKey) {
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             document.execCommand('copy');
             this.sheet.clearSelectedCells();
             e.preventDefault();
         }
         else if (key === 'b' && e.ctrlKey) {
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             e.preventDefault();
             const selectedCells = this.sheet.getSelectedCells();
             this.sheet.setCellsMutate(selectedCells, (cell: any) => {
@@ -47,12 +50,12 @@ export default class KeyboardHandler {
             this.sheet.toolbar?.set('bold', value);
         }
         else if (key === 'v' && e.shiftKey && e.ctrlKey) {
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             const clipboardText = await navigator.clipboard.readText();
             this.sheet.pasteHandler.handlePastePlaintext(clipboardText);
         }
         else if (key === 'k' && e.ctrlKey) {
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             let cells = this.sheet.data.getAllCells();
             cells = cells.filter(cell => Object.keys(cell).length > 3);
             console.log({
@@ -69,7 +72,7 @@ export default class KeyboardHandler {
             e.preventDefault();
         }
         else if (key === 's' && e.ctrlKey) {
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             const data = this.sheet.data.save();
             const save = {
                 mergedCells: this.sheet.mergedCells,
@@ -83,12 +86,12 @@ export default class KeyboardHandler {
             e.preventDefault();
         }
         else if (key === 'l' && e.ctrlKey) {
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             this.sheet.restoreSave();
             e.preventDefault();
         }
         else if (e.ctrlKey || e.metaKey) { // Check for Ctrl (Windows/Linux) or Cmd (Mac)
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             if (key === 'y' || (e.shiftKey && key === 'z')) {
                 e.preventDefault(); // Prevent default behavior
                 this.sheet.historyManager.redo();
@@ -97,19 +100,18 @@ export default class KeyboardHandler {
                 this.sheet.historyManager.undo();
             }
         } else if (key === 'arrowup' || key === 'arrowdown' || key === 'arrowleft' || key === 'arrowright' || key === 'enter' || key === 'tab') {
-            if (!this.sheet.selectionEnd || this.sheet.editingCell) return;
+            if (!this.sheet.selectionEnd || isLocked) return;
             e.preventDefault();
             this.sheet.probe.style.display = 'block';
             this.handleArrowKeyDown(e);
         } else if (this.sheet.selectionStart && e.key?.length === 1) {
-            if (this.sheet.editingCell) return;
+            if (isLocked) return;
             this.sheet.startCellEdit(this.sheet.selectionStart.row, this.sheet.selectionStart.col, e.key);
         }
     }
 
     handleArrowKeyDown(e: any) {
         if (!this.sheet.selectionEnd || !this.sheet.selectionStart) return;
-        this.sheet.lastDirKey = e.key;
         const deltas: any = {
             'ArrowUp': [-1, 0], 'ArrowDown': [1, 0], 'ArrowLeft': [0, -1], 'ArrowRight': [0, 1], 'Enter': e.shiftKey ? [-1, 0] : [1,0],
             'Tab': e.shiftKey ? [0, -1] : [0, 1]
