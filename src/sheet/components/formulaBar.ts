@@ -1,4 +1,4 @@
-import scrollIntoView from "src/packages/scrollIntoView";
+import scrollIntoView from "../../packages/scrollIntoView";
 import Sheet from "..";
 import ExpressionParser from '../../packages/expressionparser';
 import { rowColToRef } from "../shiftops";

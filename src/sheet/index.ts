@@ -100,7 +100,10 @@ export default class Sheet {
     headerIdentifiers: HeaderIdentifiers;
     freeze: any;
     _selectionBoundRects: any;
+    events: any;
+    prevSelectionBoundRect: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
+        this.events = {};
         this.toolbar = null;
         this._selectionBoundRects = [];
         this.renderQueued = false;
@@ -304,6 +307,23 @@ export default class Sheet {
         //     }
         //     console.log('gigasheet::ontick', data)
         // });
+    }
+
+    subscribeEvent = (eventName: string, cb: any) => {
+        if (!this.events[eventName]) {
+            this.events[eventName] = [];
+        }
+        this.events[eventName].push(cb);
+    }
+    emitEvent = (eventName: string, data?: any) => {
+        const cbs = this.events[eventName] || [];
+        for (let cb of cbs) {
+            cb(data);
+        }
+    }
+
+    hasEvent = (eventName: string) => {
+        return !!this.events[eventName];
     }
 
     initEventListeners() {
@@ -1475,6 +1495,17 @@ export default class Sheet {
         this.toolbar?.set('bold', bold);
         const italic = this.getCell(row, col).italic || false;
         this.toolbar?.set('italic', italic);
+        if (this.hasEvent('selectionChange')) {
+            if (!this.prevSelectionBoundRect || (
+                this.prevSelectionBoundRect.startRow !== this.selectionBoundRect.startRow ||
+                this.prevSelectionBoundRect.startCol !== this.selectionBoundRect.startCol ||
+                this.prevSelectionBoundRect.endRow !== this.selectionBoundRect.endRow ||
+                this.prevSelectionBoundRect.endCol !== this.selectionBoundRect.endCol
+            )) {
+                this.prevSelectionBoundRect = Object.assign({}, this.selectionBoundRect);
+                this.emitEvent('selectionChange',Object.assign({}, this.selectionBoundRect));
+            }
+        }
     }
 
     updateSelection(fromKeyInput: boolean = false) {
