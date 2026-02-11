@@ -2037,6 +2037,14 @@ export default class Sheet {
     immediateRenderCell(row: any, col: any, fromBlockRender: boolean) {
         if (!this.isValid(row,col)) return;
 
+        const cell = this.getCell(row, col);
+        if (cell.renderType === 'custom' && this.options.renderCustomCell) {
+            let left, top, width, height, value;
+            ({ left, top, width, height, row, col } = this.metrics.getCellCoordsContainer(row, col));
+            const customCell = this.options.renderCustomCell(cell, { left, top, width, height });
+            return;
+        }
+
         let block = this.getSubBlock(row, col);
         if (!block) return;
         let ctx = block?.canvas.getContext('2d');
