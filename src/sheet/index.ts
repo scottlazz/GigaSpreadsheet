@@ -972,6 +972,11 @@ export default class Sheet {
         const cell = this.getCellOrMerge(row,col);
         value = startingValue != null ? '' : this.getCellText(cell.row, cell.col);
 
+        if (this.options.launchCustomEditor) {
+            const customEditor = this.options.launchCustomEditor(cell, { left, top, width, height });
+            return;
+        }
+
         // Set up edit input
         this.editInput.value = value;
         this.editInput.style.left = `${left}px`;
