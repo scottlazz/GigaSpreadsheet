@@ -262,7 +262,9 @@ export default class Sheet {
         if (!this.initialCells) return;
         setInterval(() => {
             for(let cell of this.initialCells) {
-                if (!cell.text || (
+                if (
+                    // true
+                    !cell.text || (
                     !isNaN(cell.text) &&
                         !Number.isNaN(parseFloat(cell.text))
                         && !Number.isInteger(parseFloat(cell.text)))
@@ -2126,12 +2128,12 @@ export default class Sheet {
             if (cell.text && cell.text.length > 3) {
                 this.setTextCtx(ctx, row, col);
                 const m = ctx.measureText(cell.text);
-                const mwidth = Math.floor(m.width*.54);
+                const mwidth = (m.width/devicePixelRatio)+5;
                 if (this.maxWidthInCol[cell.col]) {
                     if (mwidth > this.maxWidthInCol[cell.col].max) {
                         this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
                         needsRerender = true;
-                    } else if (mwidth < this.maxWidthInCol[cell.col].max &&
+                    } else if (mwidth < this.maxWidthInCol[cell.col].max-50 && // subtract some width so it doesnt resize too much
                         this.maxWidthInCol[cell.col].row === cell.row
                     ) {
                         this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
@@ -2348,6 +2350,7 @@ export default class Sheet {
             ctx.fillStyle = cell.bc || 'white';
             const c = this.metrics.getCellCoordsCanvas(row,col);
             const { l, t, w, h } = this.scaleRect(c.left, c.top, c.width, c.height);
+            ctx.clearRect(l+1, t+1, w, h);
             ctx.fillRect(l+1, t+1, w, h);
             ctx.restore();
         } else {
