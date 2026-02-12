@@ -16,8 +16,16 @@ export function hasBorder(curBorder: number | null, border: number) {
     if (!curBorder) return false;
     return border === (border&curBorder);
 }
-export function hasBorderStr(curBorder: number | null, borderStr: string) {
+export function hasBorderStr(curBorder: number | string | null, borderStr: string) {
     if (!curBorder) return false;
+    if (typeof curBorder === 'string') {
+        try {
+            const obj = JSON.parse(curBorder);
+            return obj[borderStr] != null;
+        } catch (e) {
+            return false;
+        }
+    }
     let border: number;
     if (borderStr === 'left') border = borderLeft;
     else if (borderStr === 'top') border = borderTop;

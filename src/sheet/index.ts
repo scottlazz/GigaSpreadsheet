@@ -1923,8 +1923,8 @@ export default class Sheet {
         const b = Math.round((y + height) * dpr);
         return { l, t, w: Math.max(0, r - l), h: Math.max(0, b - t) };
     }
-    setBorStroke(ctx: any) {
-        ctx.strokeStyle = 'black';
+    setBorStroke(ctx: any, borderColor?: string) {
+        ctx.strokeStyle = borderColor || 'black';
     }
     setGridLineStroke(ctx: any) {
         ctx.strokeStyle = '#dddddd';
@@ -1938,26 +1938,30 @@ export default class Sheet {
         ctx.lineTo(x2 + 0.5, y2 + 0.5);
         ctx.stroke();
     }
-    renderleftBorder(ctx: any, row: number, col: number, fromBlockRender: boolean) {
-        const cell = this.getCellOrMerge(row,col);
+    getBorder(cell, side: string = 'left') {
         const border = cell?.border;
-        let left, top, width, height;
-        ({ left, top, width, height } = this.metrics.getCellCoordsCanvas(cell.row, cell.col));
-        const rect = this.scaleRect(left, top, width, height);
-        const hasLeft = hasBorderStr(border, 'left') || hasBorderStr(this.getCellOrMerge(cell.row, cell.col-1)?.border, 'right');
-        if (hasLeft) {
-            this.setBorStroke(ctx);
-            this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
-        } else if (!fromBlockRender) {
-            if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
-            this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
+        if (typeof border === 'string') {
+            try {
+                const obj = JSON.parse(border);
+                return obj[side];
+            } catch (e) {
+                return null;
+            }
+        }
+        if (typeof border === 'number' && hasBorderStr(border, side)) {
+            let borderColor = cell?.borderColor;
+            if (typeof borderColor === 'string' && borderColor.startsWith('{')) {
+                try {return JSON.parse(borderColor)[side];} catch (e) {}
+            } else if (typeof borderColor === 'string') {
+                return borderColor;
+            }
+            return 'black';
         }
     }
     // drawborders
     renderBorders(ctx: any, row: number, col: number, fromBlockRender: boolean) {
         // return;
         const cell = this.getCellOrMerge(row,col);
-        const border = cell?.border;
         ctx.save();
         ctx.lineWidth = 1;
         let left, top, width, height;
@@ -1965,9 +1969,9 @@ export default class Sheet {
         const rect = this.scaleRect(left, top, width, height);
 
         // left border
-        const hasLeft = hasBorderStr(border, 'left') || hasBorderStr(this.getCellOrMerge(cell.row, cell.col-1)?.border, 'right');
-        if (hasLeft) {
-            this.setBorStroke(ctx);
+        const leftBorder = this.getBorder(cell, 'left') || this.getBorder(this.getCellOrMerge(cell.row, cell.col-1), 'right');
+        if (leftBorder) {
+            this.setBorStroke(ctx, leftBorder);
             this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
         } else if (!fromBlockRender) {
             if (this.getCellOrMerge(cell.row, cell.col-1)?.bc) {
@@ -1980,9 +1984,9 @@ export default class Sheet {
             // todo: improve this logic, instead of above, calc right borders on cells abutting to the left
         }
         // top border
-        const hasTop = hasBorderStr(border, 'top') || hasBorderStr(this.getCellOrMerge(cell.row-1, cell.col)?.border, 'bottom');
-        if (hasTop) {
-            this.setBorStroke(ctx);
+        const topBorder = this.getBorder(cell, 'top') || this.getBorder(this.getCellOrMerge(cell.row-1, cell.col), 'bottom');
+        if (topBorder) {
+            this.setBorStroke(ctx, topBorder);
             this.strokeLine(ctx, rect.l, rect.t, rect.l + rect.w, rect.t);
         } else if (!fromBlockRender) {
             if (this.getCellOrMerge(cell.row-1, cell.col)?.bc) {
@@ -1996,9 +2000,9 @@ export default class Sheet {
         }
 
         // right border
-        const hasRight = hasBorderStr(border, 'right') || hasBorderStr(this.getCellOrMerge(cell.row, cell.col+1)?.border, 'left');
-        if (hasRight) {
-            this.setBorStroke(ctx);
+        const rightBorder = this.getBorder(cell, 'right') || this.getBorder(this.getCellOrMerge(cell.row, cell.col+1), 'left');
+        if (rightBorder) {
+            this.setBorStroke(ctx, rightBorder);
             this.strokeLine(ctx, rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
         } else if (!fromBlockRender) {
             if (this.getCellOrMerge(cell.row, cell.col+1)?.bc) {
@@ -2012,9 +2016,9 @@ export default class Sheet {
         }
 
         // bottom border
-        const hasBottom = hasBorderStr(border, 'bottom') || hasBorderStr(this.getCellOrMerge(cell.row+1, cell.col)?.border, 'top');
-        if (hasBottom) {
-            this.setBorStroke(ctx);
+        const bottomBorder = this.getBorder(cell, 'bottom') || this.getBorder(this.getCellOrMerge(cell.row+1, cell.col), 'top');
+        if (bottomBorder) {
+            this.setBorStroke(ctx, bottomBorder);
             this.strokeLine(ctx, rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
         } else if (!fromBlockRender) {
             if (this.getCellOrMerge(cell.row+1, cell.col)?.bc) {
