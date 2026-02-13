@@ -2138,6 +2138,11 @@ export default class Sheet {
 
             const [row,col] = this.needDims[key];
             const cell = this.getCell(row,col);
+            const isCustomRender = cell.renderType === 'custom' && this.options.renderCustomCell;
+            if (isCustomRender) {
+                delete this.needDims[key];
+                continue;
+            }
             if (cell.text && cell.text.length > 3) {
                 this.setTextCtx(ctx, row, col);
                 const m = ctx.measureText(cell.text);
