@@ -1758,9 +1758,18 @@ export default class Sheet {
         // Remove blocks that are no longer needed
         const toRemove: any = [];
         this.activeBlocks.forEach((block, key) => {
-            if (force || !neededBlocks.has(key)) {
+            if (!neededBlocks.has(key)) {
                 toRemove.push(key);
                 this.releaseBlock(block);
+            } else if (force) {
+                try {
+                    block.subBlocks.forEach((subBlock: any) => {
+                        subBlock.renderBlock(true);
+                    });
+                } catch (err) {
+                    toRemove.push(key);
+                    this.releaseBlock(block);
+                }
             }
         });
 
