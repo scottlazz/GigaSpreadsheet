@@ -5,6 +5,7 @@
   "source": "src/index.html",
   "types": "dist/index.d.ts",
   "module": "dist/index.js",
+  "main": "dist/indexejs.js",
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -21,6 +22,7 @@
     "start": "parcel",
     "build": "parcel build",
     "build:ts": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json -w --preserveWatchOutput",
     "build:lib": "npm run build:ts",
     "prepare": "npm run build:ts",
     "predeploy": "npm run build",

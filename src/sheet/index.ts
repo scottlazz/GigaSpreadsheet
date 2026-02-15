@@ -2,7 +2,7 @@
 import SparseGrid, {uuid} from '../packages/sparsegrid';
 import ExpressionParser from '../packages/expressionparser';
 import { launchFormatMenu } from './windows/format';
-import { createLineChart } from './graphs/linechart.js';
+import { createLineChart } from './graphs/linechart';
 // import FinancialSubscriber from '../packages/financial/index';
 import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "../packages/dependencytracker";
 import { hasBorderStr, addBorder, isNumeric } from "./utils";
@@ -836,6 +836,8 @@ export default class Sheet {
         if (e.target === this.editInput) return;
         const { row, col } = this.getCellFromEvent(e);
         if (row === -1 || col === -1) return;
+        const cell = this.getCellOrMerge(row, col);
+        if (cell.renderType === 'custom') return;
         this.startCellEdit(row, col);
     }
 
@@ -2249,6 +2251,7 @@ export default class Sheet {
         el.style.left = `${x}px`;
         el.style.width = `${width}px`;
         el.style.height = `${height}px`;
+        el.style.position = 'absolute';
         append && this.container.appendChild(el);
     }
     getCellId(row: number, col: number) {
