@@ -4,3 +4,4 @@ node_modules/
 tsconfig.tsbuildinfo
 *.tgz
 _sampledata.ts
+_sampledata.ts.bak

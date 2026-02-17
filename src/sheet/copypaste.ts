@@ -259,15 +259,16 @@ export class PasteHandler {
             // }
             e.preventDefault();
             if (e.clipboardData!.getData('json/pasteData')) {
-                return this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+                this.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+            } else {
+                const xml = e.clipboardData!.getData('text/html');
+                let data = parseXML(xml);
+                // if (!data) {
+                //     return this.sheet.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
+                // }
+                this.handlePasteData(data,e);
             }
-            const xml = e.clipboardData!.getData('text/html');
-            let data = parseXML(xml);
-            // if (!data) {
-            //     return this.sheet.handlePasteData(e.clipboardData!.getData('json/pasteData'),e);
-            // }
-            this.handlePasteData(data,e);
-            this.sheet.updateSelection();
+            this.sheet.selectCell({ row: this.sheet.selectionBoundRect.startRow, col: this.sheet.selectionBoundRect.startCol, clear: true });
     }
 
     handlePastePlaintext(text: string) {
@@ -317,6 +318,15 @@ export class PasteHandler {
             const offsetRow = destCell.row-srcCell.row;
             const offsetCol = destCell.col-srcCell.col;
             const configs = pasteData.configs;
+            for(let merge of pasteData.merges) {
+                const newMerge = {...merge};
+                newMerge.startRow = newMerge.startRow + offsetRow;
+                newMerge.endRow = newMerge.endRow + offsetRow;
+                newMerge.startCol = newMerge.startCol + offsetCol;
+                newMerge.endCol = newMerge.endCol + offsetCol;
+                this.sheet.mergeSelectedCells(newMerge, false);
+                changes.push({ changeKind: 'merge', bounds: { ...newMerge } });
+            }
             for (let config of configs) {
                 config.row = config.row + offsetRow;
                 config.col = config.col + offsetCol;
@@ -329,15 +339,6 @@ export class PasteHandler {
                 });
                 this.sheet.putCellObj(config.row, config.col, config);
                 this.sheet.renderCell(config.row, config.col);
-            }
-            for(let merge of pasteData.merges) {
-                const newMerge = {...merge};
-                newMerge.startRow = newMerge.startRow + offsetRow;
-                newMerge.endRow = newMerge.endRow + offsetRow;
-                newMerge.startCol = newMerge.startCol + offsetCol;
-                newMerge.endCol = newMerge.endCol + offsetCol;
-                this.sheet.mergeSelectedCells(newMerge, false);
-                changes.push({ changeKind: 'merge', bounds: { ...newMerge } });
             }
             if (changes.length > 0) {
                 this.sheet.historyManager.recordChanges(changes);

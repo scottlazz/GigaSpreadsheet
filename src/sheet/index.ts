@@ -249,11 +249,11 @@ export default class Sheet {
         this.parser = null;
         this.initialCells = options.initialCells;
         // if (!this.restoreSave()) {
+            this.initRender();
             this.setData(new SparseGrid(), options.initialCells);
             // }
             // this.intervalSetRandomData();
             // setTimeout(() => {
-                this.initRender();
 
             // })
     }
@@ -897,13 +897,13 @@ export default class Sheet {
     getSelectedCells() {
         if (!this.selectionBoundRect) return [];
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
-        const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
+        const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isNotMergedOver(cell.row, cell.col));
         return cells;
     }
     getSelectedCellsOrVirtual() {
         if (!this.selectionBoundRect) return [];
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
-        const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
+        const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isNotMergedOver(cell.row, cell.col));
         return cells;
     }
     getSelectedCellsOrVirtual2D() {
@@ -911,7 +911,7 @@ export default class Sheet {
         const arr = [];
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
         for(let i = startRow; i <= endRow; i++) {
-            const cells = this.data.getCellsForce(i, startCol, i, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col));
+            const cells = this.data.getCellsForce(i, startCol, i, endCol).filter((cell: {row:number,col:number}) => this.isNotMergedOver(cell.row, cell.col));
             arr.push(cells);
         }
         return arr;
@@ -921,7 +921,7 @@ export default class Sheet {
         const cells = [];
         for(let rect of this.getSelectionBoundRects()) {
             const { startRow, startCol, endRow, endCol } = rect;
-            cells.push(this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isValid(cell.row, cell.col)));
+            cells.push(this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isNotMergedOver(cell.row, cell.col)));
         }
         return cells;
     }
@@ -940,10 +940,13 @@ export default class Sheet {
         }
         return cells;
     }
-    isValid(row:number,col:number) {
+    isNotMergedOver(row:number,col:number) {
         const merge = this.getMerge(row,col);
         if (!merge) return true;
         return merge.startRow == row && merge.startCol == col;
+    }
+    isMergedOver(row:number,col:number) {
+        return !this.isNotMergedOver(row,col);
     }
     getTotalRows() {
         return this.totalRows;
@@ -2051,8 +2054,36 @@ export default class Sheet {
         return block?.canvas.getContext('2d');
     }
 
+    getOverlappingRect(rect1: Rect, rect2: Rect): Rect {
+        const startRow = Math.max(rect1.startRow, rect2.startRow);
+        const startCol = Math.max(rect1.startCol, rect2.startCol);
+        const endRow = Math.min(rect1.endRow, rect2.endRow);
+        const endCol = Math.min(rect1.endCol, rect2.endCol);
+
+        if (startRow <= endRow && startCol <= endCol) {
+            return { startRow, startCol, endRow, endCol };
+        }
+        return null;
+    }
+
     immediateRenderCell(row: any, col: any, fromBlockRender: boolean) {
-        if (!this.isValid(row,col)) return;
+        if (this.isMergedOver(row,col)) {
+            if (!fromBlockRender) return;
+            // only render cells part of this merge once in this block
+            const merge = this.getMerge(row,col);
+            const _block = this.getSubBlock(row, col);
+            if (_block) {
+                const rect = this.getOverlappingRect(merge, {startRow: _block.startRow, endRow: _block.endRow-1, startCol: _block.startCol, endCol: _block.endCol-1});
+                for(let r = rect.startRow; r <= rect.endRow; r++) {
+                    for(let c = rect.startCol; c <= rect.endCol; c++) {
+                        delete this.scheduledRenders[this.getKey(r,c)];
+                    }
+                }
+            } else {
+                console.log('no block for merge', merge, 'at cell', row, col)
+                return;
+            }
+        }
 
         const cell = this.getCell(row, col);
         if (cell.renderType === 'custom' && this.options.renderCustomCell) {
@@ -2091,14 +2122,11 @@ export default class Sheet {
             }
         }
     }
-    immedateOffBlockRender(row: any, col: any, fromBlockRender: boolean,block:any) {
-        // if (!this.isValid(row,col)) return;
-        // console.log(row,col)
-        // let block = this.getSubBlock(row, col);
+    immediateOffBlockRender(row: any, col: any, fromBlockRender: boolean,block:any) {
         if (!block) return;
         try {
             this.metrics.getCellCoordsCanvas(row,col);
-        } catch {
+        } catch (e) {
             return;
         }
         let ctx = block?.canvas.getContext('2d');
@@ -2127,7 +2155,7 @@ export default class Sheet {
         }
         for(let key in this.scheduledOffBlockRenders) {
             const [row,col,fromBlockRender,block] = this.scheduledOffBlockRenders[key];
-            this.immedateOffBlockRender(row,col,fromBlockRender,block);
+            this.immediateOffBlockRender(row,col,fromBlockRender,block);
             delete this.scheduledOffBlockRenders[key];
         }
         this.renderQueued = false;
@@ -2180,7 +2208,7 @@ export default class Sheet {
             const cells = this.data.getCol(col);
             for(let key in cells) {
                 const cell = cells[key];
-                if (!this.isValid(cell.row,cell.col)) continue;
+                if (!this.isNotMergedOver(cell.row,cell.col)) continue;
                 if (cell._dims) {
                     if (cell._dims.width > this.maxWidthInCol[cell.col].max) {
                         this.maxWidthInCol[cell.col].max = cell._dims.width;
@@ -2199,7 +2227,7 @@ export default class Sheet {
     }
 
     updateDim(row: any, col: any) {
-        if (!this.isValid(row,col)) return;
+        if (!this.isNotMergedOver(row,col)) return;
         if (!this.options?.autosize) return;
         if (col in this.widthOverrides && !this.getCell(row,col)?.ul) return;
         this.needDims[[row,col].toString()] = [row,col];
@@ -2217,7 +2245,6 @@ export default class Sheet {
             const startBlock = this.getSubBlock(merge.startRow,merge.startCol);
             for (let block of this.getBlocksInMerge(merge)) {
                 if (block[0] === startBlock) continue;
-                // console.log(row,col)
                 this.scheduledOffBlockRenders[`${block[1][0]},${block[1][1]}`] =
                     [block[1][0],block[1][1],fromBlockRender,block[0]];
             }
@@ -2257,12 +2284,18 @@ export default class Sheet {
     getCellId(row: number, col: number) {
         return this.getCell(row, col)?._id;
     }
+    setElRegistry(row: number, col: number, el: any, type: string) {
+        const _id = this.getCellId(row, col);
+        if (!_id) return;
+        if (this.elRegistry[_id]) this.elRegistry[_id].el.remove();
+        this.elRegistry[_id] = { el, type };
+    }
     getButton(row: number, col: number) {
         const _id = this.getCellId(row, col);
         if (this.elRegistry[_id] && this.elRegistry[_id].type === 'button') {
             return this.elRegistry[_id];
-        } else if (this.elRegistry[_id] && this.elRegistry.type !== 'button') {
-            this.elRegistry[_id].el.parentNode?.removeChild(this.elRegistry[_id].el);
+        } else if (this.elRegistry[_id] && this.elRegistry[_id].type !== 'button') {
+            this.elRegistry[_id].el.remove();
         }
         const button: any = document.createElement('button');
         button.textContent = this.getCellText(row, col);
