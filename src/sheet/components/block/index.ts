@@ -29,6 +29,7 @@ export class Block {
         // const canvas = this.pool.pop() || document.createElement('canvas');
         const canvas = document.createElement('canvas');
         canvas.className = 'canvas-block';
+        // canvas.style.background = `rgb(${Math.floor(Math.random() * 255)},${Math.floor(Math.random() * 255)},${Math.floor(Math.random() * 255)})`;
         return canvas;
     }
 

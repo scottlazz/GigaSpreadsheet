@@ -9,7 +9,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const cells: any = [];
     const sheet = new Sheet(wrapper,
         Object.assign(
-            fininit
+            fininit,
+            {
+                gridlinesOn: false,
+                // autosize: true,
+                // blockRows: 5,
+                // blockCols: 4,
+            }
         , {
             cellHeaders: true,
             autosize: true,

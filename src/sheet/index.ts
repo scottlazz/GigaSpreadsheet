@@ -1947,6 +1947,16 @@ export default class Sheet {
         ctx.strokeStyle = 'white';
     }
     strokeLine(ctx: any, x1: number, y1: number, x2: number, y2: number) {
+        const color = ctx.strokeStyle;
+        // ctx.globalCompositeOperation = 'destination-out';
+        // ctx.strokeStyle = 'rgba(0,0,0,1)';
+        // ctx.beginPath();
+        // ctx.moveTo(x1 + 0.5, y1 + 0.5);
+        // ctx.lineTo(x2 + 0.5, y2 + 0.5);
+        // ctx.stroke();
+
+        // ctx.globalCompositeOperation = 'source-over';
+        // ctx.strokeStyle = color;
         ctx.beginPath();
         ctx.moveTo(x1 + 0.5, y1 + 0.5);
         ctx.lineTo(x2 + 0.5, y2 + 0.5);
@@ -1983,7 +1993,9 @@ export default class Sheet {
         const rect = this.scaleRect(left, top, width, height);
 
         // left border
-        const leftBorder = this.getBorder(cell, 'left') || this.getBorder(this.getCellOrMerge(cell.row, cell.col-1), 'right');
+        const leftCell = this.getCellOrMerge(cell.row, cell.col-1);
+        const leftBorder = this.getBorder(cell, 'left') || this.getBorder(leftCell, 'right')
+        //  || cell.bc || leftCell?.bc;
         if (leftBorder) {
             this.setBorStroke(ctx, leftBorder);
             this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
@@ -1998,7 +2010,9 @@ export default class Sheet {
             // todo: improve this logic, instead of above, calc right borders on cells abutting to the left
         }
         // top border
-        const topBorder = this.getBorder(cell, 'top') || this.getBorder(this.getCellOrMerge(cell.row-1, cell.col), 'bottom');
+        const topCell = this.getCellOrMerge(cell.row-1, cell.col);
+        const topBorder = this.getBorder(cell, 'top') || this.getBorder(topCell, 'bottom')
+        //  || cell.bc || topCell?.bc;
         if (topBorder) {
             this.setBorStroke(ctx, topBorder);
             this.strokeLine(ctx, rect.l, rect.t, rect.l + rect.w, rect.t);
@@ -2014,7 +2028,9 @@ export default class Sheet {
         }
 
         // right border
-        const rightBorder = this.getBorder(cell, 'right') || this.getBorder(this.getCellOrMerge(cell.row, cell.col+1), 'left');
+        const rightCell = this.getCellOrMerge(cell.row, cell.col+1);
+        const rightBorder = this.getBorder(cell, 'right') || this.getBorder(rightCell, 'left')
+        //  || cell.bc || rightCell?.bc;
         if (rightBorder) {
             this.setBorStroke(ctx, rightBorder);
             this.strokeLine(ctx, rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
@@ -2030,7 +2046,9 @@ export default class Sheet {
         }
 
         // bottom border
-        const bottomBorder = this.getBorder(cell, 'bottom') || this.getBorder(this.getCellOrMerge(cell.row+1, cell.col), 'top');
+        const bottomCell = this.getCellOrMerge(cell.row+1, cell.col);
+        const bottomBorder = this.getBorder(cell, 'bottom') || this.getBorder(bottomCell, 'top')
+        //  || cell.bc || bottomCell?.bc;
         if (bottomBorder) {
             this.setBorStroke(ctx, bottomBorder);
             this.strokeLine(ctx, rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
@@ -2408,15 +2426,18 @@ export default class Sheet {
             ctx.fillStyle = cell.bc || 'white';
             const c = this.metrics.getCellCoordsCanvas(row,col);
             const { l, t, w, h } = this.scaleRect(c.left, c.top, c.width, c.height);
-            ctx.clearRect(l+1, t+1, w, h);
-            ctx.fillRect(l+1, t+1, w, h);
+            ctx.clearRect(l, t, w, h);
+            ctx.fillRect(l, t, w, h);
             ctx.restore();
         } else {
             ctx.save();
-            ctx.fillStyle = cell.bc || 'white';
+            // ctx.fillStyle = cell.bc || 'white';
             const c = this.metrics.getCellCoordsCanvas(row,col);
             const { l, t, w, h } = this.scaleRect(c.left, c.top, c.width, c.height);
-            ctx.fillRect(l+1, t+1, w-1, h-1);
+            // ctx.fillRect(l+1, t+1, w-1, h-1);
+            // ctx.clearRect(l+1, t+1, w-1, h-1);
+            // ctx.fillRect(l, t, w, h);
+            ctx.clearRect(l, t, w, h);
             ctx.restore();
         }
     }
