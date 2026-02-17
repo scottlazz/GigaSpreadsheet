@@ -2173,6 +2173,10 @@ export default class Sheet {
                 delete this.needDims[key];
                 continue;
             }
+            if (this.getMerge(row,col)) {
+                delete this.needDims[key];
+                continue;
+            }
             if (cell.text && cell.text.length > 3) {
                 this.setTextCtx(ctx, row, col);
                 const m = ctx.measureText(cell.text);
@@ -2472,7 +2476,7 @@ export default class Sheet {
             ctx.beginPath();
             ctx.strokeStyle = cell.color || 'black'; // Set underline color
             ctx.lineWidth = cell.fontSize ? cell.fontSize/6 : 2; // Set underline thickness
-            const y = ((top + this.metrics.rowHeight(row) / 2)+(cell.fontSize/4)) * devicePixelRatio;
+            const y = ((top + this.metrics.rowHeight(row) / 2)+(cell.fontSize/4)+3) * devicePixelRatio;
             ctx.moveTo((textX) * devicePixelRatio, y);
             ctx.lineTo(((textX) * devicePixelRatio)+(cell._dims.width*devicePixelRatio), y);
             ctx.stroke();
