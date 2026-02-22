@@ -370,6 +370,7 @@ export default class SparseGrid {
         const data = [];
         for(let row in this._data) {
             for(let col in this._data[row]) {
+                if (col === 'size') continue;
                 if (this._data[row][col] && typeof this._data[row][col] === 'object') {
                     this._data[row][col].row = parseInt(row); this._data[row][col].col = parseInt(col);
                     data.push(this._data[row][col]);
@@ -496,6 +497,7 @@ export default class SparseGrid {
         for (let row in this._data) {
             if (row === 'count') continue;
             for (let col in this._data[row]) {
+                if (col === 'size') continue;
                 callback(this._data[row][col], row, col, counter++);
             }
         }

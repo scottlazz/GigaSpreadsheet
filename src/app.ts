@@ -1,7 +1,7 @@
 // import Giga from "./giga";
 import Sheet from "./sheet";
 // import { Sheet } from './index';
-import { fininit } from "./_sampledata";
+import { fininit } from "./sampledata";
 import './style.css';
 
 document.addEventListener("DOMContentLoaded", (event) => {

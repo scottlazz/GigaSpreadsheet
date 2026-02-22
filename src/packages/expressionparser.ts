@@ -227,9 +227,12 @@ export default class ExpressionParser {
     // Get the value of a cell reference (e.g., A1, B2)
     getCellValue(cellRef:any) {
         const { row, col } = this.parseCellReference(cellRef);
-        if (row < 0 || row > this.data.bottomRow || col < 0 || col > this.data.rightCol) {
-            return '';
-            throw new Error(`Invalid cell reference: ${cellRef}`);
+        // Skip validation if boundaries are not set (empty grid)
+        if (this.data.bottomRow !== null && this.data.rightCol !== null) {
+            if (row < 0 || row > this.data.bottomRow || col < 0 || col > this.data.rightCol) {
+                return '';
+                throw new Error(`Invalid cell reference: ${cellRef}`);
+            }
         }
         const value = this.getCellText(row, col);
 
@@ -251,8 +254,11 @@ export default class ExpressionParser {
         const values = [];
         for (let row = start.row; row <= end.row; row++) {
             for (let col = start.col; col <= end.col; col++) {
-                if (row < 0 || row >= this.data.bottomRow || col < 0 || col >= this.data.rightCol) {
-                    throw new Error(`Invalid cell in range: ${rangeRef}`);
+                // Skip validation if boundaries are not set (empty grid)
+                if (this.data.bottomRow !== null && this.data.rightCol !== null) {
+                    if (row < 0 || row > this.data.bottomRow || col < 0 || col > this.data.rightCol) {
+                        throw new Error(`Invalid cell in range: ${rangeRef}`);
+                    }
                 }
                 const value = this.getCellText(row, col);
 
@@ -270,12 +276,13 @@ export default class ExpressionParser {
 
     // Parse a cell reference (e.g., A1 => { row: 0, col: 0 })
     parseCellReference(cellRef:any) {
-        const colLetter = cellRef.match(/[A-Za-z]+/)?.[0];
-        const rowNumber = cellRef.match(/\d+/)?.[0];
-
-        if (!colLetter || !rowNumber) {
+        const match = cellRef.match(/^([A-Za-z]+)(\d+)$/);
+        if (!match) {
             throw new Error(`Invalid cell reference: ${cellRef}`);
         }
+
+        const colLetter = match[1];
+        const rowNumber = match[2];
 
         const col = colLetter.split('').reduce((acc:any, char:string) => acc * 26 + (char.toUpperCase().charCodeAt(0) - 64), 0) - 1;
         const row = parseInt(rowNumber, 10) - 1;
@@ -284,12 +291,13 @@ export default class ExpressionParser {
     }
 
     static parseCellReference(cellRef:any) {
-        const colLetter = cellRef.match(/[A-Za-z]+/)?.[0];
-        const rowNumber = cellRef.match(/\d+/)?.[0];
-
-        if (!colLetter || !rowNumber) {
+        const match = cellRef.match(/^([A-Za-z]+)(\d+)$/);
+        if (!match) {
             throw new Error(`Invalid cell reference: ${cellRef}`);
         }
+
+        const colLetter = match[1];
+        const rowNumber = match[2];
 
         const col = colLetter.split('').reduce((acc:any, char:any) => acc * 26 + (char.toUpperCase().charCodeAt(0) - 64), 0) - 1;
         const row = parseInt(rowNumber, 10) - 1;

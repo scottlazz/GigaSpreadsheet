@@ -94,7 +94,9 @@ export default class HistoryManager {
             this.sheet.rerenderCells(updatedCells);
         }
         // this.sheet.updateSelection();
-        this.sheet.selectCell({ row: this.sheet.selectionBoundRect.startRow, col: this.sheet.selectionBoundRect.startCol, clear: true });
+        if (this.sheet.selectionBoundRect) {
+            this.sheet.selectCell({ row: this.sheet.selectionBoundRect.startRow, col: this.sheet.selectionBoundRect.startCol, clear: true });
+        }
     }
     redo() {
         if (this.redoStack.length === 0) return; // Nothing to redo
@@ -159,6 +161,8 @@ export default class HistoryManager {
             this.sheet.rerenderCells(updatedCells);
         }
         // this.sheet.updateSelection();
-        this.sheet.selectCell({ row: this.sheet.selectionBoundRect.startRow, col: this.sheet.selectionBoundRect.startCol, clear: true });
+        if (this.sheet.selectionBoundRect) {
+            this.sheet.selectCell({ row: this.sheet.selectionBoundRect.startRow, col: this.sheet.selectionBoundRect.startCol, clear: true });
+        }
     }
 }

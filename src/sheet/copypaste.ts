@@ -268,7 +268,9 @@ export class PasteHandler {
                 // }
                 this.handlePasteData(data,e);
             }
-            this.sheet.selectCell({ row: this.sheet.selectionBoundRect.startRow, col: this.sheet.selectionBoundRect.startCol, clear: true });
+            if (this.sheet.selectionBoundRect) {
+                this.sheet.selectCell({ row: this.sheet.selectionBoundRect.startRow, col: this.sheet.selectionBoundRect.startCol, clear: true });
+            }
     }
 
     handlePastePlaintext(text: string) {

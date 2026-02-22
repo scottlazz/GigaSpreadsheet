@@ -57,7 +57,7 @@ export default class KeyboardHandler {
         else if (key === 'k' && e.ctrlKey) {
             if (isLocked) return;
             let cells = this.sheet.data.getAllCells();
-            cells = cells.filter(cell => Object.keys(cell).length > 3);
+            cells = cells.filter(cell => cell.hasOwnProperty('_dims') ? Object.keys(cell).length > 4 : Object.keys(cell).length > 3);
             console.log({
                 cellHeight: this.sheet.cellHeight,
                 cellWidth: this.sheet.cellWidth,
