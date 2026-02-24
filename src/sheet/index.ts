@@ -2512,18 +2512,48 @@ export default class Sheet {
             textX += 4;
         }
         const dpr = this.effectiveDevicePixelRatio();
-        ctx.rect((left+1.4) * dpr, (top+1.4) * dpr, (width-2.8) * dpr, (this.metrics.rowHeight(row)-1) * dpr); // Adjust y position based on your text baseline
+        const rowH = height;
+        let yPos: number;
+        const valign = cell.valign || 'top';
+        if (valign === 'top') {
+            ctx.textBaseline = 'top';
+            yPos = top + 5;
+        } else if (valign === 'bottom') {
+            ctx.textBaseline = 'bottom';
+            yPos = top + rowH - 2;
+        } else { // middle/default
+            ctx.textBaseline = 'middle';
+            yPos = top + rowH / 2;
+        }
+        ctx.rect((left + 1.4) * dpr, (top + 1.4) * dpr, (width - 2.8) * dpr, (rowH - 1) * dpr); // Adjust y position based on your text baseline
         let region = new Path2D();
-        region.rect((left+1.4) * dpr, (top+1.4) * dpr, (width-2.8) * dpr, (this.metrics.rowHeight(row)-1) * dpr);
+        region.rect((left + 1.4) * dpr, (top + 1.4) * dpr, (width - 2.8) * dpr, (rowH - 1) * dpr);
         ctx.clip(region);
-        ctx.fillText(text, (textX) * dpr, ((top + this.metrics.rowHeight(row) / 2)+1) * dpr);
+        ctx.fillText(text, textX * dpr, yPos * dpr);
+
+        // ctx.rect((left+1.4) * dpr, (top+1.4) * dpr, (width-2.8) * dpr, (this.metrics.rowHeight(row)-1) * dpr); // Adjust y position based on your text baseline
+        // let region = new Path2D();
+        // region.rect((left+1.4) * dpr, (top+1.4) * dpr, (width-2.8) * dpr, (this.metrics.rowHeight(row)-1) * dpr);
+        // ctx.clip(region);
+        // ctx.fillText(text, (textX) * dpr, ((top + this.metrics.rowHeight(row) / 2)+1) * dpr);
+
         if (cell.ul && cell._dims) {
             ctx.beginPath();
             ctx.strokeStyle = cell.color || 'black';
             ctx.lineWidth = cell.fontSize ? this.getFontSize(cell.row, cell.col) / 6 : 2;
-            const y = ((top + this.metrics.rowHeight(row) / 2) + (this.getFontSize(cell.row, cell.col) / 4) + 3) * dpr;
+            // const y = ((top + this.metrics.rowHeight(row) / 2) + (this.getFontSize(cell.row, cell.col) / 4) + 3) * dpr;
+            let y;
 
-            // Compute underline start X based on text alignment so underline matches rendered text
+            const fontPx = this.getFontSize(cell.row, cell.col);
+            if (!valign || valign === 'top') {
+                // underlineY = yPos + fontPx + 2;
+                y = ((top + this.metrics.rowHeight(row) / 2) + (this.getFontSize(cell.row, cell.col) / 4) + 3) * dpr;
+            } else if (valign === 'bottom') {
+                y = yPos * dpr;
+            } else {
+                y = (yPos + (fontPx / 4) + 3) * dpr;
+            }
+
             let underlineStartX = textX;
             if (textAlign === 'center') {
                 underlineStartX = textX - (cell._dims.width / 2);

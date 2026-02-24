@@ -171,7 +171,7 @@ export function launchFormatMenu() {
             <div class="menu-section">
             <div class="menu-title">Text Baseline</div>
                 <div class="option-group">
-                    <div class="format-btn" data-baseline="alphabetic" title="Alphabetic">A</div>
+                    <div class="format-btn" data-baseline="" title="Reset">Res</div>
                     <div class="format-btn" data-baseline="top" title="Top">Top</div>
                     <div class="format-btn" data-baseline="middle" title="Middle">Mid</div>
                     <div class="format-btn" data-baseline="bottom" title="Bottom">Bot</div>
@@ -179,6 +179,13 @@ export function launchFormatMenu() {
                 <div class="baseline-visual" id="baselineDemo">
                     <div class="baseline-line" id="baselineIndicator"></div>
                     <div class="baseline-text" id="baselineText">Text</div>
+                </div>
+            </div>
+            <div class="menu-section">
+                <div class="menu-title">Underline</div>
+                <div class="border-options">
+                    <div class="format-btn" data-ul="true" title="On">On</div>
+                    <div class="format-btn" data-ul="" title="Off">Off</div>
                 </div>
             </div>
         </div>
@@ -217,7 +224,7 @@ export function launchFormatMenu() {
             // Add active class to clicked button
             this.classList.add('active');
             const alignment = this.getAttribute('data-align');
-            onChange('textAlign', alignment);
+            onChange('ta', alignment);
         });
     });
     // Border buttons
@@ -269,7 +276,15 @@ export function launchFormatMenu() {
             (this as HTMLElement).classList.add('active');
             const baseline = this.getAttribute('data-baseline');
             updateBaselineVisual(baseline);
-            onChange('textBaseline', baseline);
+            onChange('valign', baseline);
+        });
+    });
+    formatWindow.document.querySelectorAll('[data-ul]').forEach(function (btn: any) {
+        btn.addEventListener('click', function (this: HTMLElement) {
+            formatWindow.document.querySelectorAll('[data-ul]').forEach((b: any) => b.classList.remove('active'));
+            (this as HTMLElement).classList.add('active');
+            const underline = this.getAttribute('data-ul');
+            onChange('ul', underline === 'true');
         });
     });
     return {win: formatWindow, addListener: (fn: Function) => cbs.push(fn)};
