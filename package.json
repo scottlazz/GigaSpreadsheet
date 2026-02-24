@@ -20,7 +20,7 @@
   },
   "scripts": {
     "start": "parcel",
-    "build": "parcel build",
+    "build": "npm run build:ts",
     "build:ts": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json -w --preserveWatchOutput",
     "build:lib": "npm run build:ts",
