@@ -50,8 +50,8 @@ export class Block {
         const dpr = this.sheet.effectiveDevicePixelRatio();
         const leftDp = Math.round(left * dpr);
         const topDp = Math.round(top * dpr);
-        const styleLeft = leftDp / dpr;
-        const styleTop = topDp / dpr;
+        const styleLeft = (leftDp / dpr);
+        const styleTop = (topDp / dpr);
 
         this.blockContainer.style.left = `${styleLeft}px`;
         this.blockContainer.style.top = `${styleTop}px`;
@@ -127,11 +127,11 @@ class SubBlock {
         // Compute integer canvas pixel sizes to avoid gaps between adjacent blocks
         const widthSum = this.parentBlock.sheet.metrics.getWidthBetweenColumns(this.startCol, this.endCol);
         let widthDp = Math.round(widthSum * scaleFactor);
-        const styleWidth = widthDp / scaleFactor;
+        const styleWidth = (widthDp / scaleFactor);
 
         // Calculate block height based on rows (in device pixels)
         let heightDp = Math.round(this.parentBlock.sheet.metrics.getHeightBetweenRows(this.startRow, this.endRow) * scaleFactor);
-        const styleHeight = heightDp / scaleFactor;
+        const styleHeight = (heightDp / scaleFactor);
         this.canvas.width = widthDp;
         this.canvas.height = heightDp;
         this.canvas.style.width = `${styleWidth}px`;

@@ -57,6 +57,7 @@ export default class Sheet {
     resizeInitialSize: any;
     busy: boolean;
     rqtimeout: any;
+    zoomLevel: number;
 
     // Selection state
     selectedCell: HTMLElement | null;
@@ -103,6 +104,7 @@ export default class Sheet {
     events: any;
     prevSelectionBoundRect: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
+        this.zoomLevel = 1;
         this.events = {};
         this.toolbar = null;
         this._selectionBoundRects = [];
@@ -157,7 +159,7 @@ export default class Sheet {
         this.cornerCell = _container.querySelector('.corner-cell')!;
         this.selectionLayer = _container.querySelector('.selection-layer')!;
         this.formatButton = _container.querySelector('.format-button')!;
-        this.lastDevicePixelRatio = window.devicePixelRatio;
+        this.lastDevicePixelRatio = this.effectiveDevicePixelRatio();
         this.lastBlockCanvases = this.blockCanvases();
 
         // Configuration
@@ -709,7 +711,7 @@ export default class Sheet {
     }
 
     scaler() {
-        return (devicePixelRatio < 1 ? (1 + (1 - devicePixelRatio)) * (1 + (1 - devicePixelRatio)) : 1);
+        return (this.effectiveDevicePixelRatio() < 1 ? (1 + (1 - this.effectiveDevicePixelRatio())) * (1 + (1 - this.effectiveDevicePixelRatio())) : 1);
     }
 
     // Modify the clearSelectedCells function to record changes
@@ -1105,9 +1107,9 @@ export default class Sheet {
             console.log("RESIZE");
             this.lastBlockCanvases = this.blockCanvases();
             this.forceRerender();
-        } else if (Math.abs(window.devicePixelRatio - this.lastDevicePixelRatio) > 0.00) {
+        } else if (Math.abs(this.effectiveDevicePixelRatio() - this.lastDevicePixelRatio) > 0.00) {
             // Only update if scale changed significantly
-            this.lastDevicePixelRatio = window.devicePixelRatio;
+            this.lastDevicePixelRatio = this.effectiveDevicePixelRatio();
             console.log('update render quality')
             requestAnimationFrame(() => {
                 if (this.busy) return;
@@ -1390,8 +1392,8 @@ export default class Sheet {
         const scrollLeft = this.container.scrollLeft;
         const scrollTop = this.container.scrollTop;
         // Adjust for header and row numbers
-        const x = e.clientX - rect.left + scrollLeft - this.rowNumberWidth;
-        const y = e.clientY - rect.top + scrollTop - this.headerRowHeight; // 30 for header
+        let x = (e.clientX - rect.left + scrollLeft - this.rowNumberWidth);
+        let y = (e.clientY - rect.top + scrollTop - this.headerRowHeight); // 30 for header
 
         if (x < 0 || y < 0) return { row: -1, col: -1 };
 
@@ -1667,7 +1669,7 @@ export default class Sheet {
             (updateVisHeight && row < (prevRowBounds + this.blockRows)); // render extra block if near end
             row++
         ) {
-            this.heightAccum.push(heightSum += this.heightOverrides[row] ?? this.cellHeight);
+            this.heightAccum.push(heightSum += this.metrics.getCellHeight(row));
         }
     }
 
@@ -1804,9 +1806,9 @@ export default class Sheet {
     }
 
     blockCanvases() {
-        if (devicePixelRatio >= 1.875) {
+        if (this.effectiveDevicePixelRatio() >= 1.875) {
             return 4;
-        } if (devicePixelRatio > 1.7) {
+        } if (this.effectiveDevicePixelRatio() > 1.7) {
             return 2;
         } else {
             return 1;
@@ -1850,6 +1852,7 @@ export default class Sheet {
 
     effectiveDevicePixelRatio() {
         return devicePixelRatio;
+        return devicePixelRatio*this.zoomLevel;
     }
 
     blockKey(block: any) {
@@ -2198,7 +2201,7 @@ export default class Sheet {
             if (cell.text && cell.text.length > 3) {
                 this.setTextCtx(ctx, row, col);
                 const m = ctx.measureText(cell.text);
-                const mwidth = (m.width/devicePixelRatio)+5;
+                const mwidth = (m.width/this.effectiveDevicePixelRatio())+5;
                 if (this.maxWidthInCol[cell.col]) {
                     if (mwidth > this.maxWidthInCol[cell.col].max) {
                         this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
@@ -2278,7 +2281,7 @@ export default class Sheet {
     }
 
     scalerZoom() {
-        return devicePixelRatio;
+        return this.effectiveDevicePixelRatio();
     }
 
     clearElRegistry(row: number, col: number) {
@@ -2368,10 +2371,9 @@ export default class Sheet {
         return this.elRegistry[_id];
     }    
     quality() {
-        const devicePixelRatio = window.devicePixelRatio;
-        if (devicePixelRatio < 0.5) {
+        if (this.effectiveDevicePixelRatio() < 0.5) {
             return 'performance';
-        } else if (devicePixelRatio < 1) {
+        } else if (this.effectiveDevicePixelRatio() < 1) {
             return 'balance';
         } else {
             return 'max';
@@ -2431,13 +2433,13 @@ export default class Sheet {
             ctx.restore();
         } else {
             ctx.save();
-            // ctx.fillStyle = cell.bc || 'white';
+            ctx.fillStyle = cell.bc || 'white';
             const c = this.metrics.getCellCoordsCanvas(row,col);
             const { l, t, w, h } = this.scaleRect(c.left, c.top, c.width, c.height);
-            // ctx.fillRect(l+1, t+1, w-1, h-1);
-            // ctx.clearRect(l+1, t+1, w-1, h-1);
+            ctx.fillRect(l+1, t+1, w-1, h-1);
+            ctx.clearRect(l+1, t+1, w-1, h-1);
             // ctx.fillRect(l, t, w, h);
-            ctx.clearRect(l, t, w, h);
+            // ctx.clearRect(l, t, w, h);
             ctx.restore();
         }
     }
@@ -2488,21 +2490,37 @@ export default class Sheet {
         } else {
             textX += 4;
         }
-        ctx.rect((left+1.4) * devicePixelRatio, (top+1.4) * devicePixelRatio, (width-2.8) * devicePixelRatio, (this.metrics.rowHeight(row)-1) * devicePixelRatio); // Adjust y position based on your text baseline
+        const dpr = this.effectiveDevicePixelRatio();
+        ctx.rect((left+1.4) * dpr, (top+1.4) * dpr, (width-2.8) * dpr, (this.metrics.rowHeight(row)-1) * dpr); // Adjust y position based on your text baseline
         let region = new Path2D();
-        region.rect((left+1.4) * devicePixelRatio, (top+1.4) * devicePixelRatio, (width-2.8) * devicePixelRatio, (this.metrics.rowHeight(row)-1) * devicePixelRatio);
+        region.rect((left+1.4) * dpr, (top+1.4) * dpr, (width-2.8) * dpr, (this.metrics.rowHeight(row)-1) * dpr);
         ctx.clip(region);
-        ctx.fillText(text, (textX) * devicePixelRatio, ((top + this.metrics.rowHeight(row) / 2)+1) * devicePixelRatio);
-        if (cell.ul && cell._dims) { // TODO fix underlines
+        ctx.fillText(text, (textX) * dpr, ((top + this.metrics.rowHeight(row) / 2)+1) * dpr);
+        if (cell.ul && cell._dims) {
             ctx.beginPath();
-            ctx.strokeStyle = cell.color || 'black'; // Set underline color
-            ctx.lineWidth = cell.fontSize ? cell.fontSize/6 : 2; // Set underline thickness
-            const y = ((top + this.metrics.rowHeight(row) / 2)+(cell.fontSize/4)+3) * devicePixelRatio;
-            ctx.moveTo((textX) * devicePixelRatio, y);
-            ctx.lineTo(((textX) * devicePixelRatio)+(cell._dims.width*devicePixelRatio), y);
+            ctx.strokeStyle = cell.color || 'black';
+            ctx.lineWidth = cell.fontSize ? this.getFontSize(cell.row, cell.col) / 6 : 2;
+            const y = ((top + this.metrics.rowHeight(row) / 2) + (this.getFontSize(cell.row, cell.col) / 4) + 3) * dpr;
+
+            // Compute underline start X based on text alignment so underline matches rendered text
+            let underlineStartX = textX;
+            if (textAlign === 'center') {
+                underlineStartX = textX - (cell._dims.width / 2);
+            } else if (textAlign === 'right') {
+                underlineStartX = textX - cell._dims.width;
+            }
+
+            const startX = underlineStartX * dpr;
+            const endX = startX + (cell._dims.width * dpr);
+            ctx.moveTo(startX, y);
+            ctx.lineTo(endX, y);
             ctx.stroke();
         }
         ctx.restore(); // Restore the state to remove clipping
+    }
+
+    getFontSize(row: number, col: number) {
+        return this.getCell(row, col)?.fontSize ?? 12;
     }
 
     getCellColor(row: number, col: number) {
@@ -2517,9 +2535,9 @@ export default class Sheet {
     }
 
     getFontString(row: number | null = null, col: number | null = null) {
-        let fontSize = 12*devicePixelRatio;
+        let fontSize = 12*this.effectiveDevicePixelRatio()*this.zoomLevel;
         if (row != null && col != null && this.getCell(row, col).fontSize != null) {
-            fontSize = this.getCell(row, col).fontSize*devicePixelRatio;
+            fontSize = this.getCell(row, col).fontSize*this.effectiveDevicePixelRatio()*this.zoomLevel;
         }
         let bold, italic, fontFamily = 'Arial';
         if (row != null && col != null) {
@@ -2533,7 +2551,7 @@ export default class Sheet {
 
         fontString += `${fontSize}px ${fontFamily}`;
 
-        if (this.quality() === 'max' && devicePixelRatio >= 1) {
+        if (this.quality() === 'max' && this.effectiveDevicePixelRatio() >= 1) {
             // Only use subpixel rendering when not zoomed out
             fontString += ', sans-serif';
         }

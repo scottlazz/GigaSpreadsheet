@@ -22,12 +22,12 @@ export default class Metrics {
     }
     getHeightBetweenRows(startRow: number, endRow: number) {
         if (endRow < startRow) { let tmp = endRow; endRow = startRow; startRow = tmp; }
-        return this.sheet.heightAccum[endRow] - this.sheet.heightAccum[startRow];
+        return (this.sheet.heightAccum[endRow]) - (this.sheet.heightAccum[startRow]);
     }
     getColWidth(col: any) {
-        if (col in this.sheet.widthOverrides) return this.sheet.widthOverrides[col];
-        if (col in this.sheet.maxWidthInCol && this.sheet.maxWidthInCol[col].max > this.sheet.cellWidth) return this.sheet.maxWidthInCol[col].max;
-        return this.sheet.cellWidth;
+        if (col in this.sheet.widthOverrides) return this.sheet.widthOverrides[col]*this.sheet.zoomLevel;
+        if (col in this.sheet.maxWidthInCol && this.sheet.maxWidthInCol[col].max > this.sheet.cellWidth) return this.sheet.maxWidthInCol[col].max*this.sheet.zoomLevel;
+        return this.sheet.cellWidth*this.sheet.zoomLevel;
     }
     getCellWidth(a: any, b: any = null) {
         let col = a;
@@ -37,7 +37,7 @@ export default class Metrics {
         return this.getColWidth(col);
     }
     rowHeight(row: any) {
-        return this.sheet.heightOverrides[row] ?? this.sheet.cellHeight;
+        return this.sheet.heightOverrides[row] != null ? this.sheet.heightOverrides[row]*this.sheet.zoomLevel : this.sheet.cellHeight*this.sheet.zoomLevel;
     }
     getCellHeight(row: number, col = null) {
         return this.rowHeight(row);
