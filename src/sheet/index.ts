@@ -273,7 +273,7 @@ export default class Sheet {
                 ) {
                     let mul = 1;
                     if (Math.random() > .8) mul = -1;
-                    this.setText(cell.row,cell.col, (Math.random()*10*mul).toFixed(3));
+                    this.setCell(cell.row,cell.col, 'text', (Math.random()*10*mul).toFixed(3));
                     // const _cell = this.getCell(cell.row,cell.col);
                     // _cell.text = (Math.random()*10*mul).toFixed(3);
                     // this.putCellObj(cell.row,cell.col,Object.assign({}, _cell))
@@ -601,8 +601,10 @@ export default class Sheet {
         this.rowNumbers.renderRowNumbers();
         record && this.historyManager.recordChanges([{ changeKind: 'deleteEntireRow', row, rowData, heightOverride }]);
         this.forceRerender();
-        this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
-        this.updateSelection();
+        if (this.selectionBoundRect) {
+            this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
+            this.updateSelection();
+        }
     }
 
     deleteCol(col: any = null, record = true) {
@@ -675,8 +677,10 @@ export default class Sheet {
         this.rowNumbers.renderRowNumbers();
         record && this.historyManager.recordChanges([{ changeKind: 'insertEntireRow', row }]);
         this.forceRerender();
-        this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
-        this.updateSelection();
+        if (this.selectionBoundRect) {
+            this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
+            this.updateSelection();
+        }
     }
 
     insertCol(col: any = null, data = null, record = true, widthOverride = null) {
@@ -701,8 +705,10 @@ export default class Sheet {
         
         record && this.historyManager.recordChanges([{ changeKind: 'insertEntireCol', col }]);
         this.forceRerender();
-        this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
-        this.updateSelection();
+        if (this.selectionBoundRect) {
+            this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
+            this.updateSelection();
+        }
     }
 
     toggleGridlines() {
@@ -1011,7 +1017,10 @@ export default class Sheet {
     }
 
     setText(row: number, col: number, text: string) {
+        this.recordCellBeforeChange(row, col, 'text');
         this.setCell(row,col,'text',text);
+        this.historyManager.flushChanges();
+        this.renderCell(row, col);
     }
     setCell(row: number, col: number, field: string, value: any) {
         const cell = this.getCell(row, col);
