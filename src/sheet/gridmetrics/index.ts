@@ -51,6 +51,12 @@ export default class Metrics {
     getHeightOffset(row: number, withStickyHeader = false) {
         return this.sheet.heightAccum[row] - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
     }
+    getWidthOverride(col: number) {
+        if (col in this.sheet.widthOverrides) return this.sheet.widthOverrides[col]*this.sheet.zoomLevel;
+    }
+    getHeightOverride(row: number) {
+        if (row in this.sheet.heightOverrides) return this.sheet.heightOverrides[row]*this.sheet.zoomLevel;
+    }
     getWidthHeight(row: number, col: number) {
         const merged = this.sheet.getMerge(row, col);
         let width, height;
@@ -152,7 +158,6 @@ export default class Metrics {
         this.sheet.visibleStartCol = visStartCol;
         this.sheet.visibleEndRow = visEndRow;
         this.sheet.visibleEndCol = visEndCol;
-        // console.log('visiblerange:', [visStartRow,visStartCol],[visEndRow,visEndCol])
     }
 
     getBottomRightBounds() {

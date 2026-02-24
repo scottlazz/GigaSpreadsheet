@@ -1349,10 +1349,11 @@ export default class Sheet {
             const scrollLeft = this.container.scrollLeft;
             let x = e.clientX;
             x = x - this._container.getBoundingClientRect().x;
-            const diff = (scrollLeft + x) - this.metrics.getWidthOffset(col + 1, true);
+            let diff = (scrollLeft + x) - this.metrics.getWidthOffset(col + 1, true);
+            diff = diff / this.zoomLevel;
             
             const prevOverride = this.widthOverrides[col];
-            const change = this.widthOverrides[col] ? this.widthOverrides[col] + diff : this.metrics.getCellWidth(col) + diff;
+            const change = this.widthOverrides[col] ? this.widthOverrides[col] + diff : (this.metrics.getCellWidth(col)/this.zoomLevel) + diff;
             if (change <= 1) {
                 draggingHeader.el.style.left = draggingHeader.origLeft;
                 return;
@@ -1370,9 +1371,10 @@ export default class Sheet {
             this.draggingRow = null;
             const scrollTop = this.container.scrollTop;
             const rect = this.container.getBoundingClientRect();
-            const diff = (scrollTop + e.clientY - rect.y) - this.metrics.getHeightOffset(row + 1, true);
+            let diff = (scrollTop + e.clientY - rect.y) - this.metrics.getHeightOffset(row + 1, true);
+            diff = diff / this.zoomLevel;
             const prevOverride = this.heightOverrides[row];
-            const change = this.heightOverrides[row] ? this.heightOverrides[row] + diff : this.metrics.getCellHeight(row) + diff;
+            const change = this.heightOverrides[row] ? this.heightOverrides[row] + diff : (this.metrics.getCellHeight(row)/this.zoomLevel) + diff;
             if (change <= 1) {
                 draggingRow.el.style.top = draggingRow.origTop;
                 return;
@@ -2201,7 +2203,7 @@ export default class Sheet {
             if (cell.text && cell.text.length > 3) {
                 this.setTextCtx(ctx, row, col);
                 const m = ctx.measureText(cell.text);
-                const mwidth = (m.width/this.effectiveDevicePixelRatio())+5;
+                const mwidth = (m.width/(this.effectiveDevicePixelRatio()*this.zoomLevel))+5;
                 if (this.maxWidthInCol[cell.col]) {
                     if (mwidth > this.maxWidthInCol[cell.col].max) {
                         this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
