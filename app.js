@@ -7,10 +7,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const sheet = new Sheet(wrapper, Object.assign(
     // fininit,
     {
-    // gridlinesOn: false,
-    // autosize: true,
-    // blockRows: 5,
-    // blockCols: 4,
+        // gridlinesOn: false,
+        autosize: true,
+        // blockRows: 5,
+        // blockCols: 4,
     }, {
         cellHeaders: true,
         autosize: true,

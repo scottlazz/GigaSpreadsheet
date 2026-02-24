@@ -67,7 +67,13 @@ export default class Sheet {
                     delete this.needDims[key];
                     continue;
                 }
-                if (this.getMerge(row, col)) {
+                let isMerge = this.getMerge(row, col);
+                if (isMerge) {
+                    if (isMerge.startCol === isMerge.endCol) {
+                        isMerge = false;
+                    }
+                }
+                if (isMerge && !cell.ul) {
                     delete this.needDims[key];
                     continue;
                 }
@@ -75,6 +81,10 @@ export default class Sheet {
                     this.setTextCtx(ctx, row, col);
                     const m = ctx.measureText(cell.text);
                     const mwidth = (m.width / (this.effectiveDevicePixelRatio() * this.zoomLevel)) + 5;
+                    if (isMerge) {
+                        cell._dims = { width: mwidth };
+                        continue;
+                    }
                     if (this.maxWidthInCol[cell.col]) {
                         if (mwidth > this.maxWidthInCol[cell.col].max) {
                             this.maxWidthInCol[cell.col] = { max: mwidth, row: cell.row };

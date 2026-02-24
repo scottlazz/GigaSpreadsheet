@@ -1,4 +1,4 @@
-import { addBorderStr, hasBorderStr, rgbToHex } from "./utils";
+import { hasBorderStr, rgbToHex } from "./utils";
 export function parseXML(xml) {
     if (!xml)
         return;
@@ -52,16 +52,25 @@ export function parseXML(xml) {
             // console.log(Array.from(col.style));
             // for(let a of col.style) {console.log(a, s.getPropertyValue(a));}
             let top = s.getPropertyValue('border-top-width'), right = s.getPropertyValue('border-right-width'), bottom = s.getPropertyValue('border-bottom-width'), left = s.getPropertyValue('border-left-width');
-            // console.log(col.style, top,bottom,left,right)
-            let b = 0;
+            if (top === '0px')
+                top = '';
+            if (right === '0px')
+                right = '';
+            if (bottom === '0px')
+                bottom = '';
+            if (left === '0px')
+                left = '';
+            let topColor = s.getPropertyValue('border-top-color'), rightColor = s.getPropertyValue('border-right-color'), bottomColor = s.getPropertyValue('border-bottom-color'), leftColor = s.getPropertyValue('border-left-color');
+            let b = '';
             if (top && top !== '0px')
-                b = addBorderStr(b, 'top');
+                top = topColor;
             if (right && right !== '0px')
-                b = addBorderStr(b, 'right');
+                right = rightColor;
             if (bottom && bottom !== '0px')
-                b = addBorderStr(b, 'bottom');
+                bottom = bottomColor;
             if (left && left !== '0px')
-                b = addBorderStr(b, 'left');
+                left = leftColor;
+            b = `{"top": "${top}", "bottom": "${bottom}", "left": "${left}", "right": "${right}"}`;
             const cell = { text: col.innerText, row: r, col: c };
             const fontEl = col.querySelector('font');
             const fontElColor = fontEl === null || fontEl === void 0 ? void 0 : fontEl.getAttribute('color');
