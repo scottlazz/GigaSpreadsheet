@@ -1,0 +1,10 @@
+export declare const dependencyTree: any;
+export declare const reverseDependencyTree: any;
+export declare const tickerReg: any;
+export declare function shiftDependenciesUp(pivotRow: any): any;
+export declare function shiftDependenciesDown(pivotRow: any): any;
+export declare function shiftDependenciesRight(pivotCol: any): any;
+export declare function shiftDependenciesLeft(pivotCol: any): any;
+export declare function removeDependents(deptRow: any, deptCol: any): void;
+export declare function getDependencies(row: number, col: number): any[];
+export declare function removeDependencies(row: any, col: any): void;

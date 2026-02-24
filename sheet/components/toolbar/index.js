@@ -1,0 +1,224 @@
+import { copy, undo, paste, bold, italic, borders, borderBox, borderTop, borderLeft, merge, redo, growFont, shrinkFont, leftAlign, centerAlign, rightAlign, borderRight, borderBottom } from "./icons";
+import Dropdown from '../dropdown';
+import tooltip from '../../../packages/tooltip';
+import drawer from '../../../packages/drawer';
+export class Toolbar {
+    constructor() {
+        this.container = document.createElement('div');
+        this.container.className = 'gigasheet-toolbar';
+        this.container.innerHTML = `
+            <div class="gigasheet-toolbar-buttons">
+                <button class="gigasheet-toolbar-btn" data-tooltip="Undo">
+                    <i class="gigasheet-icon">
+                        ${undo}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Redo">
+                    <i class="gigasheet-icon">
+                        ${redo}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Copy">
+                    <i class="gigasheet-icon">
+                        ${copy}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Paste">
+                    <i class="gigasheet-icon">
+                        ${paste}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Bold">
+                    <i class="gigasheet-icon">
+                        ${bold}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Grow Font">
+                    <i class="gigasheet-icon">
+                        ${growFont}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Shrink Font">
+                    <i class="gigasheet-icon">
+                        ${shrinkFont}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Italic">
+                    <i class="gigasheet-icon">
+                        ${italic}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Borders">
+                    <i class="gigasheet-icon">
+                        ${borders}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Merge">
+                    <i class="gigasheet-icon">
+                        ${merge}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Left align">
+                    <i class="gigasheet-icon">
+                        ${leftAlign}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Center align">
+                    <i class="gigasheet-icon">
+                        ${centerAlign}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Right align">
+                    <i class="gigasheet-icon">
+                        ${rightAlign}
+                    </i>
+                </button>
+                <input style="width:32px;" data-tooltip="Background Color" class="gigasheet-toolbar-btn" type="color" value="#FFFFFF">
+                </button>
+            </div>`;
+        this.font = new Dropdown('Font', [
+            { value: 'Arial', name: 'Arial' }, { value: 'Calibri', name: 'Calibri' },
+            { value: 'Helvetica', name: 'Helvetica' }, { name: 'Verdana', value: 'Verdana' },
+            { value: 'Courier New', name: 'Courier New' }, { name: 'Times New Roman', value: 'Times New Roman' },
+            { value: 'Garamond', name: 'Garamond' }, { name: 'Trebuchet MS', value: 'Trebuchet MS' },
+            { value: 'Georgia', name: 'Georgia' },
+        ]);
+        this.container.children[0].appendChild(this.font.container);
+        this.fontSize = new Dropdown('FontSize', [{ value: '8', name: '8' }, { value: '9', name: '9' }, { value: '10', name: '10' }, { value: '11', name: '11' },
+            { value: '12', name: '12' }, { value: '13', name: '13' }, { value: '15', name: '15' }, { value: '18', name: '18' }, { value: '22', name: '22' }]);
+        this.container.children[0].appendChild(this.fontSize.container);
+        this.cb = null;
+        this.borderDrawer = document.createElement('div');
+        this.borderDrawer.style.textAlign = 'center';
+        this.borderDrawer.innerHTML = `
+        <button class="gigasheet-toolbar-btn" data-tooltip="box">
+            <i class="gigasheet-icon">
+                ${borderBox}
+            </i>
+        </button>
+        <button class="gigasheet-toolbar-btn" data-tooltip="top">
+            <i class="gigasheet-icon">
+                ${borderTop}
+            </i>
+        </button>
+        <button class="gigasheet-toolbar-btn" data-tooltip="left">
+            <i class="gigasheet-icon">
+                ${borderLeft}
+            </i>
+        </button>
+        <button class="gigasheet-toolbar-btn" data-tooltip="right">
+            <i class="gigasheet-icon">
+                ${borderRight}
+            </i>
+        </button>
+        <button class="gigasheet-toolbar-btn" data-tooltip="bottom">
+            <i class="gigasheet-icon">
+                ${borderBottom}
+            </i>
+        </button>
+        `;
+        this.addListeners();
+    }
+    set(attr, value) {
+        if (attr === 'fontSize') {
+            this.fontSize.container.value = value;
+        }
+        else if (attr === 'fontFamily') {
+            this.font.container.value = value;
+        }
+        else if (attr === 'backgroundColor') {
+            this.backgroundColorButton.value = value;
+        }
+        else if (attr === 'textAlign') {
+            this.setActiveTextAlign(value);
+        }
+        else if (attr === 'bold') {
+            const bold = this.container.querySelector(`[data-tooltip='Bold']`);
+            if (value)
+                bold === null || bold === void 0 ? void 0 : bold.classList.add('active-btn');
+            else
+                bold === null || bold === void 0 ? void 0 : bold.classList.remove('active-btn');
+        }
+        else if (attr === 'italic') {
+            const el = this.container.querySelector(`[data-tooltip='Italic']`);
+            if (value)
+                el === null || el === void 0 ? void 0 : el.classList.add('active-btn');
+            else
+                el === null || el === void 0 ? void 0 : el.classList.remove('active-btn');
+        }
+    }
+    setActiveTextAlign(value) {
+        const left = this.container.querySelector(`[data-tooltip='Left align']`);
+        const middle = this.container.querySelector(`[data-tooltip='Center align']`);
+        const right = this.container.querySelector(`[data-tooltip='Right align']`);
+        left === null || left === void 0 ? void 0 : left.classList.remove('active-btn');
+        right === null || right === void 0 ? void 0 : right.classList.remove('active-btn');
+        middle === null || middle === void 0 ? void 0 : middle.classList.remove('active-btn');
+        let b;
+        // b = left;
+        if (value === 'left') {
+            b = left;
+        }
+        else if (value === 'center') {
+            b = middle;
+        }
+        else if (value == 'right') {
+            b = right;
+        }
+        b === null || b === void 0 ? void 0 : b.classList.add('active-btn');
+    }
+    addListeners() {
+        const onmouseenter = (e) => {
+            const text = e.target.getAttribute('data-tooltip');
+            tooltip(e.target, text);
+        };
+        const onclick = (e) => {
+            if (!this.cb)
+                return;
+            const button = e.target.closest('.gigasheet-toolbar-btn');
+            const text = button.getAttribute('data-tooltip');
+            // if (button.classList.contains('toolbar-text-align')) {
+            //     this.setActiveTextAlign(text.toLowerCase().split(' ')[0]);
+            // }
+            this.cb(text);
+        };
+        for (let el of this.container.querySelectorAll('.gigasheet-toolbar-btn')) {
+            el.onmouseenter = onmouseenter;
+            el.addEventListener('click', onclick);
+        }
+        for (let el of this.borderDrawer.querySelectorAll('.gigasheet-toolbar-btn')) {
+            // el.onmouseenter = onmouseenter;
+            // el.addEventListener('click', onclick);
+            el.onclick = (e) => {
+                // console.log(el.getAttribute('data-tooltip'))
+                const shape = el.getAttribute('data-tooltip');
+                // this.sheet.applyBorder(shape);
+                this.cb('borderShape', shape);
+            };
+        }
+        this.font.container.onchange = (e) => {
+            if (!this.cb)
+                return;
+            this.cb('fontFamily', e.target.value);
+        };
+        this.fontSize.container.onchange = (e) => {
+            if (!this.cb)
+                return;
+            this.cb('fontSize', e.target.value);
+        };
+        this.borderButton = this.container.querySelector(`[data-tooltip='Borders']`);
+        this.borderButton.addEventListener('click', (e) => {
+            // alert('border')
+            drawer(e.target, this.borderDrawer, 100);
+        });
+        this.backgroundColorButton = this.container.querySelector(`[data-tooltip='Background Color']`);
+        this.backgroundColorButton.addEventListener('change', (e) => {
+            if (!this.cb)
+                return;
+            this.cb('backgroundColor', e.target.value);
+        });
+    }
+    onAction(fn) {
+        this.cb = fn;
+    }
+}

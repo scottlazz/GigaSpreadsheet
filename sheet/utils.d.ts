@@ -1,0 +1,13 @@
+export declare const borderLeft: number;
+export declare const borderTop: number;
+export declare const borderRight: number;
+export declare const borderBottom: number;
+export declare function addBorder(curBorder: number | null, border: number): number;
+export declare function removeBorder(curBorder: number | null, border: number): number;
+export declare function hasBorder(curBorder: number | null, border: number): boolean;
+export declare function hasBorderStr(curBorder: number | string | null, borderStr: string): boolean | 0;
+export declare function addBorderStr(curBorder: number | null, borderStr: string): number;
+export declare function mkel(tag?: string, className?: string, children?: string): HTMLElement;
+export declare const isNumeric: (num: any) => boolean;
+export declare function extractClassesFromStyle(styleElement: any): any;
+export declare function rgbToHex(rgbString: string): string;

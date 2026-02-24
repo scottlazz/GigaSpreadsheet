@@ -1,0 +1,71 @@
+declare class UUIDGenerator {
+    private _id;
+    constructor();
+    generate(): number;
+}
+export declare const uuid: UUIDGenerator;
+export default class SparseGrid {
+    private _data;
+    private _colCounts;
+    private _topRow;
+    private _bottomRow;
+    private _leftCol;
+    private _rightCol;
+    private _totalValues;
+    private _totalRows;
+    private _totalCols;
+    private _valueCount;
+    private _rows;
+    constructor();
+    save(): string;
+    restore(json: any): this;
+    setCellProperty(row: any, col: any, property: any, value: any): void;
+    setRowSize(row: any, size: any): void;
+    incrementRowSize(row: any): void;
+    decrementRowSize(row: any): void;
+    set(row: any, col: any, value: any): boolean;
+    decrementColSize(col: any): void;
+    incrementColSize(col: any): void;
+    deleteRow(row: any): any;
+    addRow(row: any, data?: any[]): any;
+    addCol(col: any, data?: any[]): any;
+    getCol(col: any): any;
+    deleteCol(col: any): any;
+    delete(row: any, col: any): boolean;
+    _recalculateBoundaries(): void;
+    get(row: any, col: any): any;
+    has(row: any, col?: any): any;
+    deleteCells(coordinates: any): number;
+    getRowCount(row: any): any;
+    getRowCounts(): {
+        [k: string]: any;
+    };
+    deleteCellsArea(startRow: any, startCol: any, endRow: any, endCol: any): void;
+    getAllCells(): any[];
+    getAllCellsInRange(startRow: any, startCol: any, endRow: any, endCol: any): any[];
+    getAllData(): any[];
+    getCells(startRow: any, startCol: any, endRow: any, endCol: any): any[];
+    getCellsForce(startRow: any, startCol: any, endRow: any, endCol: any): any[];
+    get topRow(): number;
+    get bottomRow(): number;
+    get leftCol(): number;
+    get rightCol(): number;
+    get totalRows(): number;
+    get totalColumns(): number;
+    get totalValues(): number;
+    get rowCount(): number;
+    get colCount(): number;
+    get valueCount(): number;
+    get allDimensions(): {
+        topRow: number;
+        bottomRow: number;
+        leftCol: number;
+        rightCol: number;
+        rowCount: number;
+        colCount: number;
+        totalValues: number;
+    };
+    clear(): void;
+    forEach(callback: any): void;
+}
+export {};
