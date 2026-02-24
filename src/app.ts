@@ -12,7 +12,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             // fininit,
             {
                 // gridlinesOn: false,
-                // autosize: true,
+                autosize: true,
                 // blockRows: 5,
                 // blockCols: 4,
             }

@@ -53,10 +53,16 @@ export function parseXML(xml: string) {
             // for(let a of col.style) {console.log(a, s.getPropertyValue(a));}
             let top = s.getPropertyValue('border-top-width'), right = s.getPropertyValue('border-right-width'),
                 bottom = s.getPropertyValue('border-bottom-width'), left = s.getPropertyValue('border-left-width');
-            // console.log(col.style, top,bottom,left,right)
-            let b = 0;
-            if (top && top !== '0px') b = addBorderStr(b, 'top'); if (right && right !== '0px') b = addBorderStr(b, 'right');
-            if (bottom && bottom !== '0px') b = addBorderStr(b, 'bottom'); if (left && left !== '0px') b = addBorderStr(b, 'left');
+            if (top === '0px') top = ''; if (right === '0px') right = '';
+            if (bottom === '0px') bottom = ''; if (left === '0px') left = '';
+
+            let topColor = s.getPropertyValue('border-top-color'), rightColor = s.getPropertyValue('border-right-color'),
+                bottomColor = s.getPropertyValue('border-bottom-color'), leftColor = s.getPropertyValue('border-left-color');
+
+            let b = '';
+            if (top && top !== '0px') top = topColor; if (right && right !== '0px') right = rightColor;
+            if (bottom && bottom !== '0px') bottom = bottomColor; if (left && left !== '0px') left = leftColor;
+            b = `{"top": "${top}", "bottom": "${bottom}", "left": "${left}", "right": "${right}"}`;
             const cell: any = {text: col.innerText, row: r, col: c};
             const fontEl: any = col.querySelector('font');
             const fontElColor = fontEl?.getAttribute('color');
