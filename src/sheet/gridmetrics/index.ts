@@ -6,7 +6,7 @@ export default class Metrics {
     constructor(sheet: Sheet) {
         this.sheet = sheet;
     }
-    getWidthBetweenColumns(col1: number, col2: number) {
+    getWidthBetweenColumnsAccum(col1: number, col2: number) {
         let accumulatedWidth = 0;
         for (let _col = col1; _col < col2; _col++) {
             const colWidth = this.getColWidth(_col);
@@ -14,14 +14,32 @@ export default class Metrics {
         }
         return accumulatedWidth;
     }
+    getWidthBetweenColumns(col1: number, col2: number) {
+        if (col2 < col1) { let tmp = col2; col2 = col1; col1 = tmp; }
+        if (this.sheet.widthAccum[col2] == null || this.sheet.widthAccum[col1] == null) {
+            return this.getWidthBetweenColumnsAccum(col1, col2);
+        }
+        return (this.sheet.widthAccum[col2]) - (this.sheet.widthAccum[col1]);
+    }
     getMergeWidth(merge: any) {
         return this.getWidthBetweenColumns(merge.startCol, merge.endCol+1);
     }
     getMergeHeight(merge: any) {
         return this.getHeightBetweenRows(merge.startRow, merge.endRow+1);
     }
+    getHeightBetweenRowsAccum(startRow: number, endRow: number) {
+        let accumulatedHeight = 0;
+        for (let _row = startRow; _row < endRow; _row++) {
+            const rowHeight = this.rowHeight(_row);
+            accumulatedHeight += rowHeight;
+        }
+        return accumulatedHeight;
+    }
     getHeightBetweenRows(startRow: number, endRow: number) {
         if (endRow < startRow) { let tmp = endRow; endRow = startRow; startRow = tmp; }
+        if (this.sheet.heightAccum[endRow] == null || this.sheet.heightAccum[startRow] == null) {
+            return this.getHeightBetweenRowsAccum(startRow, endRow);
+        }
         return (this.sheet.heightAccum[endRow]) - (this.sheet.heightAccum[startRow]);
     }
     getColWidth(col: any) {
@@ -147,7 +165,7 @@ export default class Metrics {
     inVisibleBounds(row: number, col: number) {
         const { row: visStartRow, col: visStartCol } = this.getTopLeftBounds();
         const { row: visEndRow, col: visEndCol } = this.getBottomRightBounds();
-        return row >= visStartCol && row <= visEndRow &&
+        return row >= visStartRow && row <= visEndRow &&
             col >= visStartCol && col <= visEndCol;
     }
 

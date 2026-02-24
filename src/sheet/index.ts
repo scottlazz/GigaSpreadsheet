@@ -1668,8 +1668,7 @@ export default class Sheet {
         const oldHeight = this.heightAccum.length;
         this.heightAccum = [this.headerRowHeight];
         let heightSum = this.headerRowHeight;
-        const updateVisHeight = (this.container.clientHeight + this.container.scrollTop) >= (this.container.scrollHeight - 150);
-        // console.log(this.container.clientHeight, this.container.scrollTop, this.container.scrollHeight, updateVisHeight);
+        const updateVisHeight = this.updateVisHeight();
         for (
             let row = 0; 
             row < oldHeight - 1 ||
@@ -1719,19 +1718,12 @@ export default class Sheet {
         return this.selectionEnd.row >= this.maxRows - 1;
     }
 
-    handleScroll() {
-        const updateVisHeight = (this.container.clientHeight + this.container.scrollTop) >= (this.container.scrollHeight - 150);
-        const updateVisWidth = (this.container.clientWidth + this.container.scrollLeft) >= (this.container.scrollWidth - 150);
-        // this.activeSelection.style.display = 'none';
-        // console.log(this.visibleStartRow, this.visibleStartCol, this.visibleEndRow, this.visibleEndCol);
-        // if (this.selectionBoundRect) {
-        //     if (this.selectionBoundRect.startRow >= this.visibleEndRow) {
-        //         this.activeSelection.style.display = 'none';
-        //     } else {
-        //         this.activeSelection.style.display = 'block';
-        //     }
+    updateVisHeight = () => (this.container.clientHeight + this.container.scrollTop) >= (this.container.scrollHeight - 150);
+    updateVisWidth = () => (this.container.clientWidth + this.container.scrollLeft) >= (this.container.scrollWidth - 150);
 
-        // }
+    handleScroll() {
+        const updateVisHeight = this.updateVisHeight();
+        const updateVisWidth = this.updateVisWidth();
         if (updateVisHeight || updateVisWidth) {
             console.log('SCROLL UPDATE VIS HEIGHT OR WIDTH')
             this.updateGridDimensions();
