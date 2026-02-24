@@ -70,7 +70,7 @@ export function parseXML(xml: string) {
             if (color && color !== 'rgb(0, 0, 0)') cell.color = rgbToHex(color);
             const bc = s.getPropertyValue('background-color');
             if (bc && bc !== 'rgba(0, 0, 0, 0)') cell.bc = s.getPropertyValue('background-color');
-            if (s.getPropertyValue('text-align') && s.getPropertyValue('text-align') !== 'left') cell.ta = s.getPropertyValue('text-align');
+            if (s.getPropertyValue('text-align') && !(s.getPropertyValue('text-align') === 'left' || s.getPropertyValue('text-align') === 'start')) cell.ta = s.getPropertyValue('text-align');
             const fw = s.getPropertyValue('font-weight');
             if (fw && (fw === 'bold' || parseInt(fw) >= 500)) cell.bold = true;
             if (s.getPropertyValue('font-style') === 'italic') cell.italic = true;
