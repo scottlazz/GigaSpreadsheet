@@ -11,4 +11,22 @@ export default class Dropdown {
         }
         this.container.innerHTML = str;
     }
+    set(value: string) {
+        const temps = Array.from(this.container.querySelectorAll('option[data-temp="true"]')) as HTMLOptionElement[];
+        for (const t of temps) t.remove();
+
+        const found = Array.from(this.container.options).some(o => o.value === value);
+        if (found) {
+            this.container.value = value;
+            return;
+        }
+
+        const opt = document.createElement('option');
+        opt.value = value;
+        opt.textContent = value;
+        opt.setAttribute('data-temp', 'true');
+        opt.selected = true;
+        this.container.appendChild(opt);
+        this.container.value = value;
+    }
 }

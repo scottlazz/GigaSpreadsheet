@@ -604,8 +604,11 @@ body {
 .gigasheet-toolbar-btn.active-btn {
   background-color: rgba(0, 0, 0, 0.1);
 }
+.gigasheet-toolbar-btn.active-btn:hover {
+  background-color: rgba(0, 0, 0, 0.15);
+}
 .gigasheet-toolbar-btn:hover {
-  background-color: #f5f5f5;
+  background-color: #ececec;
   color: #242424;
   cursor: pointer;
 }

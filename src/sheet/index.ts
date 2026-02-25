@@ -121,6 +121,7 @@ export default class Sheet {
         const _container = document.createElement('div');
         this._container = _container;
         _container.tabIndex = 0; // Make div focusable
+        _container.style.outline = 'none';
         _container.style.width = '100%';
         _container.style.height = '100%';
         _container.style.display = 'flex';
@@ -466,6 +467,30 @@ export default class Sheet {
                 if (c?.row == null) return;
                 const value = this.getCell(c.row, c.col)?.ta || 'left';
                 this.toolbar?.set('textAlign', value);
+            } else if (action === 'Top align') {
+                const valign = 'top';
+                const selectedCells = this.getSelectedCells();
+                this.setCells(selectedCells, 'valign', valign);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const value = this.getCell(c.row, c.col)?.valign || 'top';
+                this.toolbar?.set('valign', value);
+            } else if (action === 'Middle align') {
+                const valign = 'middle';
+                const selectedCells = this.getSelectedCells();
+                this.setCells(selectedCells, 'valign', valign);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const value = this.getCell(c.row, c.col)?.valign || 'top';
+                this.toolbar?.set('valign', value);
+            } else if (action === 'Bottom align') {
+                const valign = 'bottom';
+                const selectedCells = this.getSelectedCells();
+                this.setCells(selectedCells, 'valign', valign);
+                const c = selectedCells[0];
+                if (c?.row == null) return;
+                const value = this.getCell(c.row, c.col)?.valign || 'top';
+                this.toolbar?.set('valign', value);
             } else if (action === 'Grow Font') {
                 const selectedCells = this.getSelectedCells();
                 this.setCellsMutate(selectedCells, (cell: any) => {
@@ -1516,6 +1541,8 @@ export default class Sheet {
         this.toolbar?.set('backgroundColor', backgroundColor);
         const textAlign = this.getCell(row, col).ta || 'left';
         this.toolbar?.set('textAlign', textAlign);
+        const valign = this.getCell(row, col).valign || 'top';
+        this.toolbar?.set('valign', valign);
         const bold = this.getCell(row, col).bold || false;
         this.toolbar?.set('bold', bold);
         const italic = this.getCell(row, col).italic || false;
@@ -1668,15 +1695,13 @@ export default class Sheet {
         const oldHeight = this.heightAccum.length;
         this.heightAccum = [this.headerRowHeight];
         let heightSum = this.headerRowHeight;
-        const updateVisHeight = this.updateVisHeight();
         for (
-            let row = 0; 
+            let row = 0;
             row < oldHeight - 1 ||
             row % this.blockRows !== 0 || // render full blocks
             row < this.totalRows || // render til bottom row that has data
-            // this.heightAccum[this.heightAccum.length - 1] < this.container.scrollTop + this.container.clientHeight + 150 || // render til bottom of visible area
             this.heightAccum[this.heightAccum.length - 1] < this.container.clientHeight + 150 || // render til bottom of visible area
-            (updateVisHeight && row < (prevRowBounds + this.blockRows)); // render extra block if near end
+            (this.updateVisHeight() && row < (prevRowBounds + this.blockRows)); // render extra block if near end
             row++
         ) {
             this.heightAccum.push(heightSum += this.metrics.getCellHeight(row));
@@ -1688,14 +1713,13 @@ export default class Sheet {
         const oldWidth = this.widthAccum.length;
         this.widthAccum = [this.rowNumberWidth];
         let widthSum = this.rowNumberWidth;
-        const updateVisWidth = (this.container.clientWidth + this.container.scrollLeft) >= (this.container.scrollWidth - 150);
         for (
             let col = 0;
             col < oldWidth - 1 ||
             col % this.blockCols !== 0 ||
             col < this.totalCols ||
             this.widthAccum[this.widthAccum.length - 1] < this.container.clientWidth + 150 || // render til right of visible area
-            (updateVisWidth && col < (prevColBounds + this.blockCols));
+            (this.updateVisWidth() && col < (prevColBounds + this.blockCols));
             col++
         ) {
             this.widthAccum.push(widthSum += this.metrics.getColWidth(col));
@@ -1718,12 +1742,25 @@ export default class Sheet {
         return this.selectionEnd.row >= this.maxRows - 1;
     }
 
-    updateVisHeight = () => (this.container.clientHeight + this.container.scrollTop) >= (this.container.scrollHeight - 150);
-    updateVisWidth = () => (this.container.clientWidth + this.container.scrollLeft) >= (this.container.scrollWidth - 150);
+    updateVisHeight = () => {
+        const bottomAccum = this.heightAccum?.[this.heightAccum.length - 1] ?? 0;
+        const visibleBottom = this.container.scrollTop + this.container.clientHeight + 150;
+        return bottomAccum < visibleBottom;
+    }
+
+    updateVisWidth = () => {
+        const rightAccum = this.widthAccum?.[this.widthAccum.length - 1] ?? 0;
+        const visibleRight = this.container.scrollLeft + this.container.clientWidth + 150;
+        return rightAccum < visibleRight;
+    }
 
     handleScroll() {
         const updateVisHeight = this.updateVisHeight();
         const updateVisWidth = this.updateVisWidth();
+        const h = (this.container.clientHeight + this.container.scrollTop);
+        // if (updateVisHeight) {
+        //     console.log(h, updateVisHeight)
+        // }
         if (updateVisHeight || updateVisWidth) {
             console.log('SCROLL UPDATE VIS HEIGHT OR WIDTH')
             this.updateGridDimensions();
@@ -2536,10 +2573,9 @@ export default class Sheet {
             // const y = ((top + this.metrics.rowHeight(row) / 2) + (this.getFontSize(cell.row, cell.col) / 4) + 3) * dpr;
             let y;
 
-            const fontPx = this.getFontSize(cell.row, cell.col);
+            const fontPx = this.getFontSize(cell.row, cell.col)*this.zoomLevel;
             if (!valign || valign === 'top') {
-                // underlineY = yPos + fontPx + 2;
-                y = ((top + this.metrics.rowHeight(row) / 2) + (this.getFontSize(cell.row, cell.col) / 4) + 3) * dpr;
+                y = (top + fontPx + 2) * dpr;
             } else if (valign === 'bottom') {
                 y = yPos * dpr;
             } else {
@@ -2548,13 +2584,13 @@ export default class Sheet {
 
             let underlineStartX = textX;
             if (textAlign === 'center') {
-                underlineStartX = textX - (cell._dims.width / 2);
+                underlineStartX = textX - ((cell._dims.width * this.zoomLevel) / 2);
             } else if (textAlign === 'right') {
-                underlineStartX = textX - cell._dims.width;
+                underlineStartX = textX - (cell._dims.width * this.zoomLevel);
             }
 
             const startX = underlineStartX * dpr;
-            const endX = startX + (cell._dims.width * dpr);
+            const endX = startX + (cell._dims.width * this.zoomLevel * dpr);
             ctx.moveTo(startX, y);
             ctx.lineTo(endX, y);
             ctx.stroke();

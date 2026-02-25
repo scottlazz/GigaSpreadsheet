@@ -1,4 +1,4 @@
-import { copy, undo, paste, bold, italic, borders, borderBox, borderTop, borderLeft, merge, redo, growFont, shrinkFont, leftAlign, centerAlign, rightAlign, borderRight, borderBottom } from "./icons";
+import { copy, undo, paste, bold, italic, borders, borderBox, borderTop, borderLeft, merge, redo, growFont, shrinkFont, leftAlign, centerAlign, rightAlign, borderRight, borderBottom, topAlign, bottomAlign, middleAlign } from "./icons";
 import Dropdown from '../dropdown';
 import tooltip from '../../../packages/tooltip';
 import drawer from '../../../packages/drawer';
@@ -81,6 +81,21 @@ export class Toolbar {
                         ${rightAlign}
                     </i>
                 </button>
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Top align">
+                    <i class="gigasheet-icon">
+                        ${topAlign}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Middle align">
+                    <i class="gigasheet-icon">
+                        ${middleAlign}
+                    </i>
+                </button>
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Bottom align">
+                    <i class="gigasheet-icon">
+                        ${bottomAlign}
+                    </i>
+                </button>
                 <input style="width:32px;" data-tooltip="Background Color" class="gigasheet-toolbar-btn" type="color" value="#FFFFFF">
                 </button>
             </div>`;
@@ -129,13 +144,15 @@ export class Toolbar {
     }
     set(attr: string, value: string) {
         if (attr === 'fontSize') {
-            this.fontSize.container.value = value;
+            this.fontSize.set(value);
         } else if (attr === 'fontFamily') {
-            this.font.container.value = value;
+            this.font.set(value);
         } else if (attr === 'backgroundColor') {
             this.backgroundColorButton.value = value;
         } else if (attr === 'textAlign') {
             this.setActiveTextAlign(value);
+        } else if (attr === 'valign') {
+            this.setActiveValign(value);
         } else if (attr === 'bold') {
             const bold = this.container.querySelector(`[data-tooltip='Bold']`);
             if (value) bold?.classList.add('active-btn');
@@ -157,6 +174,19 @@ export class Toolbar {
         // b = left;
         if (value === 'left') {b = left;} else if (value === 'center') {
             b = middle;} else if (value == 'right') {b = right;}
+        b?.classList.add('active-btn');
+    }
+    setActiveValign(value: string) {
+        const top = this.container.querySelector(`[data-tooltip='Top align']`);
+        const middle = this.container.querySelector(`[data-tooltip='Middle align']`);
+        const bottom = this.container.querySelector(`[data-tooltip='Bottom align']`);
+        top?.classList.remove('active-btn');
+        bottom?.classList.remove('active-btn');
+        middle?.classList.remove('active-btn');
+        let b;
+        // b = left;
+        if (value === 'top') {b = top;} else if (value === 'middle') {
+            b = middle;} else if (value == 'bottom') {b = bottom;}
         b?.classList.add('active-btn');
     }
     addListeners() {
