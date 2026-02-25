@@ -196,7 +196,7 @@ export default class Sheet {
         this.mergedCells = options.mergedCells || [];
         this.heightOverrides = this.buildOverrides(options.heightOverrides);
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
-        this.maxWidthInCol = {};
+        this.maxWidthInCol = [];
         this.widthMaxByCol = {};
         this.freeze = {col: 4};
         this.gridlinesOn = options.gridlinesOn ?? true;
@@ -259,6 +259,26 @@ export default class Sheet {
             // setTimeout(() => {
 
             // })
+    }
+
+    zoomOut() {
+        this.zoomLevel = Math.max(0.1, this.zoomLevel - 0.1);
+        this.updateGridDimensions();
+        this.metrics.calculateVisibleRange();
+        this.rowNumbers.renderRowNumbers();
+        this.headerIdentifiers.renderHeaders();
+        this.forceRerender();
+        this.updateSelection();
+    }
+
+    zoomIn() {
+        this.zoomLevel = Math.min(3, this.zoomLevel + 0.1);
+        this.updateGridDimensions();
+        this.metrics.calculateVisibleRange();
+        this.rowNumbers.renderRowNumbers();
+        this.headerIdentifiers.renderHeaders();
+        this.forceRerender();
+        this.updateSelection();
     }
 
     intervalSetRandomData() {
@@ -503,6 +523,10 @@ export default class Sheet {
                 if (c?.row == null) return;
                 const fontSize = this.getCell(c.row, c.col)?.fontSize || '12';
                 this.toolbar?.set('fontSize', fontSize.toString());
+            } else if (action === 'Zoom out') {
+                this.zoomOut();
+            } else if (action === 'Zoom in') {
+                this.zoomIn();
             } else if (action === 'Shrink Font') {
                 const selectedCells = this.getSelectedCells();
                 this.setCellsMutate(selectedCells, (cell: any) => {
@@ -650,10 +674,12 @@ export default class Sheet {
         const widthOverride = this.widthOverrides[col];
         delete this.widthOverrides[col];
         this.shiftWidthOverrides(col, -1);
+        const maxWidthObj = this.maxWidthInCol[col];
+        this.maxWidthInCol.splice(col, 1);
         this.updateWidthAccum();
         this.headerIdentifiers.renderHeaders();
         
-        record && this.historyManager.recordChanges([{ changeKind: 'deleteEntireCol', col, colData, widthOverride }]);
+        record && this.historyManager.recordChanges([{ changeKind: 'deleteEntireCol', col, colData, widthOverride, maxWidthObj }]);
         this.forceRerender();
         this.selectionBoundRect = this.getBoundingRectCells(this.selectionBoundRect.startRow, this.selectionBoundRect.startCol, this.selectionBoundRect.endRow, this.selectionBoundRect.endCol);
         this.updateSelection();
@@ -708,7 +734,7 @@ export default class Sheet {
         }
     }
 
-    insertCol(col: any = null, data = null, record = true, widthOverride = null) {
+    insertCol(col: any = null, data = null, record = true, widthOverride = null, maxWidthObj = null) {
         col = col != null ? col : this.selectionStart?.col;
         if (col == null) return;
         const cellsNeedingShift = shiftDependenciesRight(col);
@@ -724,6 +750,7 @@ export default class Sheet {
             }
         });
         this.shiftWidthOverrides(col, 1);
+        this.maxWidthInCol.splice(col, 0, maxWidthObj || {});
         if (widthOverride != null) this.widthOverrides[col] = widthOverride;
         this.updateWidthAccum();
         this.headerIdentifiers.renderHeaders();

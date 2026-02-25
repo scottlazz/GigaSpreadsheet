@@ -48,8 +48,8 @@ export default class HistoryManager {
                 // this.data.addRow(change.row, change.rowData);
                 redoChanges.push({ changeKind: 'deleteEntireRow', row: change.row, rowData: change.rowData, heightOverride: change.heightOverride });
             } else if (changeKind === 'deleteEntireCol') {
-                this.sheet.insertCol(change.col, change.colData, false, change.widthOverride); rerender = true;
-                redoChanges.push({ changeKind: 'deleteEntireCol', col: change.col, colData: change.colData, widthOverride: change.widthOverride });
+                this.sheet.insertCol(change.col, change.colData, false, change.widthOverride, change.maxWidthObj); rerender = true;
+                redoChanges.push({ changeKind: 'deleteEntireCol', col: change.col, colData: change.colData, widthOverride: change.widthOverride, maxWidthObj: change.maxWidthObj });
             } else if (changeKind === 'insertEntireRow') {
                 this.sheet.deleteRow(change.row, false); rerender = true;
                 redoChanges.push({ changeKind: 'insertEntireRow', row: change.row });
@@ -118,7 +118,7 @@ export default class HistoryManager {
                 undoChanges.push({ changeKind: 'deleteEntireRow', row: change.row, rowData: change.rowData, heightOverride: change.heightOverride });
             } else if (changeKind === 'deleteEntireCol') {
                 this.sheet.deleteCol(change.col, false); rerender = true;
-                undoChanges.push({ changeKind: 'deleteEntireCol', col: change.col, colData: change.colData, widthOverride: change.widthOverride });
+                undoChanges.push({ changeKind: 'deleteEntireCol', col: change.col, colData: change.colData, widthOverride: change.widthOverride, maxWidthObj: change.maxWidthObj });
             } else if (changeKind === 'insertEntireRow') {
                 this.sheet.insertRow(change.row, null, false); rerender = true;
                 undoChanges.push({ changeKind: 'insertEntireRow', row: change.row });

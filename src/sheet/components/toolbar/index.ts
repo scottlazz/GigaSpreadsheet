@@ -96,6 +96,12 @@ export class Toolbar {
                         ${bottomAlign}
                     </i>
                 </button>
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Zoom out">
+                    -
+                </button>
+                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Zoom in">
+                    +
+                </button>
                 <input style="width:32px;" data-tooltip="Background Color" class="gigasheet-toolbar-btn" type="color" value="#FFFFFF">
                 </button>
             </div>`;
