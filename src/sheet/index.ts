@@ -2573,7 +2573,7 @@ export default class Sheet {
         const valign = cell.valign || 'top';
         if (valign === 'top') {
             ctx.textBaseline = 'top';
-            yPos = top + 5;
+            yPos = top + 2.5;
         } else if (valign === 'bottom') {
             ctx.textBaseline = 'bottom';
             yPos = top + rowH - 2;
