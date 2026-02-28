@@ -19,6 +19,7 @@ const menuItems = [
     { key: 'clear', title: 'Clear Contents', label: '' },
     { key: 'divider' },
     { key: 'toggle-gridlines', title: 'Toggle Gridlines' },
+    { key: 'toggle-headers', title: 'Toggle Headers' },
 ];
 
 function buildMenuItem(item: any) {

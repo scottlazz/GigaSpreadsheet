@@ -1,4 +1,7 @@
 export const fininit = {
+  "theme": {
+    "background-color": "#f1f1f1"
+  },
   "cellHeight": 14,
   "cellWidth": 45,
   "mergedCells": [

@@ -33,6 +33,18 @@ export default class HeaderIdentifiers {
             }`;
         this.headerContainer.appendChild(this.psuedoStyle);
     }
+    toggle() {
+        if (this.sheet.options.cellHeaders !== false) {
+            this.headerContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;
+            this.headerContainer.style.position = '';
+            this.headerContainer.style.background = '';
+            this.headerContainer.style.height = '';
+        } else {
+            this.headerContainer.style.lineHeight = '';
+            this.headerContainer.style.height = '1px';
+            this.renderHeaderElems.innerHTML = '';
+        }
+    }
     resize() {
         this.psuedoStyle.innerHTML =`
             .header-handle::after {

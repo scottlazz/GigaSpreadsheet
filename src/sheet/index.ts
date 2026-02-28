@@ -5,7 +5,7 @@ import { launchFormatMenu } from './windows/format';
 import { createLineChart } from './graphs/linechart';
 // import FinancialSubscriber from '../packages/financial/index';
 import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "../packages/dependencytracker";
-import { hasBorderStr, addBorder, isNumeric } from "./utils";
+import { hasBorderStr, addBorder, isNumeric, debounce } from "./utils";
 import { shiftTextRefs, rowColToRef } from "./shiftops";
 import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
 import ContextMenu from './components/contextmenu';
@@ -32,8 +32,6 @@ export default class Sheet {
     visibleEndRow: number;
     visibleStartCol: number;
     visibleEndCol: number;
-    rowNumberWidth: number;
-    headerRowHeight: number;
     cellHeight: number;
     cellWidth: number;
     blockRows: number;
@@ -181,11 +179,7 @@ export default class Sheet {
         this.blockCols = options.blockCols ?? 30;  // Max cols per canvas block
         this.paddingBlocks = options.paddingBlocks ?? 1; // Extra blocks to render around visible area
         this.padding = options.padding || 1; // number of adjacent blocks to render
-        this.headerRowHeight = 0;
-        this.rowNumberWidth = 0;
         if (options.cellHeaders !== false) {
-            this.headerRowHeight = this.cellHeight || 30;
-            this.rowNumberWidth = 42;
             this.selectionLayer.style.top = `${this.headerRowHeight}px`;
             this.selectionLayer.style.left = `${this.rowNumberWidth}px`;
             this.cornerCell.style.width = `${this.rowNumberWidth}px`;
@@ -259,6 +253,8 @@ export default class Sheet {
         // this.probe.style.background = 'red';
         this.selectionLayer.appendChild(this.probe);
 
+        this.applyTheme(this.options.theme);
+
         this.data = null;
         this.parser = null;
         this.initialCells = options.initialCells;
@@ -270,6 +266,11 @@ export default class Sheet {
             // setTimeout(() => {
 
             // })
+    }
+
+    applyTheme(theme) {
+        if (!theme) return;
+        if (theme['background-color']) this.container.style.backgroundColor = theme['background-color'];
     }
 
     updatePsuedoStyles() {
@@ -382,17 +383,17 @@ export default class Sheet {
             });
         });
 
-        const resizeObserver = new ResizeObserver(() => {
+        const resizeObserver = new ResizeObserver(debounce(() => {
             this.updateGridDimensions();
             this.metrics.calculateVisibleRange();
             this.rowNumbers.renderRowNumbers();
             this.headerIdentifiers.renderHeaders();
-            this.updatePsuedoStyles();
+            // this.updatePsuedoStyles();
 
             this.updateVisibleGrid();
             this.updateSelection();
             this.updateRenderingQuality();
-        });
+        }, 50));
         resizeObserver.observe(this.container);
 
         // Selection event listeners
@@ -464,7 +465,8 @@ export default class Sheet {
                 this.clearSelectedCells();
             } else if (action === 'toggle-gridlines') {
                 this.toggleGridlines();
-                this.forceRerender();
+            } else if (action === 'toggle-headers') {
+                this.toggleHeaders();
             } else if (action === 'merge') {
                 this.mergeSelectedCells();
             } else if (action === 'unmerge') {
@@ -791,6 +793,41 @@ export default class Sheet {
     toggleGridlines() {
         this.gridlinesOn = !this.gridlinesOn;
         this.forceRerender();
+    }
+
+    get rowNumberWidth () {
+        return this.options.cellHeaders !== false ? 42 : 0;
+    }
+    get headerRowHeight () {
+        return this.options.cellHeaders !== false ? this.cellHeight || 30 : 0;
+    }
+
+    toggleHeaders() {
+        const hasCellHeaders = this.options.cellHeaders !== false;
+        this.options.cellHeaders = !hasCellHeaders;
+        if (this.options.cellHeaders) {
+            this.selectionLayer.style.left = `${this.rowNumberWidth}px`;
+            this.selectionLayer.style.top = `${this.headerRowHeight}px`;
+            this.cornerCell.style.width = `${this.rowNumberWidth}px`;
+            this.cornerCell.style.height = `${this.headerRowHeight}px`;
+            this.cornerCell.style.marginTop = `-${this.headerRowHeight + 1}px`; // -1 for border
+        } else {
+            this.selectionLayer.style.left = '';
+            this.selectionLayer.style.top = '';
+            this.cornerCell.style.width = '';
+            this.cornerCell.style.height = '';
+            this.cornerCell.style.marginTop = '';
+        }
+        this.rowNumbers.toggle();
+        this.headerIdentifiers.toggle();
+        this.updateGridDimensions();
+        this.metrics.calculateVisibleRange();
+        this.rowNumbers.renderRowNumbers();
+        this.headerIdentifiers.renderHeaders();
+
+        this.updateVisibleGrid();
+        this.updateSelection();
+        this.updateRenderingQuality();
     }
 
     scaler() {

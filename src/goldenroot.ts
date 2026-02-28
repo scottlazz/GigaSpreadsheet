@@ -5,6 +5,7 @@ import { fininit } from "./sampledata";
 import {GoldenLayout} from 'golden-layout';
 import 'golden-layout/dist/css/goldenlayout-base.css';
 import goldenConfig from "./goldenConfig";
+import './style.css';
 // import { FormulaBar } from "./sheet/components/formulaBar";
 
 document.addEventListener("DOMContentLoaded", (event) => {
@@ -54,7 +55,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
         }
 
         new Sheet(mount as any,
-            Object.assign({}, fininit, {toolbar: false, cellHeaders: false, formulaBar: false})
+            Object.assign({}, fininit, {
+                // toolbar: false, cellHeaders: false, formulaBar: false
+            })
         );
 
         if (containerComp && containerComp.on) {

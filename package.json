@@ -20,6 +20,7 @@
   },
   "scripts": {
     "start": "parcel",
+    "start:golden": "parcel src/golden.html",
     "build": "npm run build:ts",
     "build:ts": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json -w --preserveWatchOutput",

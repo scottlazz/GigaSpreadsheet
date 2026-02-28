@@ -51,6 +51,14 @@ export function mkel(tag='div', className='', children?: string) {
     return el;
 }
 
+export function debounce(func, delay) {
+    let timer;
+    return function(...args) {
+        clearTimeout(timer);
+        timer = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
 export const isNumeric = (num: any) => !isNaN(num) &&
     !Number.isNaN(parseFloat(num));
 

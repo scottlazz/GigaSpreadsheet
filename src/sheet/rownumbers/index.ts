@@ -34,6 +34,17 @@ export default class RowNumbers {
             }`;
         this.rowNumberContainer.appendChild(this.psuedoStyle);
     }
+    toggle() {
+        if (this.sheet.options.cellHeaders !== false) {
+            this.rowNumberContainer.style.width = `${this.sheet.rowNumberWidth}px`;
+            this.rowNumberContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;
+            this.rowNumberContainer.style.position = '';
+            this.rowNumberContainer.style.background = '';
+        } else {
+            this.rowNumberContainer.style.width = '';
+            this.rowNumberContainer.style.lineHeight = '';
+        }
+    }
     resize() {
         this.psuedoStyle.innerHTML =`
             .row-handle::after {
