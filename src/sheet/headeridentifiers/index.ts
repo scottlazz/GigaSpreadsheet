@@ -5,6 +5,7 @@ export default class HeaderIdentifiers {
     headerContainer: HTMLElement;
     renderHeaderPadder: HTMLDivElement;
     renderHeaderElems: HTMLDivElement;
+    psuedoStyle: HTMLStyleElement;
     constructor(sheet: Sheet) {
         this.sheet = sheet;
         this.headerContainer = this.sheet._container.querySelector('.header-container')!
@@ -24,6 +25,19 @@ export default class HeaderIdentifiers {
         this.renderHeaderElems.style.position = 'relative';
         this.headerContainer.appendChild(this.renderHeaderPadder);
         this.headerContainer.appendChild(this.renderHeaderElems);
+
+        this.psuedoStyle = document.createElement("style");
+        this.psuedoStyle.innerHTML =`
+            .header-handle::after {
+                width: ${1/devicePixelRatio}px !important;
+            }`;
+        this.headerContainer.appendChild(this.psuedoStyle);
+    }
+    resize() {
+        this.psuedoStyle.innerHTML =`
+            .header-handle::after {
+                width: ${1/devicePixelRatio}px !important;
+            }`;
     }
     renderHeaders() {
         let totalWidth = this.sheet.rowNumberWidth;

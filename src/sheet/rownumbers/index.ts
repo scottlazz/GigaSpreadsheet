@@ -6,6 +6,7 @@ export default class RowNumbers {
     rowNumberContainer: HTMLElement;
     renderRowNumberElems: HTMLDivElement;
     renderRowNumberPadder: HTMLDivElement;
+    psuedoStyle: HTMLStyleElement;
     constructor(sheet: Sheet) {
         this.sheet = sheet;
         this.rowNumberContainer = this.sheet._container.querySelector('.row-number-container')!
@@ -26,6 +27,18 @@ export default class RowNumbers {
         this.renderRowNumberElems.style.position = 'relative';
         this.rowNumberContainer.appendChild(this.renderRowNumberPadder);
         this.rowNumberContainer.appendChild(this.renderRowNumberElems);
+        this.psuedoStyle = document.createElement("style");
+        this.psuedoStyle.innerHTML =`
+            .row-handle::after {
+                height: ${1/devicePixelRatio}px !important;
+            }`;
+        this.rowNumberContainer.appendChild(this.psuedoStyle);
+    }
+    resize() {
+        this.psuedoStyle.innerHTML =`
+            .row-handle::after {
+                height: ${1/devicePixelRatio}px !important;
+            }`;
     }
     createRowNumber(label: string) {
         const el = document.createElement('div');

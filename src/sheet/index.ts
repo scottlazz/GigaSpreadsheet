@@ -103,6 +103,7 @@ export default class Sheet {
     _selectionBoundRects: any;
     events: any;
     prevSelectionBoundRect: any;
+    psuedoStyle: HTMLStyleElement;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = 1;
         this.events = {};
@@ -137,6 +138,16 @@ export default class Sheet {
             this.formulaBar = new FormulaBar(this);
             _container.appendChild(this.formulaBar.container);
         }
+        this.psuedoStyle = document.createElement("style");
+        this.psuedoStyle.innerHTML =`
+            .corner-cell::after {
+                height: ${1/devicePixelRatio}px !important;
+            }
+            .corner-cell::before {
+                width: ${1/devicePixelRatio}px !important;
+            }
+        `;
+        _container.appendChild(this.psuedoStyle);
         // _container.innerHTML += header;
         _container.insertAdjacentHTML('beforeend', `
         <div class="grid-container">
@@ -261,6 +272,19 @@ export default class Sheet {
             // })
     }
 
+    updatePsuedoStyles() {
+        this.psuedoStyle.innerHTML =`
+            .corner-cell::after {
+                height: ${1/devicePixelRatio}px !important;
+            }
+            .corner-cell::before {
+                width: ${1/devicePixelRatio}px !important;
+            }
+        `;
+        this.headerIdentifiers.resize();
+        this.rowNumbers.resize();
+    }
+
     zoomOut() {
         this.zoomLevel = Math.max(0.1, this.zoomLevel - 0.1);
         this.updateGridDimensions();
@@ -363,6 +387,7 @@ export default class Sheet {
             this.metrics.calculateVisibleRange();
             this.rowNumbers.renderRowNumbers();
             this.headerIdentifiers.renderHeaders();
+            this.updatePsuedoStyles();
 
             this.updateVisibleGrid();
             this.updateSelection();
