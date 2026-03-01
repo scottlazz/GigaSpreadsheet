@@ -1597,9 +1597,10 @@ export default class Sheet {
         // console.log(e.clientX, woffset)
         // console.log(e.clientY-this.headerRowHeight, rect.top + hoffset)
         // Adjust for header and row numbers
+        // console.log('clientx', e.clientX-rect.left, woffset)
         let x,y;
-        if (e.clientX < woffset) {
-            x = (e.clientX - this.rowNumberWidth);
+        if (e.clientX-rect.left < woffset) {
+            x = (e.clientX-rect.left - this.rowNumberWidth);
         } else {
             x = (e.clientX - rect.left + scrollLeft - this.rowNumberWidth);
         }
