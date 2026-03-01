@@ -1151,6 +1151,7 @@ export default class Sheet {
                 this.leftFreezeContainer.appendChild(this.editInput);
             }
         } else if (row < this.freeze.row) {
+            this.editInput.style.top = `${top-this.headerRowHeight}px`;
             if (this.editInput.parentElement !== this.topFreezeContainer) {
                 this.editInput.remove();
                 this.topFreezeContainer.appendChild(this.editInput);
