@@ -20,6 +20,8 @@ const menuItems = [
     { key: 'divider' },
     { key: 'toggle-gridlines', title: 'Toggle Gridlines' },
     { key: 'toggle-headers', title: 'Toggle Headers' },
+    { key: 'divider' },
+    { key: 'freeze', title: 'Freeze' },
 ];
 
 function buildMenuItem(item: any) {

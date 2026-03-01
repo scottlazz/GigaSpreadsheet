@@ -1,11 +1,14 @@
+import Sheet from ".";
+
 export default class Selection {
     panes: any[];
-    sheet: any;
-    constructor(sheet: any) {
+    sheet: Sheet;
+    constructor(sheet: Sheet) {
         this.sheet = sheet;
         this.panes = [];
         this.addMain();
         this.addLeft();
+        this.addTop();
     }
     addMain() {
         const el = document.createElement('div'); // main
@@ -16,6 +19,11 @@ export default class Selection {
         const el = document.createElement('div'); // left
         this.sheet.leftFreezeContainer.appendChild(el);
         this.panes[1] = el;
+    }
+    addTop() {
+        const el = document.createElement('div'); // left
+        this.sheet.topFreezeContainer.appendChild(el);
+        this.panes[2] = el;
     }
     remove() {
         for(let el of this.panes) {
@@ -37,8 +45,29 @@ export default class Selection {
             el.style.display = 'block';
         }
     }
-    appendChild(child) {
-        if (this.panes[0]) this.panes[0].appendChild(child);
-        if (this.panes[1]) this.panes[1].appendChild(child.cloneNode());
+    appendChild(child, rect) {
+        if (this.panes[0]) {
+            const clone = child.cloneNode();
+            let top = this.sheet.metrics.getHeightOffset(rect.startRow);
+            if (this.sheet.freeze.row && this.sheet.options.cellHeaders === false) {
+                top = top - this.sheet.metrics.getHeightOffset(this.sheet.freeze.row);
+            }
+            clone.style.top = `${top}px`;
+            this.panes[0].appendChild(clone);
+        }
+        if (this.panes[1]) {
+            const clone = child.cloneNode();
+            if (this.sheet.options.cellHeaders === false) {
+                const top = this.sheet.metrics.getHeightOffset(rect.startRow);
+                clone.style.top = `${top+1}px`;
+            }
+            this.panes[1].appendChild(clone);
+        }
+        if (this.panes[2]) {
+            const clone = child.cloneNode();
+            let left = this.sheet.metrics.getWidthOffset(rect.startCol)+this.sheet.rowNumberWidth;
+            clone.style.left = `${left}px`;
+            this.panes[2].appendChild(clone);
+        };
     }
 }

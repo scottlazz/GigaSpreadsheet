@@ -45,6 +45,9 @@ export class Block {
         if (this.region === 'leftpane') {
             left = this.sheet.metrics.getWidthOffset(this.startCol);
             top = this.sheet.metrics.getHeightOffset(this.startRow);
+        } else if (this.region === 'toppane') {
+            left = this.sheet.metrics.getWidthOffset(this.startCol, true);
+            top = this.sheet.metrics.getHeightOffset(this.startRow);
         } else {
             left = this.sheet.metrics.getWidthOffset(this.startCol, true);
             top = this.sheet.metrics.getHeightOffset(this.startRow, true);
