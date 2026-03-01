@@ -1150,6 +1150,11 @@ export default class Sheet {
                 this.editInput.remove();
                 this.leftFreezeContainer.appendChild(this.editInput);
             }
+        } else if (row < this.freeze.row) {
+            if (this.editInput.parentElement !== this.topFreezeContainer) {
+                this.editInput.remove();
+                this.topFreezeContainer.appendChild(this.editInput);
+            }
         } else {
             if (this.editInput.parentElement !== this.container) {
                 this.editInput.remove();
@@ -1157,6 +1162,9 @@ export default class Sheet {
             }
         }
         this.editInput.focus();
+        // prevent focus from shifting element
+        this.topFreezeContainer.scrollTop = 0;
+        this.leftFreezeContainer.scrollLeft = 0;
 
         // Store edit state
         this.editingCell = { row, col };
@@ -1583,7 +1591,7 @@ export default class Sheet {
         const scrollLeft = this.container.scrollLeft;
         const scrollTop = this.container.scrollTop;
         const woffset = this.metrics.getWidthOffset(this.freeze.col, true);
-        const hoffset = this.metrics.getHeightOffset(this.freeze.row-1, true);
+        const hoffset = this.metrics.getHeightOffset(this.freeze.row, true);
         // const woffset = this.metrics.getHeightOffset(this.freeze.col, true);
         // console.log(e.clientX, woffset)
         // console.log(e.clientY-this.headerRowHeight, rect.top + hoffset)
