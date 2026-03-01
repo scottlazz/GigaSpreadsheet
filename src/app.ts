@@ -1,7 +1,7 @@
 // import Giga from "./giga";
 import Sheet from "./sheet";
 // import { Sheet } from './index';
-import { fininit } from "./sampledata";
+import { fininit } from "./_sampledata";
 import './style.css';
 
 document.addEventListener("DOMContentLoaded", (event) => {
@@ -9,7 +9,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
     const cells: any = [];
     const sheet = new Sheet(wrapper,
         Object.assign(
-            // fininit,
+            {},
+            fininit,
             {
                 // gridlinesOn: false,
                 autosize: true,

@@ -19,6 +19,7 @@ import KeyboardHandler from './keyboardHandler';
 import GridMetrics from './gridmetrics';
 import RowNumbers from './rownumbers';
 import HeaderIdentifiers from './headeridentifiers';
+import Selection from './selection';
 
 export default class Sheet {
     wrapper: HTMLElement;
@@ -42,6 +43,7 @@ export default class Sheet {
     gridlinesOn: boolean;
     padding: number; // number of adjacent blocks to render
 
+    activeLeftPaneBlocks: Map<any, any>;
     activeBlocks: Map<any, any>;
     mergedCells: Rect[];
     elRegistry: any;
@@ -50,7 +52,8 @@ export default class Sheet {
     data: any;
     parser: any;
     isResizing: boolean;
-    activeSelection: any;
+    activeSelection: Selection;
+    activeSelections: Selection[];
     resizeStart: any;
     resizeInitialSize: any;
     busy: boolean;
@@ -102,11 +105,13 @@ export default class Sheet {
     events: any;
     prevSelectionBoundRect: any;
     psuedoStyle: HTMLStyleElement;
+    leftFreezeContainer: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = 1;
         this.events = {};
         this.toolbar = null;
         this._selectionBoundRects = [];
+        this.activeSelections = [];
         this.renderQueued = false;
         this.dimUpdatesQueued = false;
         this.options = options;
@@ -152,10 +157,15 @@ export default class Sheet {
             <div class="corner-cell"></div>
             <div class="header-container"></div>
             <div class="row-number-container"></div>
+            <div class="left-freeze-container"></div>
             <div class="selection-layer"></div>
-        </div>
-        `);
+            </div>
+            `);
+            // <div class="grid-row2">
+            // </div>
         this.container = _container.querySelector('.grid-container')!;
+        // this.gridRow2 = _container.querySelector('.grid-row2')!;
+        this.leftFreezeContainer = _container.querySelector('.left-freeze-container')!;
         this.wrapper.appendChild(_container);
         this.ctxmenu = new ContextMenu();
         _container.append(this.ctxmenu.container)
@@ -203,8 +213,9 @@ export default class Sheet {
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
         this.maxWidthInCol = [];
         this.widthMaxByCol = {};
-        this.freeze = {col: 4};
+        this.freeze = {col: 4, row: 5};
         this.gridlinesOn = options.gridlinesOn ?? true;
+        this.activeLeftPaneBlocks = new Map();
         this.activeBlocks = new Map(); // Track active canvas blocks
         // window.activeBlocks = this.activeBlocks;
         // window.renderBlock = this.renderBlock.bind(this);
@@ -241,7 +252,7 @@ export default class Sheet {
         // Initialize
         this.initEventListeners();
         this.createSelectionHandle();
-        this.addNewSelection();
+        // this.addNewSelection();
         this.probe = document.createElement('div');
         this.probe.style.position = 'absolute';
         this.probe.style.display = 'none';
@@ -1106,6 +1117,12 @@ export default class Sheet {
             return;
         }
 
+        let { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
+
+        if (col < this.freeze.col) {
+            left = this.metrics.getWidthOffset(col);
+            top = this.metrics.getHeightOffset(row);
+        }
         // Set up edit input
         this.editInput.value = value;
         this.editInput.style.left = `${left}px`;
@@ -1114,6 +1131,17 @@ export default class Sheet {
         this.editInput.style.width = (value.length + 1) + "ch";
         this.editInput.style.height = `${height}px`;
         this.editInput.style.display = 'block';
+        if (col <= this.freeze.col) {
+            if (this.editInput.parentElement !== this.leftFreezeContainer) {
+                this.editInput.remove();
+                this.leftFreezeContainer.appendChild(this.editInput);
+            }
+        } else {
+            if (this.editInput.parentElement !== this.container) {
+                this.editInput.remove();
+                this.container.appendChild(this.editInput);
+            }
+        }
         this.editInput.focus();
 
         // Store edit state
@@ -1239,6 +1267,11 @@ export default class Sheet {
                 const createTimeout = () =>
                     setTimeout(() => {
                         this.busy = true;
+                        this.activeLeftPaneBlocks.forEach(block => {
+                            block.subBlocks.forEach((subBlock: any) => {
+                                subBlock.renderBlock(true);
+                            })
+                        });
                         this.activeBlocks.forEach(block => {
                             block.subBlocks.forEach((subBlock: any) => {
                                 subBlock.renderBlock(true);
@@ -1313,7 +1346,7 @@ export default class Sheet {
             this.selectionEnd = null;
             this.selectionBoundRect = null;
             this.isSelecting = true;
-            this.addNewSelection();
+            this.addNewSelection(row,col);
             this.selectCell({ row, col });
         } else if (e.shiftKey && this.selectionStart) { // continue old selection
             this.isSelecting = true;
@@ -1329,10 +1362,14 @@ export default class Sheet {
         if (row === -1 || col === -1) return;
         if (clear) {
             this.selectionLayer.innerHTML = '';
+            while(this.activeSelections.length > 0) {
+                const selection = this.activeSelections.pop();
+                selection.remove();
+            }
             this.selectionLayer.appendChild(this.probe)
-            this.addNewSelection();
+            this.addNewSelection(row,col);
         }
-        if (!this.activeSelection) this.addNewSelection();
+        if (!this.activeSelection) this.addNewSelection(row,col);
         if (!continuation) this.selectionStart = { row, col };
         this.selectionEnd = { row, col };
         if (!this.selectionStart) return;
@@ -1412,7 +1449,12 @@ export default class Sheet {
                 this.selectionBoundRect = this.getBoundingRectCells(this.selectionStart.row, this.selectionStart.col, row, col);
                 this.updateSelection();
             }
-            const scrollLeft = this.container.scrollLeft;
+            let scrollLeft = this.container.scrollLeft;
+            let sc = this.selectionBoundRect.startCol, ec = this.selectionBoundRect.endCol;
+            if (scrollLeft && sc <= this.freeze.col && ec > this.freeze.col) {
+                this.container.scrollLeft = 0;
+                scrollLeft = 0;
+            }
             let x = e.clientX;
             x = x - this._container.getBoundingClientRect().x;
             const scrollTop = this.container.scrollTop;
@@ -1516,9 +1558,17 @@ export default class Sheet {
         const rect = this.container.getBoundingClientRect();
         const scrollLeft = this.container.scrollLeft;
         const scrollTop = this.container.scrollTop;
+        const woffset = this.metrics.getWidthOffset(this.freeze.col+1, true);
+        // const woffset = this.metrics.getHeightOffset(this.freeze.col, true);
+        // console.log(e.clientX, woffset)
         // Adjust for header and row numbers
-        let x = (e.clientX - rect.left + scrollLeft - this.rowNumberWidth);
-        let y = (e.clientY - rect.top + scrollTop - this.headerRowHeight); // 30 for header
+        let x,y;
+        if (e.clientX < woffset) {
+            x = (e.clientX - this.rowNumberWidth);
+        } else {
+            x = (e.clientX - rect.left + scrollLeft - this.rowNumberWidth);
+        }
+        y = (e.clientY - rect.top + scrollTop - this.headerRowHeight); // 30 for header
 
         if (x < 0 || y < 0) return { row: -1, col: -1 };
 
@@ -1598,11 +1648,20 @@ export default class Sheet {
         recordChanges && this.forceRerender();
     }
 
-    addNewSelection() {
-        const newSelection = document.createElement('div');
-        this.selectionLayer.appendChild(newSelection);
-        this.activeSelection = newSelection;
-        return newSelection;
+    addNewSelection(row:number,col:number) {
+        // const newSelection = document.createElement('div');
+        // this.activeSelection?.remove();
+        // if (col <= this.freeze.col) {
+        //     this.leftFreezeContainer.appendChild(newSelection)
+        // } else {
+        //     this.selectionLayer.appendChild(newSelection);
+        // }
+        // this.activeSelection = newSelection;
+        // return newSelection;
+        const activeSelection = new Selection(this);
+        this.activeSelection = activeSelection;
+        this.activeSelections.push(activeSelection);
+        return activeSelection;
     }
 
     getTrueValue(row: number,col: number) {
@@ -1653,7 +1712,7 @@ export default class Sheet {
         this.onSelectionChange();
         if (!this.activeSelection) return;
         // Clear previous selection
-        this.activeSelection.innerHTML = '';
+        this.activeSelection.clear();
         if (!this.selectionHandle) return;
         this.selectionHandle.style.display = 'none';
 
@@ -1665,10 +1724,10 @@ export default class Sheet {
         let width = this.metrics.getWidthBetweenColumns(startCol, endCol+1);
 
         if (!fromKeyInput && (this.visibleEndRow < startRow || this.visibleEndCol < startCol)) {
-            this.activeSelection.style.display = 'none';
+            this.activeSelection.hide();
             // return;
         } else {
-            this.activeSelection.style.display = 'block';
+            this.activeSelection.show();
         }
         endRow = Math.min(endRow, this.visibleEndRow);
         const top = this.metrics.getHeightOffset(startRow); // Below header
@@ -1846,10 +1905,14 @@ export default class Sheet {
     handleScroll() {
         const updateVisHeight = this.updateVisHeight();
         const updateVisWidth = this.updateVisWidth();
-        const h = (this.container.clientHeight + this.container.scrollTop);
-        // if (updateVisHeight) {
-        //     console.log(h, updateVisHeight)
+        // const h = (this.container.clientHeight + this.container.scrollTop);
+        // const SELECTION_LAYER_ZINDEX = 90;
+        // if (this.container.scrollLeft === 0 && this.freeze.col && this.leftFreezeContainer.style.zIndex > SELECTION_LAYER_ZINDEX) {
+        //     this.leftFreezeContainer.style.zIndex = 91;
+        // } else if (this.container.scrollLeft > 0 && this.freeze.col && this.leftFreezeContainer.style.zIndex <= SELECTION_LAYER_ZINDEX) {
+        //     this.leftFreezeContainer.style.zIndex = 91;
         // }
+        
         if (updateVisHeight || updateVisWidth) {
             console.log('SCROLL UPDATE VIS HEIGHT OR WIDTH')
             this.updateGridDimensions();
@@ -1868,23 +1931,89 @@ export default class Sheet {
         this.updateSelection();
     }
 
-    updateVisibleGrid(force = false) {
+    updateLeftFreeze(force = false) {
+        // this.metrics.calculateVisibleRange();
 
+        // Determine which blocks we need to render
         const padding = this.padding;
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
+        const startBlockRow = Math.max(0, Math.floor(this.visibleStartRow / this.blockRows) - padding);
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.visibleEndRow - 1) / this.blockRows));
+        const startBlockCol = Math.max(0);
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.col - 1) / this.blockCols));
+        
+        const neededBlocks = new Set();
+        for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
+            for (let blockCol = startBlockCol; blockCol <= endBlockCol; blockCol++) {
+                neededBlocks.add(`${blockRow},${blockCol}`);
+            }
+        }
 
+        // Remove blocks that are no longer needed
+        const toRemove: any = [];
+        this.activeLeftPaneBlocks.forEach((block, key) => {
+            if (!neededBlocks.has(key)) {
+                toRemove.push(key);
+                this.releaseBlock(block);
+            } else if (force) {
+                try {
+                    block.subBlocks.forEach((subBlock: any) => {
+                        subBlock.renderBlock(true);
+                    });
+                } catch (err) {
+                    toRemove.push(key);
+                    this.releaseBlock(block);
+                }
+            }
+        });
+        // if (this.activeLeftPaneBlocks.size) return;
+        const totalRenderRows = this.visibleEndRow + this.blockRows-(this.visibleEndRow%this.blockRows);
+        const height = this.metrics.getHeightOffset(totalRenderRows+1);
+        const width = this.metrics.getWidthOffset(this.freeze.col+1);
+        if (this.leftFreezeContainer) {
+            this.leftFreezeContainer.style.height = `${height}px`;
+            this.leftFreezeContainer.style.width = `${width}px`;
+            this.leftFreezeContainer.style.left = `${this.rowNumberWidth}px`;
+        }
+        
+        toRemove.forEach((key: any) => this.activeLeftPaneBlocks.delete(key));
+
+        requestAnimationFrame(() => {
+            // Add new blocks that are needed
+            neededBlocks.forEach((key: any) => {
+                if (!this.activeLeftPaneBlocks.has(key)) {
+                    const [blockRow, blockCol] = key.split(',').map(Number);
+                    const block = this.createBlock(blockRow, blockCol, this.freeze.cols, this.leftFreezeContainer, this.activeLeftPaneBlocks, 'leftpane');
+                } else {
+                    // Ensure existing blocks are properly positioned
+                    const block = this.activeLeftPaneBlocks.get(key);
+                    block.positionBlock();
+                    // this.positionBlock(block);
+                }
+            });
+        })
+    }
+
+    updateVisibleGrid(force = false) {
+
+        
         this.metrics.calculateVisibleRange();
 
+        this.updateLeftFreeze(force);
+        
         // Determine which blocks we need to render
-        const neededBlocks = new Set();
+        const padding = this.padding;
+        const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
+        const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = Math.max(0, Math.floor(this.visibleStartRow / this.blockRows) - padding);
         let endBlockRow = Math.min(maxBlockRows, Math.floor((this.visibleEndRow - 1) / this.blockRows));
         const startBlockCol = Math.max(0, Math.floor(this.visibleStartCol / this.blockCols) - padding);
         let endBlockCol = Math.min(maxBlockCols, Math.floor((this.visibleEndCol - 1) / this.blockCols));
         // console.log('endblock', [endBlockRow,endBlockCol])
         // console.log('visible blocks', [startBlockRow, startBlockCol], 'through', [endBlockRow, endBlockCol])
-
+        
+        const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
             for (let blockCol = startBlockCol; blockCol <= endBlockCol; blockCol++) {
                 neededBlocks.add(`${blockRow},${blockCol}`);
@@ -1944,13 +2073,14 @@ export default class Sheet {
         }
     }
 
-    createBlock(blockRow: number, blockCol: number) {
+    createBlock(blockRow: number, blockCol: number, maxCols?: number, container?: any, activeSet?: any, region?: string) {
         // Calculate block boundaries
         const startRow = blockRow * this.blockRows;
         let endRow = Math.min(startRow + this.blockRows);
         if (this.maxRows) endRow = Math.min(endRow, this.maxRows);
         const startCol = blockCol * this.blockCols;
         let endCol = Math.min(startCol + this.blockCols);
+        if (maxCols) endCol = Math.min(endCol, maxCols);
         if (this.maxCols) endCol = Math.min(endCol, this.maxCols);
 
         const blockContainer = document.createElement('div');
@@ -1966,14 +2096,23 @@ export default class Sheet {
             blockCol,
             blockContainer,
             subBlocks: [],
+            region,
             count: this.blockCanvases()
         }, this);
         const key = `${blockRow},${blockCol}`;
-        this.activeBlocks.set(key, block);
+        if (activeSet) {
+            activeSet.set(key, block);
+        } else {
+            this.activeBlocks.set(key, block);
+        }
 
         // Add to DOM if not already present
         if (!blockContainer.parentNode) {
-            this.container.appendChild(blockContainer);
+            if (container) {
+                container.appendChild(blockContainer);
+            } else {
+                this.container.appendChild(blockContainer);
+            }
         }
 
         return block;
@@ -1981,7 +2120,7 @@ export default class Sheet {
 
     effectiveDevicePixelRatio() {
         return devicePixelRatio;
-        return devicePixelRatio*this.zoomLevel;
+        // return devicePixelRatio*this.zoomLevel;
     }
 
     blockKey(block: any) {
@@ -2000,7 +2139,9 @@ export default class Sheet {
         const blockRow = Math.floor(row / this.blockRows);
         const blockCol = Math.floor(col / this.blockCols);
         const key = this.getKey(blockRow, blockCol);
-        if (this.activeBlocks.has(key)) {
+        if (col <= this.freeze.col) {
+            return this.activeLeftPaneBlocks.get(key);
+        } else if (this.activeBlocks.has(key)) {
             return this.activeBlocks.get(key);
         }
         return null;

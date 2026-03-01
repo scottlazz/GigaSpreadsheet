@@ -12,6 +12,7 @@ export class Block {
     styleHeight?: number;
     sheet: Sheet;
     subBlocks: any;
+    region: string;
     constructor(data: any, sheet: Sheet) {
         this.count = data.count;
         this.blockContainer = data.blockContainer;
@@ -19,6 +20,7 @@ export class Block {
         this.endRow = data.endRow;
         this.startCol = data.startCol;
         this.endCol = data.endCol;
+        this.region = data.region;
         this.sheet = sheet;
         this.subBlocks = [];
         this.positionBlock();
@@ -39,11 +41,17 @@ export class Block {
         // for (let col = 0; col < block.startCol; col++) {
         //     left += this.getColWidth(col);
         // }
-        const left = this.sheet.metrics.getWidthOffset(this.startCol, true);
+        let left, top;
+        if (this.region === 'leftpane') {
+            left = this.sheet.metrics.getWidthOffset(this.startCol);
+            top = this.sheet.metrics.getHeightOffset(this.startRow);
+        } else {
+            left = this.sheet.metrics.getWidthOffset(this.startCol, true);
+            top = this.sheet.metrics.getHeightOffset(this.startRow, true);
+        }
 
         // Calculate vertical position (top)
 
-        const top = this.sheet.heightAccum[this.startRow];
 
         // Round positions in device pixels so the container aligns with integer
         // canvas pixel sizes and avoids sub-pixel gaps between blocks.

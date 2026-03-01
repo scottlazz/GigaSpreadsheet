@@ -64,10 +64,10 @@ export default class Metrics {
         return this.rowHeight(row);
     }
     getWidthOffset(col: number, withStickyLeftBar = false) {
-        return this.sheet.widthAccum[col] - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
+        return (this.sheet.widthAccum[col] || this.getWidthBetweenColumns(-1, col)) - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
     }
     getHeightOffset(row: number, withStickyHeader = false) {
-        return this.sheet.heightAccum[row] - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
+        return (this.sheet.heightAccum[row] || this.getHeightBetweenRowsAccum(-1, row)) - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
     }
     getWidthOverride(col: number) {
         if (col in this.sheet.widthOverrides) return this.sheet.widthOverrides[col]*this.sheet.zoomLevel;
