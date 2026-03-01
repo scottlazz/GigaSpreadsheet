@@ -42,7 +42,7 @@ export default class Sheet {
     widthOverrides: any;
     gridlinesOn: boolean;
     padding: number; // number of adjacent blocks to render
-
+    activeTopPaneBlocks: Map<any, any>;
     activeLeftPaneBlocks: Map<any, any>;
     activeBlocks: Map<any, any>;
     mergedCells: Rect[];
@@ -106,6 +106,7 @@ export default class Sheet {
     prevSelectionBoundRect: any;
     psuedoStyle: HTMLStyleElement;
     leftFreezeContainer: any;
+    topFreezeContainer: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = 1;
         this.events = {};
@@ -156,6 +157,7 @@ export default class Sheet {
         <div class="grid-container">
             <div class="corner-cell"></div>
             <div class="header-container"></div>
+            <div class="top-freeze-container"></div>
             <div class="row-number-container"></div>
             <div class="left-freeze-container"></div>
             <div class="selection-layer"></div>
@@ -166,6 +168,7 @@ export default class Sheet {
         this.container = _container.querySelector('.grid-container')!;
         // this.gridRow2 = _container.querySelector('.grid-row2')!;
         this.leftFreezeContainer = _container.querySelector('.left-freeze-container')!;
+        this.topFreezeContainer = _container.querySelector('.top-freeze-container')!;
         this.wrapper.appendChild(_container);
         this.ctxmenu = new ContextMenu();
         _container.append(this.ctxmenu.container)
@@ -176,6 +179,8 @@ export default class Sheet {
         this.container.style.overflow = 'auto';
         this.container.scrollLeft = 0;
         this.container.scrollTop = 0;
+        this.heightAccum = [];
+        this.freeze = {col: 4, row: 5};
         this.cornerCell = _container.querySelector('.corner-cell')!;
         this.selectionLayer = _container.querySelector('.selection-layer')!;
         this.formatButton = _container.querySelector('.format-button')!;
@@ -213,14 +218,13 @@ export default class Sheet {
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
         this.maxWidthInCol = [];
         this.widthMaxByCol = {};
-        this.freeze = {col: 4, row: 5};
         this.gridlinesOn = options.gridlinesOn ?? true;
+        this.activeTopPaneBlocks = new Map();
         this.activeLeftPaneBlocks = new Map();
         this.activeBlocks = new Map(); // Track active canvas blocks
         // window.activeBlocks = this.activeBlocks;
         // window.renderBlock = this.renderBlock.bind(this);
         this.elRegistry = {};
-        this.heightAccum = [];
         this.widthAccum = [];
         this.isResizing = false;
         this.resizeStart = null;
@@ -1267,6 +1271,11 @@ export default class Sheet {
                 const createTimeout = () =>
                     setTimeout(() => {
                         this.busy = true;
+                        this.activeTopPaneBlocks.forEach(block => {
+                            block.subBlocks.forEach((subBlock: any) => {
+                                subBlock.renderBlock(true);
+                            })
+                        });
                         this.activeLeftPaneBlocks.forEach(block => {
                             block.subBlocks.forEach((subBlock: any) => {
                                 subBlock.renderBlock(true);
@@ -1931,6 +1940,11 @@ export default class Sheet {
         this.updateSelection();
     }
 
+    get topFreezeHeight () {
+        const height = this.metrics.getHeightOffset(this.freeze.row+1);
+        return height;
+    }
+
     updateLeftFreeze(force = false) {
         // this.metrics.calculateVisibleRange();
 
@@ -1969,12 +1983,13 @@ export default class Sheet {
         });
         // if (this.activeLeftPaneBlocks.size) return;
         const totalRenderRows = this.visibleEndRow + this.blockRows-(this.visibleEndRow%this.blockRows);
-        const height = this.metrics.getHeightOffset(totalRenderRows+1);
+        const height = this.metrics.getHeightOffset(totalRenderRows);
         const width = this.metrics.getWidthOffset(this.freeze.col+1);
         if (this.leftFreezeContainer) {
             this.leftFreezeContainer.style.height = `${height}px`;
             this.leftFreezeContainer.style.width = `${width}px`;
             this.leftFreezeContainer.style.left = `${this.rowNumberWidth}px`;
+            this.leftFreezeContainer.style.marginTop = `${-this.topFreezeHeight}px`;
         }
         
         toRemove.forEach((key: any) => this.activeLeftPaneBlocks.delete(key));
@@ -1984,10 +1999,78 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeLeftPaneBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, this.freeze.cols, this.leftFreezeContainer, this.activeLeftPaneBlocks, 'leftpane');
+                    const block = this.createBlock(blockRow, blockCol, this.freeze.col, null, this.leftFreezeContainer, this.activeLeftPaneBlocks, 'leftpane');
                 } else {
                     // Ensure existing blocks are properly positioned
                     const block = this.activeLeftPaneBlocks.get(key);
+                    block.positionBlock();
+                    // this.positionBlock(block);
+                }
+            });
+        })
+    }
+    updateTopFreeze(force = false) {
+        // this.metrics.calculateVisibleRange();
+
+        // Determine which blocks we need to render
+        const padding = this.padding;
+        const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
+        const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
+        const startBlockRow = 0;
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.row - 1) / this.blockRows));
+        const startBlockCol = Math.max(0, Math.floor(this.visibleStartCol / this.blockCols) - padding);
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.visibleEndCol - 1) / this.blockCols));
+        
+        const neededBlocks = new Set();
+        for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
+            for (let blockCol = startBlockCol; blockCol <= endBlockCol; blockCol++) {
+                neededBlocks.add(`${blockRow},${blockCol}`);
+            }
+        }
+
+        // Remove blocks that are no longer needed
+        const toRemove: any = [];
+        this.activeTopPaneBlocks.forEach((block, key) => {
+            if (!neededBlocks.has(key)) {
+                toRemove.push(key);
+                this.releaseBlock(block);
+            } else if (force) {
+                try {
+                    block.subBlocks.forEach((subBlock: any) => {
+                        subBlock.renderBlock(true);
+                    });
+                } catch (err) {
+                    toRemove.push(key);
+                    this.releaseBlock(block);
+                }
+            }
+        });
+        // if (this.activeLeftPaneBlocks.size) return;
+        const totalRenderCols = this.visibleEndCol + this.blockCols-(this.visibleEndCol%this.blockCols);
+        const height = this.topFreezeHeight;
+        const width = this.metrics.getWidthOffset(totalRenderCols);
+        // const left = this.metrics.getWidthOffset(this.freeze.col+1);
+        // console.log('width::', width)
+        if (this.topFreezeContainer) {
+            this.topFreezeContainer.style.height = `${height}px`;
+            this.topFreezeContainer.style.width = `${width}px`;
+            this.topFreezeContainer.style.top = `${this.headerRowHeight}px`;
+            // this.topFreezeContainer.style.left = `${left+42}px`;
+            this.rowNumbers.rowNumberContainer.style.marginTop = `${-height}px`;
+            // console.log('topfreeze', height)
+        }
+        
+        toRemove.forEach((key: any) => this.activeTopPaneBlocks.delete(key));
+
+        requestAnimationFrame(() => {
+            // Add new blocks that are needed
+            neededBlocks.forEach((key: any) => {
+                if (!this.activeTopPaneBlocks.has(key)) {
+                    const [blockRow, blockCol] = key.split(',').map(Number);
+                    const block = this.createBlock(blockRow, blockCol, null, this.freeze.row, this.topFreezeContainer, this.activeTopPaneBlocks, 'toppane');
+                } else {
+                    // Ensure existing blocks are properly positioned
+                    const block = this.activeTopPaneBlocks.get(key);
                     block.positionBlock();
                     // this.positionBlock(block);
                 }
@@ -2001,6 +2084,7 @@ export default class Sheet {
         this.metrics.calculateVisibleRange();
 
         this.updateLeftFreeze(force);
+        this.updateTopFreeze(force);
         
         // Determine which blocks we need to render
         const padding = this.padding;
@@ -2073,14 +2157,15 @@ export default class Sheet {
         }
     }
 
-    createBlock(blockRow: number, blockCol: number, maxCols?: number, container?: any, activeSet?: any, region?: string) {
+    createBlock(blockRow: number, blockCol: number, maxCols?: number, maxRows?: number, container?: any, activeSet?: any, region?: string) {
         // Calculate block boundaries
         const startRow = blockRow * this.blockRows;
         let endRow = Math.min(startRow + this.blockRows);
+        // if (maxRows) endRow = Math.min(endRow, maxRows);
         if (this.maxRows) endRow = Math.min(endRow, this.maxRows);
         const startCol = blockCol * this.blockCols;
         let endCol = Math.min(startCol + this.blockCols);
-        if (maxCols) endCol = Math.min(endCol, maxCols);
+        // if (maxCols) endCol = Math.min(endCol, maxCols);
         if (this.maxCols) endCol = Math.min(endCol, this.maxCols);
 
         const blockContainer = document.createElement('div');
@@ -2141,6 +2226,8 @@ export default class Sheet {
         const key = this.getKey(blockRow, blockCol);
         if (col <= this.freeze.col) {
             return this.activeLeftPaneBlocks.get(key);
+        } else if (row <= this.freeze.row) {
+            return this.activeTopPaneBlocks.get(key);
         } else if (this.activeBlocks.has(key)) {
             return this.activeBlocks.get(key);
         }

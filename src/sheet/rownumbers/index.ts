@@ -13,6 +13,7 @@ export default class RowNumbers {
         if (this.sheet.options.cellHeaders !== false) {
             this.rowNumberContainer.style.width = `${this.sheet.rowNumberWidth}px`;
             this.rowNumberContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;
+            this.rowNumberContainer.style.marginTop = `${-this.sheet.topFreezeHeight}px`;
         }
         // this.rowNumberContainer = sheet.rowNumberContainer;
 
@@ -35,14 +36,17 @@ export default class RowNumbers {
         this.rowNumberContainer.appendChild(this.psuedoStyle);
     }
     toggle() {
+        console.log('this.sheet.topFreezeHeight', this.sheet.topFreezeHeight)
         if (this.sheet.options.cellHeaders !== false) {
             this.rowNumberContainer.style.width = `${this.sheet.rowNumberWidth}px`;
             this.rowNumberContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;
+            this.rowNumberContainer.style.marginTop = `${-this.sheet.topFreezeHeight}px`;
             this.rowNumberContainer.style.position = '';
             this.rowNumberContainer.style.background = '';
         } else {
             this.rowNumberContainer.style.width = '';
             this.rowNumberContainer.style.lineHeight = '';
+            this.rowNumberContainer.style.marginTop = '';
         }
     }
     resize() {
