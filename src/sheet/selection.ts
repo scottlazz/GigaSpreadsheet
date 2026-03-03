@@ -9,6 +9,7 @@ export default class Selection {
         this.addMain();
         this.addLeft();
         this.addTop();
+        this.addCorner();
     }
     addMain() {
         const el = document.createElement('div'); // main
@@ -24,6 +25,11 @@ export default class Selection {
         const el = document.createElement('div'); // left
         this.sheet.topFreezeContainer.appendChild(el);
         this.panes[2] = el;
+    }
+    addCorner() {
+        const el = document.createElement('div'); // left
+        this.sheet.cornerFreezeContainer.appendChild(el);
+        this.panes[3] = el;
     }
     remove() {
         for(let el of this.panes) {
@@ -50,7 +56,7 @@ export default class Selection {
             const clone = child.cloneNode();
             let top = this.sheet.metrics.getHeightOffset(rect.startRow);
             if (this.sheet.freeze.row && this.sheet.options.cellHeaders === false) {
-                top = top - this.sheet.metrics.getHeightOffset(this.sheet.freeze.row);
+                top = top - this.sheet.metrics.getHeightOffset(this.sheet.freeze.row)-5;
             }
             clone.style.top = `${top}px`;
             this.panes[0].appendChild(clone);
@@ -59,7 +65,7 @@ export default class Selection {
             const clone = child.cloneNode();
             if (this.sheet.options.cellHeaders === false) {
                 const top = this.sheet.metrics.getHeightOffset(rect.startRow);
-                clone.style.top = `${top+1}px`;
+                clone.style.top = `${top}px`;
             }
             this.panes[1].appendChild(clone);
         }
@@ -68,6 +74,10 @@ export default class Selection {
             let left = this.sheet.metrics.getWidthOffset(rect.startCol)+this.sheet.rowNumberWidth;
             clone.style.left = `${left}px`;
             this.panes[2].appendChild(clone);
+        };
+        if (this.panes[3]) {
+            const clone = child.cloneNode();
+            this.panes[3].appendChild(clone);
         };
     }
 }

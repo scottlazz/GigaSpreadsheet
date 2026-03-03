@@ -42,7 +42,7 @@ export class Block {
         //     left += this.getColWidth(col);
         // }
         let left, top;
-        if (this.region === 'leftpane') {
+        if (this.region === 'leftpane' || this.region === 'cornerpane') {
             left = this.sheet.metrics.getWidthOffset(this.startCol);
             top = this.sheet.metrics.getHeightOffset(this.startRow);
         } else if (this.region === 'toppane') {

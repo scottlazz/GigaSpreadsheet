@@ -85,6 +85,7 @@ html {
 
 .grid-container {
   font-family: Arial, sans-serif;
+  white-space: nowrap;
   /* display: flex;
   flex-direction: column;
   flex: 1; */
@@ -131,8 +132,26 @@ html {
   flex-shrink: 0;
   /* margin-top:0.5px; */
 }
+.corner-freeze-container {
+  position: sticky;
+  display: inline-block;
+  /* top: 0;
+  left: 0; */
+  /* background: #e6e6e6; */
+  background: white;
+  overflow: hidden;
+  border-bottom: 1px solid rgb(153, 153, 153, 0.5);
+  border-right: 1px solid rgb(153, 153, 153, 0.5);
+  z-index: 92;
+  width: 100px;
+  font-size: 12px;
+  flex-shrink: 0;
+  /* margin-top:0.5px; */
+  /* box-sizing: border-box; */
+}
 .top-freeze-container {
   position: sticky;
+  display: inline-block;
   /* top: 0; */
   /* float: left; */
   /* left: 0; */
@@ -145,6 +164,7 @@ html {
   width: 200px;
   font-size: 12px;
   flex-shrink: 0;
+  /* box-sizing: border-box; */
   /* margin-top:0.5px; */
 }
 .grid-row2 {
