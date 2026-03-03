@@ -325,6 +325,7 @@ html {
 }
 
 .selected-cell {
+  pointer-events: none;
   position: absolute;
   box-sizing: border-box;
   border: 1px solid #1a73e8;
