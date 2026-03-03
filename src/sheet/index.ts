@@ -1519,7 +1519,7 @@ export default class Sheet {
             this.probe.style.height = `${this.metrics.getCellHeight(row)+20}px`;
             const probeRect = this.probe.getBoundingClientRect();
             this.probe.style.left = `${scrollLeft + x - this.rowNumberWidth - (probeRect.width / 2)}px`;
-            this.probe.style.top = `${scrollTop + e.clientY - this.headerRowHeight - rect.y - (probeRect.height / 2)}px`;
+            this.probe.style.top = `${scrollTop + e.clientY - this.headerRowHeight - rect.y - (probeRect.height / 2) - (this.options.cellHeaders === false ? this.topFreezeHeight : 0)}px`;
             if (this.atEndWidth()) {
                 this.probe.style.left = `${scrollLeft-30}px`;
             }

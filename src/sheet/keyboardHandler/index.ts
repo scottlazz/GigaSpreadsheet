@@ -176,8 +176,9 @@ export default class KeyboardHandler {
         col = Math.min(col, this.sheet.totalColBounds);
         if (e.shiftKey && e.key !== 'Enter') this.sheet.selectionEnd = { row, col };
         this.sheet.selectCell({ row, col, continuation: e.shiftKey && !['Enter', 'Tab'].includes(e.key) });
-        if (this.sheet.selectedCell) {
-            this.sheet.selectedCell.appendChild(this.sheet.probe);
+        if (this.sheet.activeSelection?.panes?.[0]?.children?.[0]) {
+            const selectedCell = this.sheet.activeSelection?.panes?.[0]?.children?.[0];
+            selectedCell.appendChild(this.sheet.probe);
             this.sheet.probe.style.top = '';
             this.sheet.probe.style.left = '';
             this.sheet.probe.style.bottom = '';
@@ -198,8 +199,8 @@ export default class KeyboardHandler {
                     inline: 'nearest',
                 });
             } else {
-                let w = this.sheet.selectedCell.getBoundingClientRect().width+50;
-                let h = this.sheet.selectedCell.getBoundingClientRect().height+40;
+                let w = selectedCell.getBoundingClientRect().width+50;
+                let h = selectedCell.getBoundingClientRect().height+40;
                 this.sheet.probe.style.width = `${w+this.sheet.rowNumberWidth}px`;
                 this.sheet.probe.style.height = `${h+this.sheet.headerRowHeight}px`;
                 this.sheet.probe.style.left = `-${(w/4)+this.sheet.rowNumberWidth}px`;
