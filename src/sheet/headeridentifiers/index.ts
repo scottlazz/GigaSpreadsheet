@@ -72,8 +72,10 @@ export default class HeaderIdentifiers {
             this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffset(ec)}px`;
             return;
         }
-
-
+        const extra = this.sheet.rowNumberWidth;
+        if (this.headerContainer.style.width === `${(this.sheet.metrics.getWidthOffset(ec+1) + extra).toFixed(2)}px`) {
+            return;
+        }
         this.renderHeaderElems.innerHTML = `<div class="header-cell" style="width:${this.sheet.rowNumberWidth}px"></div>`; // empty first cell for corner
         for (let col: any = sc; col <= ec; col++) {
             const width = this.sheet.metrics.getColWidth(col);
@@ -105,7 +107,6 @@ export default class HeaderIdentifiers {
             headerHandle.setAttribute('data-col', col);
         };
         // const extra = (this.maxCols && this.totalColBounds === this.maxCols-1) ? 0 : 10;
-        const extra = this.sheet.rowNumberWidth;
         this.headerContainer.style.width = `${this.sheet.metrics.getWidthOffset(ec+1) + extra}px`;
     }
 }

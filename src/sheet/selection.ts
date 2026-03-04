@@ -1,8 +1,10 @@
 import Sheet from ".";
+import { Rect } from "./interfaces";
 
 export default class Selection {
     panes: any[];
     sheet: Sheet;
+    rect: Rect;
     constructor(sheet: Sheet) {
         this.sheet = sheet;
         this.panes = [];
@@ -10,6 +12,9 @@ export default class Selection {
         this.addLeft();
         this.addTop();
         this.addCorner();
+    }
+    setRect(rect: Rect) {
+        this.rect = rect;
     }
     addMain() {
         const el = document.createElement('div'); // main
@@ -51,14 +56,46 @@ export default class Selection {
             el.style.display = 'block';
         }
     }
-    appendChild(child, rect) {
+    onMouseDown = (e) => {
+        e.stopPropagation();
+        const coords = this.sheet.getCellFromEvent(e);
+        if (coords.row < this.rect.startRow) coords.row = this.rect.startRow;
+        if (coords.row > this.rect.endRow) coords.row = this.rect.endRow;
+        if (coords.col < this.rect.startCol) coords.col = this.rect.startCol;
+        if (coords.col > this.rect.endCol) coords.col = this.rect.endCol;
+        this.sheet.createGhost(this.rect, coords);
+    }
+    updateDrag() {
+        this.addDrag(
+            this.panes[0].children[0]
+        );
+    }
+    addDrag(el) {
+        const bot = document.createElement('div'); bot.onmousedown = this.onMouseDown;
+        bot.className = 'dragg-border dragg-bottom';
+        el.appendChild(bot);
+        const left = document.createElement('div'); left.onmousedown = this.onMouseDown;
+        left.className = 'dragg-border dragg-left';
+        el.appendChild(left);
+        const top = document.createElement('div'); top.onmousedown = this.onMouseDown;
+        top.className = 'dragg-border dragg-top';
+        el.appendChild(top);
+        const right = document.createElement('div'); right.onmousedown = this.onMouseDown;
+        right.className = 'dragg-border dragg-right';
+        el.appendChild(right);
+        const square = document.createElement('div'); square.onmousedown = this.onMouseDown;
+        square.className = 'dragg-border dragg-square';
+        el.appendChild(square);
+    }
+    appendChild(child, rect, dims) {
         if (this.panes[0]) {
             const clone = child.cloneNode();
-            let top = this.sheet.metrics.getHeightOffset(rect.startRow);
+            let top = dims.top;
             if (this.sheet.freeze.row && this.sheet.options.cellHeaders === false) {
                 top = top - this.sheet.metrics.getHeightOffset(this.sheet.freeze.row)-5;
             }
             clone.style.top = `${top}px`;
+            // this.addDrag(clone);
             this.panes[0].appendChild(clone);
         }
         if (this.panes[1]) {
@@ -71,7 +108,7 @@ export default class Selection {
         }
         if (this.panes[2]) {
             const clone = child.cloneNode();
-            let left = this.sheet.metrics.getWidthOffset(rect.startCol)+this.sheet.rowNumberWidth;
+            let left = dims.left+this.sheet.rowNumberWidth;
             clone.style.left = `${left}px`;
             this.panes[2].appendChild(clone);
         };

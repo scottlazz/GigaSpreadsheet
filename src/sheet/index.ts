@@ -20,6 +20,7 @@ import GridMetrics from './gridmetrics';
 import RowNumbers from './rownumbers';
 import HeaderIdentifiers from './headeridentifiers';
 import Selection from './selection';
+import Ghost from './ghostselection';
 
 export default class Sheet {
     wrapper: HTMLElement;
@@ -71,6 +72,7 @@ export default class Sheet {
     selectedRows: Set<string|number>;
 
     draggingHeader: any;
+    draggingGhost: any;
     draggingRow: any;
     editingCell: any;
     selectionBoundRect: any;
@@ -290,6 +292,7 @@ export default class Sheet {
             // setTimeout(() => {
 
             // })
+            this.selectCell({ row: 0, col: 0 });
     }
 
     applyTheme(theme) {
@@ -867,6 +870,22 @@ export default class Sheet {
         return (this.effectiveDevicePixelRatio() < 1 ? (1 + (1 - this.effectiveDevicePixelRatio())) * (1 + (1 - this.effectiveDevicePixelRatio())) : 1);
     }
 
+    clearCells(rect: Rect) {
+        const { startRow, startCol, endRow, endCol } = rect;
+
+        const deletions = [];
+        for (let row = startRow; row <= endRow; row++) {
+            for (let col = startCol; col <= endCol; col++) {
+                this.recordCellBeforeChange(row,col);
+                this.clearElRegistry(row, col);
+                deletions.push([row, col]);
+                this.updateDim(row,col);
+                this.renderCell(row,col);
+            }
+        }
+        this.data.deleteCells(deletions);
+    }
+
     // Modify the clearSelectedCells function to record changes
     clearSelectedCells() {
         if (!this.selectionBoundRect) return;
@@ -988,7 +1007,6 @@ export default class Sheet {
     }
 
     handleCellDblClick(e: any) {
-        // console.log(e)
         if (e.target === this.editInput) return;
         const { row, col } = this.getCellFromEvent(e);
         if (row === -1 || col === -1) return;
@@ -1056,11 +1074,14 @@ export default class Sheet {
         const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isNotMergedOver(cell.row, cell.col));
         return cells;
     }
-    getSelectedCellsOrVirtual() {
-        if (!this.selectionBoundRect) return [];
-        const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
+    getCellsOrVirtual(rect: Rect) {
+        const { startRow, startCol, endRow, endCol } = rect;
         const cells = this.data.getCellsForce(startRow, startCol, endRow, endCol).filter((cell: {row:number,col:number}) => this.isNotMergedOver(cell.row, cell.col));
         return cells;
+    }
+    getSelectedCellsOrVirtual() {
+        if (!this.selectionBoundRect) return [];
+        return this.getCellsOrVirtual(this.selectionBoundRect);
     }
     getSelectedCellsOrVirtual2D() {
         if (!this.selectionBoundRect) return [];
@@ -1410,13 +1431,29 @@ export default class Sheet {
     selectCell({ row, col, continuation = false, clear = false }: any) {
         if (row === -1 || col === -1) return;
         if (clear) {
-            this.selectionLayer.innerHTML = '';
-            while(this.activeSelections.length > 0) {
-                const selection = this.activeSelections.pop();
-                selection.remove();
+            const merge = this.getMerge(row,col);
+            if (this.activeSelections.length === 1 && merge &&
+                merge.startCol === this.selectionBoundRect.startCol &&
+                merge.startRow === this.selectionBoundRect.startRow &&
+                merge.endRow === this.selectionBoundRect.endRow &&
+                merge.endCol === this.selectionBoundRect.endCol
+            ) {
+                return;
             }
-            this.selectionLayer.appendChild(this.probe)
-            this.addNewSelection(row,col);
+            if (this.activeSelections.length === 1 &&
+                this.selectionBoundRect.startRow === row && this.selectionBoundRect.endRow === row &&
+                this.selectionBoundRect.startCol === col && this.selectionBoundRect.endCol === col
+            ) {
+                return;
+            } else {
+                this.selectionLayer.innerHTML = '';
+                while(this.activeSelections.length > 0) {
+                    const selection = this.activeSelections.pop();
+                    selection.remove();
+                }
+                this.selectionLayer.appendChild(this.probe)
+                this.addNewSelection(row,col);
+            }
         }
         if (!this.activeSelection) this.addNewSelection(row,col);
         if (!continuation) this.selectionStart = { row, col };
@@ -1472,6 +1509,10 @@ export default class Sheet {
         return { startRow, startCol, endRow, endCol };
     }
 
+    createGhost(rect: Rect, start: {row: number, col: number}) {
+        this.draggingGhost = new Ghost(this, rect, start);
+    }
+
     handleMouseMove(e: any) {
         if (this.draggingHeader) {
             const scrollLeft = this.container.scrollLeft;
@@ -1489,6 +1530,9 @@ export default class Sheet {
             // console.log('dragging', (scrollTop + e.clientY - this.headerRowHeight - rect.y - 5) - this.renderRowNumberPadder.offsetTop);
             const top = (scrollTop + e.clientY - this.headerRowHeight - rect.y - 5) - this.rowNumbers.renderRowNumberPadder.getBoundingClientRect().height;
             this.draggingRow.el.style.top = `${top}px`;
+        } else if (this.draggingGhost) {
+            const { row, col } = this.getCellFromEvent(e);
+            this.draggingGhost.draw({row,col});
         } else if (this.isSelecting) {
             this.probe.style.display = 'block';
             const { row, col } = this.getCellFromEvent(e);
@@ -1556,11 +1600,47 @@ export default class Sheet {
             if (row !== -1 && col !== -1) {
                 if (!this.selectionStart) return;
                 this.selectionEnd = { row, col };
-                const rect = this.getBoundingRectCells(this.selectionStart.row, this.selectionStart.col, row, col);
-                this.updateSelection();
+                // this.updateSelection();
+                this.activeSelection.updateDrag();
             }
         } else if (this.isResizing) {
             this.isResizing = false;
+        } else if (this.draggingGhost) {
+            if (this.draggingGhost.lastRect) {
+                this.selectionBoundRect = this.draggingGhost.lastRect;
+                this.updateSelection();
+                this.activeSelection.updateDrag();
+                const cells = this.getCellsOrVirtual(this.draggingGhost.rect);
+                let dr = this.draggingGhost.lastRect.startRow-this.draggingGhost.rect.startRow;
+                let dc = this.draggingGhost.lastRect.startCol-this.draggingGhost.rect.startCol;
+                // this.clearCells(this.draggingGhost.rect);
+                for(let cell of cells) {
+                    let _r = cell.row+dr, _c = cell.col+dc;
+                    this.recordCellBeforeChange(_r,_c);
+                    this.putCellObj(_r,_c, cell);
+                    this.renderCell(_r,_c)
+                }
+                const deletions = [];
+                for (let r = this.draggingGhost.rect.startRow; r <= this.draggingGhost.rect.endRow; r++) {
+                    for(let c = this.draggingGhost.rect.startCol; c <= this.draggingGhost.rect.endCol; c++) {
+                        if (
+                            r < this.draggingGhost.lastRect.startRow || r > this.draggingGhost.lastRect.endRow ||
+                            c < this.draggingGhost.lastRect.startCol || c > this.draggingGhost.lastRect.endCol
+                        ) {
+                            this.recordCellBeforeChange(r,c);
+                            this.clearElRegistry(r,c);
+                            deletions.push([r,c]);
+                            this.updateDim(r,c);
+                            this.renderCell(r,c);
+                        }
+                    }
+                }
+                this.data.deleteCells(deletions);
+                this.historyManager.flushChanges();
+            }
+            this.draggingGhost.ghost.remove();
+            this.draggingGhost = null;
+            this.container.focus();
         } else if (this.draggingHeader) {
             const draggingHeader = this.draggingHeader;
             const col = this.draggingHeader.col;
@@ -1775,11 +1855,11 @@ export default class Sheet {
         }
     }
 
-    updateSelection(fromKeyInput: boolean = false) {
-        this.onSelectionChange();
+    updateSelection(fromKeyInput: boolean = false, rebuild = true) {
         if (!this.activeSelection) return;
-        // Clear previous selection
-        this.activeSelection.clear();
+        if (rebuild) {
+            this.onSelectionChange();
+        }
         if (!this.selectionHandle) return;
         this.selectionHandle.style.display = 'none';
 
@@ -1797,18 +1877,22 @@ export default class Sheet {
             this.activeSelection.show();
         }
         endRow = Math.min(endRow, this.visibleEndRow);
-        const top = this.metrics.getHeightOffset(startRow); // Below header
-        const height = this.metrics.getHeightBetweenRows(startRow, endRow+1);
+        if (rebuild) {
+            this.activeSelection.clear();
+            const top = this.metrics.getHeightOffset(startRow); // Below header
+            const height = this.metrics.getHeightBetweenRows(startRow, endRow+1);
 
-        // Create selection element
-        this.selectedCell = document.createElement('div');
-        this.selectedCell.className = 'selected-cell';
-        this.selectedCell.style.left = `${left}px`;
-        this.selectedCell.style.top = `${top}px`;
-        this.selectedCell.style.width = `${width+1}px`;
-        this.selectedCell.style.height = `${height+1}px`;
+            // Create selection element
+            this.selectedCell = document.createElement('div');
+            this.selectedCell.className = 'selected-cell';
+            this.selectedCell.style.left = `${left}px`;
+            this.selectedCell.style.top = `${top}px`;
+            this.selectedCell.style.width = `${width+1}px`;
+            this.selectedCell.style.height = `${height+1}px`;
 
-        this.activeSelection.appendChild(this.selectedCell, this.selectionBoundRect);
+            this.activeSelection.setRect({startRow,startCol,endRow,endCol});
+            this.activeSelection.appendChild(this.selectedCell, this.selectionBoundRect, {left,top, width: width+1, height: height+1});
+        }
 
         // Add resize handle
         this.positionSelectionHandle();
@@ -1972,14 +2056,7 @@ export default class Sheet {
     handleScroll() {
         const updateVisHeight = this.updateVisHeight();
         const updateVisWidth = this.updateVisWidth();
-        // const h = (this.container.clientHeight + this.container.scrollTop);
-        // const SELECTION_LAYER_ZINDEX = 90;
-        // if (this.container.scrollLeft === 0 && this.freeze.col && this.leftFreezeContainer.style.zIndex > SELECTION_LAYER_ZINDEX) {
-        //     this.leftFreezeContainer.style.zIndex = 91;
-        // } else if (this.container.scrollLeft > 0 && this.freeze.col && this.leftFreezeContainer.style.zIndex <= SELECTION_LAYER_ZINDEX) {
-        //     this.leftFreezeContainer.style.zIndex = 91;
-        // }
-        
+
         if (updateVisHeight || updateVisWidth) {
             console.log('SCROLL UPDATE VIS HEIGHT OR WIDTH')
             this.updateGridDimensions();
@@ -1995,7 +2072,7 @@ export default class Sheet {
             this.headerIdentifiers.renderHeaders();
             this.updateVisibleGrid();
         }
-        this.updateSelection();
+        this.updateSelection(false, false);
     }
 
     get topFreezeHeight () {

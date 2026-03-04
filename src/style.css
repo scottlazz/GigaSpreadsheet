@@ -320,12 +320,51 @@ html {
 
 .selection-layer {
   position: absolute;
-  pointer-events: none;
+  /* pointer-events: none; */
   z-index: 90;
 }
 
+.dragg-border {
+  cursor: move;
+  position: absolute;
+}
+.dragg-left {
+  top: -3.5px;
+  bottom: -3.5px;
+  left: -3.5px;
+  width: 7px;
+}
+.dragg-bottom {
+  left: -3.5px;
+  right: -3.5px;
+  height: 7px;
+  bottom: -3.5px;
+}
+.dragg-right {
+  top: -3.5px;
+  bottom: -3.5px;
+  right: -3.5px;
+  width: 7px;
+}
+.dragg-square {
+  bottom: -1.2px;
+  right: -1.2px;
+  width: 3px;
+  height: 3px;
+  border-top: 1px solid white;
+  border-left: 1px solid white;
+  /* box-sizing: border-box; */
+  background-color: rgba(26, 115, 232, 1);
+}
+.dragg-top {
+  left: -3.5px;
+  right: -3.5px;
+  height: 7px;
+  top: -3.5px;
+}
+
 .selected-cell {
-  pointer-events: none;
+  /* pointer-events: none; */
   position: absolute;
   box-sizing: border-box;
   border: 1px solid #1a73e8;
