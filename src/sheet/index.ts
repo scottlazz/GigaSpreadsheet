@@ -111,8 +111,10 @@ export default class Sheet {
     leftFreezeContainer: any;
     topFreezeContainer: any;
     cornerFreezeContainer: any;
+    gridlinesColor: string;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = 1;
+        this.gridlinesColor = options.gridlinesColor || '#dddddd';
         this.events = {};
         this.toolbar = null;
         this._selectionBoundRects = [];
@@ -288,7 +290,7 @@ export default class Sheet {
             this.initRender();
             this.setData(new SparseGrid(), options.initialCells);
             // }
-            // this.intervalSetRandomData();
+            this.intervalSetRandomData();
             // setTimeout(() => {
 
             // })
@@ -297,7 +299,12 @@ export default class Sheet {
 
     applyTheme(theme) {
         if (!theme) return;
-        if (theme['background-color']) this.container.style.backgroundColor = theme['background-color'];
+        if (theme['background-color']) {
+            this.container.style.backgroundColor = theme['background-color'];
+            this.leftFreezeContainer.style.backgroundColor = theme['background-color'];
+            this.topFreezeContainer.style.backgroundColor = theme['background-color'];
+            this.cornerFreezeContainer.style.backgroundColor = theme['background-color'];
+        }
     }
 
     updatePsuedoStyles() {
@@ -2537,26 +2544,33 @@ export default class Sheet {
         ctx.strokeStyle = borderColor || 'black';
     }
     setGridLineStroke(ctx: any) {
-        ctx.strokeStyle = '#dddddd';
+        ctx.strokeStyle = this.gridlinesColor;
     }
     setClearStroke(ctx: any) {
         ctx.strokeStyle = 'white';
     }
     strokeLine(ctx: any, x1: number, y1: number, x2: number, y2: number) {
         const color = ctx.strokeStyle;
-        // ctx.globalCompositeOperation = 'destination-out';
-        // ctx.strokeStyle = 'rgba(0,0,0,1)';
-        // ctx.beginPath();
-        // ctx.moveTo(x1 + 0.5, y1 + 0.5);
-        // ctx.lineTo(x2 + 0.5, y2 + 0.5);
-        // ctx.stroke();
-
-        // ctx.globalCompositeOperation = 'source-over';
-        // ctx.strokeStyle = color;
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.strokeStyle = 'rgba(0,0,0,1)';
         ctx.beginPath();
         ctx.moveTo(x1 + 0.5, y1 + 0.5);
         ctx.lineTo(x2 + 0.5, y2 + 0.5);
         ctx.stroke();
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(x1 + 0.5, y1 + 0.5);
+        ctx.lineTo(x2 + 0.5, y2 + 0.5);
+        ctx.stroke();
+    }
+    strokePixel(ctx: any, x1: number, y1: number, color: string) {
+        ctx.clearRect(x1,y1,1,1);
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.fillRect(x1,y1,1,1);
+        ctx.restore();
     }
     getBorder(cell, side: string = 'left') {
         const border = cell?.border;
@@ -2657,6 +2671,23 @@ export default class Sheet {
             }
 
             // calc top borders on cells abutting to the bottom
+        }
+
+        if (rightBorder) {
+            this.strokePixel(ctx, rect.l + rect.w, rect.t, rightBorder);
+            this.strokePixel(ctx, rect.l + rect.w, rect.t + rect.h, rightBorder);
+        }
+        if (leftBorder) {
+            this.strokePixel(ctx, rect.l, rect.t, leftBorder);
+            this.strokePixel(ctx, rect.l, rect.t + rect.h, leftBorder);
+        }
+        if (topBorder) {
+            this.strokePixel(ctx, rect.l, rect.t, topBorder);
+            this.strokePixel(ctx, rect.l + rect.w, rect.t, topBorder);
+        }
+        if (bottomBorder) {
+            this.strokePixel(ctx, rect.l, rect.t + rect.h, bottomBorder);
+            this.strokePixel(ctx, rect.l + rect.w, rect.t + rect.h, bottomBorder);
         }
 
         ctx.restore();

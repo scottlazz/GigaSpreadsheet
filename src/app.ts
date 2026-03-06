@@ -14,12 +14,20 @@ document.addEventListener("DOMContentLoaded", (event) => {
             {
                 // gridlinesOn: false,
                 autosize: true,
+                toolbar: false,
+                formulaBar: false,
+                cellHeaders: false,
+                gridlinesColor: '#dddddd',
+                // gridlinesColor: 'rgba(255, 0, 0, 0.1)',
+                // gridlinesColor: 'red',
+                freeze: {row: 0, col: 0},
+                // theme: {'background-color': 'red'}
                 // blockRows: 5,
                 // blockCols: 4,
             }
         , {
-            cellHeaders: true,
-            autosize: true,
+            // cellHeaders: true,
+            // autosize: true,
             // renderCustomCell: (cell: any, { left, top, width, height }: any) => {
             //     console.log('rendering custom cell', cell, left, top, width, height);
             //     const button = document.createElement('button');

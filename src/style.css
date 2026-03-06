@@ -167,10 +167,8 @@ html {
   /* box-sizing: border-box; */
   /* margin-top:0.5px; */
 }
-.grid-row2 {
-  display: flex;
-  flex-direction: row;
-  
+.grid-container,.left-freeze-container,.top-freeze-container,.corner-freeze-container {
+  background: white;
 }
 .row-number {
   text-align: center;

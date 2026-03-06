@@ -36,7 +36,6 @@ export default class RowNumbers {
         this.rowNumberContainer.appendChild(this.psuedoStyle);
     }
     toggle() {
-        console.log('this.sheet.topFreezeHeight', this.sheet.topFreezeHeight)
         if (this.sheet.options.cellHeaders !== false) {
             this.rowNumberContainer.style.width = `${this.sheet.rowNumberWidth}px`;
             this.rowNumberContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;

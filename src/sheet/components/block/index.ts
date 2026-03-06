@@ -157,7 +157,7 @@ class SubBlock {
         ctx.fillStyle = '#333333';
         // const scaler = 88;
         // ctx.strokeStyle = `hsl(0,0%,88%)`;
-        ctx.strokeStyle = '#dddddd';
+        ctx.strokeStyle = this.sheet.gridlinesColor;
         ctx.lineWidth = 1;
     }
 
