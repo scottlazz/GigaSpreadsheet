@@ -117,14 +117,19 @@ export default class Metrics {
             height: newHeight
         };
     }
+    textWrapWidth(col) {
+        if (col in this.sheet.widthOverrides) return this.sheet.widthOverrides[col]*this.sheet.zoomLevel;
+        return this.sheet.cellWidth*this.sheet.zoomLevel;
+    }
     measureCell(ctx: any, cell: any) {
         if (cell.wrapText) {
+            const width = this.textWrapWidth(cell.col)*this.sheet.effectiveDevicePixelRatio();
             const wm = this.measureWrapText(ctx, cell.text || '',
-                this.getCellWidth(cell.col)*this.sheet.effectiveDevicePixelRatio()
+                width
             )
             const scaledHeight = (wm.height);
             cell._dims = {height: scaledHeight, lines: wm.lines, lineHeight: wm.lineHeight}
-            return {mwidth: this.getCellWidth(cell.col), mheight: scaledHeight, height: wm.height};
+            return {mwidth: width, mheight: scaledHeight, height: wm.height};
         } else {
             const m = ctx.measureText(cell.text);
             const height = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;

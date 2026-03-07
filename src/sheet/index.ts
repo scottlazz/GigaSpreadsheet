@@ -595,6 +595,11 @@ export default class Sheet {
                 this.zoomOut();
             } else if (action === 'Zoom in') {
                 this.zoomIn();
+            } else if (action === 'Wrap') {
+                const selectedCells = this.getSelectedCells();
+                this.setCellsMutate(selectedCells, (cell: any) => {
+                    cell.wrapText = !cell.wrapText;
+                });
             } else if (action === 'Shrink Font') {
                 const selectedCells = this.getSelectedCells();
                 this.setCellsMutate(selectedCells, (cell: any) => {
