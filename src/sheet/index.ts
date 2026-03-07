@@ -27,7 +27,7 @@ export default class Sheet {
     container: HTMLElement;
     cornerCell: HTMLElement;
     selectionLayer: HTMLElement;
-    editInput: HTMLInputElement;
+    editInput: HTMLTextAreaElement;
     lastDevicePixelRatio: number;
     lastBlockCanvases: number;
     visibleStartRow: number;
@@ -91,11 +91,11 @@ export default class Sheet {
     maxRows: number | null;
     maxCols: number | null;
     initialCells: any;
-    widthMaxByCol: any;
     needDims: any;
     dimUpdatesQueued: any;
     measureCanvas: any;
     maxWidthInCol: any;
+    maxHeightInRow: any;
     historyManager: HistoryManager;
     keyboardHandler: KeyboardHandler;
     copyHandler: CopyHandler;
@@ -112,9 +112,13 @@ export default class Sheet {
     topFreezeContainer: any;
     cornerFreezeContainer: any;
     gridlinesColor: string;
+    defaultFontSize: number;
+    drawGridlinesOverBackground: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
-        this.zoomLevel = 1;
+        this.zoomLevel = options.zoomLevel || 1;
+        this.drawGridlinesOverBackground = options.drawGridlinesOverBackground || false;
         this.gridlinesColor = options.gridlinesColor || '#dddddd';
+        this.defaultFontSize = options.defaultFontSize || 12;
         this.events = {};
         this.toolbar = null;
         this._selectionBoundRects = [];
@@ -229,7 +233,7 @@ export default class Sheet {
         this.heightOverrides = this.buildOverrides(options.heightOverrides);
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
         this.maxWidthInCol = [];
-        this.widthMaxByCol = {};
+        this.maxHeightInRow = [];
         this.gridlinesOn = options.gridlinesOn ?? true;
         this.activeCornerPaneBlocks = new Map();
         this.activeTopPaneBlocks = new Map();
@@ -261,10 +265,11 @@ export default class Sheet {
         this.visibleEndCol = 0;
 
         // Add edit input element
-        this.editInput = document.createElement('input');
+        this.editInput = document.createElement('textarea');
         this.editInput.className = 'cell-edit-input';
         this.editInput.style.position = 'absolute';
         this.editInput.style.display = 'none';
+        this.editInput.setAttribute('spellcheck', 'false');
         this.container.appendChild(this.editInput);
         // Initialize
         this.initEventListeners();
@@ -290,7 +295,7 @@ export default class Sheet {
             this.initRender();
             this.setData(new SparseGrid(), options.initialCells);
             // }
-            this.intervalSetRandomData();
+            // this.intervalSetRandomData();
             // setTimeout(() => {
 
             // })
@@ -578,13 +583,13 @@ export default class Sheet {
                 const selectedCells = this.getSelectedCells();
                 this.setCellsMutate(selectedCells, (cell: any) => {
                     if (cell.fontSize == null) {
-                        cell.fontSize = 12;
+                        cell.fontSize = this.defaultFontSize;
                     }
                     cell.fontSize++;
                 });
                 const c = selectedCells[0];
                 if (c?.row == null) return;
-                const fontSize = this.getCell(c.row, c.col)?.fontSize || '12';
+                const fontSize = this.getCell(c.row, c.col)?.fontSize || this.defaultFontSize.toString();
                 this.toolbar?.set('fontSize', fontSize.toString());
             } else if (action === 'Zoom out') {
                 this.zoomOut();
@@ -594,13 +599,13 @@ export default class Sheet {
                 const selectedCells = this.getSelectedCells();
                 this.setCellsMutate(selectedCells, (cell: any) => {
                     if (cell.fontSize == null) {
-                        cell.fontSize = 12;
+                        cell.fontSize = this.defaultFontSize;
                     }
                     cell.fontSize--;
                 });
                 const c = selectedCells[0];
                 if (c?.row == null) return;
-                const fontSize = this.getCell(c.row, c.col)?.fontSize || '12';
+                const fontSize = this.getCell(c.row, c.col)?.fontSize || this.defaultFontSize.toString();
                 this.toolbar?.set('fontSize', fontSize.toString());
             } else if (action === 'Bold') {
                 const selectedCells = this.getSelectedCells();
@@ -948,6 +953,11 @@ export default class Sheet {
             delete this.widthOverrides[col];
         } else {
             this.widthOverrides[col] = width;
+        }
+        const cells = this.data.getCol(col);
+        for(let r in cells) {
+            const cell = cells[r];
+            if (cell.wrapText) this.updateDim(cell.row,cell.col);
         }
     }
 
@@ -1757,7 +1767,7 @@ export default class Sheet {
                 startCol <= merged.endCol &&
                 endCol >= merged.startCol
             ) {
-                alert('Cannot merge cells that overlap with existing merged cells.');
+                console.warn('Cannot merge cells that overlap with existing merged cells.');
                 return;
             }
         }
@@ -1835,7 +1845,7 @@ export default class Sheet {
             this.formulaBar.input.value = ref;
             this.formulaBar.textarea.value = this.getTrueValue(row,col);
         }
-        const fontSize = this.getCell(row, col)?.fontSize || '12';
+        const fontSize = this.getCell(row, col)?.fontSize || this.defaultFontSize.toString();
         this.toolbar?.set('fontSize', fontSize.toString());
         const fontFamily = this.getCell(row, col).ff || 'Arial';
         this.toolbar?.set('fontFamily', fontFamily);
@@ -2604,10 +2614,11 @@ export default class Sheet {
 
         // left border
         const leftCell = this.getCellOrMerge(cell.row, cell.col-1);
-        const leftBorder = this.getBorder(cell, 'left') || this.getBorder(leftCell, 'right')
+        const leftBorder = this.getBorder(cell, 'left') || this.getBorder(leftCell, 'right');
+        const gridlinesColor = this.shouldDrawGridlines && this.drawGridlinesOverBackground && this.gridlinesColor;
         //  || cell.bc || leftCell?.bc;
-        if (leftBorder) {
-            this.setBorStroke(ctx, leftBorder);
+        if (leftBorder || gridlinesColor) {
+            this.setBorStroke(ctx, leftBorder || gridlinesColor);
             this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
         } else if (!fromBlockRender) {
             if (this.getCellOrMerge(cell.row, cell.col-1)?.bc) {
@@ -2623,8 +2634,8 @@ export default class Sheet {
         const topCell = this.getCellOrMerge(cell.row-1, cell.col);
         const topBorder = this.getBorder(cell, 'top') || this.getBorder(topCell, 'bottom')
         //  || cell.bc || topCell?.bc;
-        if (topBorder) {
-            this.setBorStroke(ctx, topBorder);
+        if (topBorder || gridlinesColor) {
+            this.setBorStroke(ctx, topBorder || gridlinesColor);
             this.strokeLine(ctx, rect.l, rect.t, rect.l + rect.w, rect.t);
         } else if (!fromBlockRender) {
             if (this.getCellOrMerge(cell.row-1, cell.col)?.bc) {
@@ -2641,8 +2652,8 @@ export default class Sheet {
         const rightCell = this.getCellOrMerge(cell.row, cell.col+1);
         const rightBorder = this.getBorder(cell, 'right') || this.getBorder(rightCell, 'left')
         //  || cell.bc || rightCell?.bc;
-        if (rightBorder) {
-            this.setBorStroke(ctx, rightBorder);
+        if (rightBorder || gridlinesColor) {
+            this.setBorStroke(ctx, rightBorder || gridlinesColor);
             this.strokeLine(ctx, rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
         } else if (!fromBlockRender) {
             if (this.getCellOrMerge(cell.row, cell.col+1)?.bc) {
@@ -2659,8 +2670,8 @@ export default class Sheet {
         const bottomCell = this.getCellOrMerge(cell.row+1, cell.col);
         const bottomBorder = this.getBorder(cell, 'bottom') || this.getBorder(bottomCell, 'top')
         //  || cell.bc || bottomCell?.bc;
-        if (bottomBorder) {
-            this.setBorStroke(ctx, bottomBorder);
+        if (bottomBorder || gridlinesColor) {
+            this.setBorStroke(ctx, bottomBorder || gridlinesColor);
             this.strokeLine(ctx, rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
         } else if (!fromBlockRender) {
             if (this.getCellOrMerge(cell.row+1, cell.col)?.bc) {
@@ -2809,6 +2820,7 @@ export default class Sheet {
         const ctx = this.measureCanvas.getContext('2d');
         let needsRerender = false;
         let colsNeedingRemax: any = {};
+        let rowsNeedingRemax: any = {};
         for(let key in this.needDims) {
 
             const [row,col] = this.needDims[key];
@@ -2819,47 +2831,72 @@ export default class Sheet {
                 continue;
             }
             let isMerge: any = this.getMerge(row,col);
+            let shouldResizeWidth = !(cell.col in this.widthOverrides) && this.options.autosizeWidth;
+            let shouldResizeHeight = !(cell.row in this.heightOverrides) && this.options.autosizeHeight;
             if (isMerge) {
-                if (isMerge.startCol === isMerge.endCol) {
-                    isMerge = false;
-                }
+                if (shouldResizeWidth && isMerge.startCol === isMerge.endCol) {
+                } else { shouldResizeWidth = false };
+                if (shouldResizeHeight && isMerge.startRow === isMerge.endRow) {
+                } else { shouldResizeHeight = false };
             }
-            if (isMerge && !cell.ul) {
-                delete this.needDims[key];
-                continue;
-            }
-            if (cell.text && cell.text.length > 3) {
+            let shouldMeasure = shouldResizeWidth || shouldResizeHeight;
+            if (cell.ul) { shouldMeasure = true };
+            if (cell.wrapText) { shouldMeasure = true };
+            delete this.needDims[key];
+            if (!shouldMeasure) continue;
+            if (cell.text && cell.text.length > 0) {
                 this.setTextCtx(ctx, row, col);
-                const m = ctx.measureText(cell.text);
-                const mwidth = (m.width/(this.effectiveDevicePixelRatio()*this.zoomLevel))+5;
-                if (isMerge) {
-                    cell._dims = {width: mwidth};
-                    continue;
-                }
-                if (this.maxWidthInCol[cell.col]) {
-                    if (mwidth > this.maxWidthInCol[cell.col].max) {
+                const m = this.metrics.measureCell(ctx, cell);
+                const { mwidth, mheight } = m;
+                if (shouldResizeWidth) {
+                    if (this.maxWidthInCol[cell.col]) {
+                        if (mwidth > this.maxWidthInCol[cell.col].max) {
+                            this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
+                            needsRerender = true;
+                        } else if (mwidth < this.maxWidthInCol[cell.col].max-50 && // subtract some width so it doesnt resize too much
+                            this.maxWidthInCol[cell.col].row === cell.row
+                        ) {
+                            this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
+                            needsRerender = true;
+                            colsNeedingRemax[cell.col] = true;
+                        }
+                    } else if (mwidth > this.cellWidth) {
                         this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
                         needsRerender = true;
-                    } else if (mwidth < this.maxWidthInCol[cell.col].max-50 && // subtract some width so it doesnt resize too much
-                        this.maxWidthInCol[cell.col].row === cell.row
-                    ) {
-                        this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
-                        needsRerender = true;
-                        colsNeedingRemax[cell.col] = true;
                     }
-                } else if (mwidth > this.cellWidth) {
-                    this.maxWidthInCol[cell.col] = {max: mwidth, row: cell.row};
-                    needsRerender = true;
+                }
+                if (shouldResizeHeight) {
+                    if (this.maxHeightInRow[cell.row]) {
+                        if (mheight > this.maxHeightInRow[cell.row].max) {
+                            this.maxHeightInRow[cell.row] = {max: mheight, col: cell.col};
+                            needsRerender = true;
+                        } else if (mheight < this.maxHeightInRow[cell.row].max-2 && // subtract some
+                            this.maxHeightInRow[cell.row].col === cell.col
+                        ) {
+                            this.maxHeightInRow[cell.row] = {max: mheight, col: cell.col};
+                            needsRerender = true;
+                            rowsNeedingRemax[cell.row] = true;
+                        }
+                    } else if (mheight > this.cellHeight) {
+                        this.maxHeightInRow[cell.row] = {max: mheight, col: cell.col};
+                        // console.log(this.maxHeightInRow[cell.row])
+                        needsRerender = true;
+                    }
                 }
 
-                cell._dims = {width: mwidth};
+                // cell._dims = {width: mwidth, height: mheight};
             } else {
                 if (this.maxWidthInCol[cell.col] && this.maxWidthInCol[cell.col].row === cell.row) {
                     this.maxWidthInCol[cell.col].max = 0;
                     needsRerender = true;
                     colsNeedingRemax[cell.col] = true;
                 }
-                cell._dims = {width: 0};
+                if (this.maxHeightInRow[cell.row] && this.maxHeightInRow[cell.row].col === cell.col) {
+                    this.maxHeightInRow[cell.row].max = 0;
+                    needsRerender = true;
+                    rowsNeedingRemax[cell.row] = true;
+                }
+                cell._dims = {width: 0, height: 0};
             }
             delete this.needDims[key];
         }
@@ -2876,10 +2913,25 @@ export default class Sheet {
                 }
             }
         }
+        for(let row in rowsNeedingRemax) {
+            const cells = this.data.getRow(row);
+            for(let key in cells) {
+                const cell = cells[key];
+                if (!this.isNotMergedOver(cell.row,cell.col)) continue;
+                if (cell._dims) {
+                    if (cell._dims.height > this.maxHeightInRow[cell.row].max) {
+                        this.maxHeightInRow[cell.row].max = cell._dims.height;
+                        this.maxHeightInRow[cell.row].col = cell.col;
+                    }
+                }
+            }
+        }
         this.dimUpdatesQueued = false;
         if (needsRerender) {
             this.updateWidthAccum();
+            this.updateHeightAccum();
             this.headerIdentifiers.renderHeaders();
+            this.rowNumbers.renderRowNumbers();
             this.forceRerender();
             this.updateSelection();
         }
@@ -2887,8 +2939,8 @@ export default class Sheet {
 
     updateDim(row: any, col: any) {
         if (!this.isNotMergedOver(row,col)) return;
-        if (!this.options?.autosize) return;
-        if (col in this.widthOverrides && !this.getCell(row,col)?.ul) return;
+        // if (!this.options?.autosize) return;
+        // if (col in this.widthOverrides && !this.getCell(row,col)?.ul) return;
         this.needDims[[row,col].toString()] = [row,col];
         if (!this.dimUpdatesQueued) {
             this.dimUpdatesQueued = true;
@@ -3078,14 +3130,14 @@ export default class Sheet {
         }
     }
 
-    setTextCtx(ctx: any, row: number, col: number) {
+    setTextCtx(ctx: any, row: number, col: number, scale = true) {
         const cell = this.getCellOrMerge(row,col);
         if (this.getCellColor(cell.row, cell.col)) {
             ctx.fillStyle = this.getCellColor(cell.row, cell.col);
         } else if (isNumeric(cell.text) && cell.text < 0) {
             ctx.fillStyle = 'red';
         }
-        ctx.font = this.getFontString(cell.row, cell.col);
+        ctx.font = this.getFontString(cell.row, cell.col, scale);
         if (this.getCell(cell.row, cell.col)?.textBaseline != null) {
             ctx.textBaseline = this.getCell(cell.row, cell.col).textBaseline;
         }
@@ -3093,6 +3145,25 @@ export default class Sheet {
         if (textAlign !== 'left') {
             ctx.textAlign = this.getCellTextAlign(row, col);
         }
+        const valign = cell.valign || 'top';
+        if (valign === 'top') {
+            ctx.textBaseline = 'top';
+        } else if (valign === 'bottom') {
+            ctx.textBaseline = 'bottom';
+        } else { // middle/default
+            ctx.textBaseline = 'middle';
+        }
+    }
+
+    drawRotatedText(context, text, x, y, angleInDegrees) {
+        context.save();
+        context.translate(x, y);
+        const angleInRadians = angleInDegrees * Math.PI / 180;
+        context.rotate(angleInRadians);
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(text, 0, 0);
+        context.restore();
     }
 
     renderCellText(ctx: any, row: number, col: number) {
@@ -3128,21 +3199,60 @@ export default class Sheet {
         const rowH = height;
         let yPos: number;
         const valign = cell.valign || 'top';
-        if (valign === 'top') {
-            ctx.textBaseline = 'top';
-            yPos = top + 2.5;
-        } else if (valign === 'bottom') {
-            ctx.textBaseline = 'bottom';
-            yPos = top + rowH - 2;
-        } else { // middle/default
-            ctx.textBaseline = 'middle';
-            yPos = top + rowH / 2;
+        if (cell.wrapText && cell._dims?.lines) {
+            if (valign === 'top') {
+                ctx.textBaseline = 'top';
+                yPos = top + 2.5;
+            } else if (valign === 'bottom') {
+                ctx.textBaseline = 'top';
+                yPos = top + rowH - (cell._dims.height*this.zoomLevel);
+            } else { // middle/default
+                ctx.textBaseline = 'top';
+                yPos = (top + (rowH / 2)-((cell._dims.height*this.zoomLevel)/2));
+            }
+            const { lines, lineHeight } = cell._dims;
+            ctx.rect((left + 1.4) * dpr, (top + 1.4) * dpr, (width - 2.8) * dpr, (rowH - 1) * dpr); // Adjust y position based on your text baseline
+            let region = new Path2D();
+            region.rect((left + 1.4) * dpr, (top + 1.4) * dpr, (width - 2.8) * dpr, (rowH - 1) * dpr);
+            ctx.clip(region);
+            const h = lineHeight;
+            for(let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                ctx.fillText(line, textX * dpr, (yPos + (h*i*this.zoomLevel)) * dpr);
+            }
+        } else {
+            if (valign === 'top') {
+                ctx.textBaseline = 'top';
+                if (cell.textRot) {
+                    yPos = top + ((cell._dims.height*this.zoomLevel)/2);
+                } else {
+                    yPos = top + 2.5;
+                }
+            } else if (valign === 'bottom') {
+                ctx.textBaseline = 'bottom';
+                if (cell.textRot) {
+                    yPos = (top + rowH) - ((cell._dims.height*this.zoomLevel)/2);
+                } else {
+                    yPos = top + rowH - 2;
+                }
+            } else { // middle/default
+                ctx.textBaseline = 'middle';
+                if (cell.textRot) {
+                    yPos = (top + rowH / 2);
+                } else {
+                    yPos = (top + rowH / 2)+1;
+                }
+            }
+            ctx.rect((left + 1.4) * dpr, (top + 1.4) * dpr, (width - 2.8) * dpr, (rowH - 1) * dpr); // Adjust y position based on your text baseline
+            let region = new Path2D();
+            region.rect((left + 1.4) * dpr, (top + 1.4) * dpr, (width - 2.8) * dpr, (rowH - 1) * dpr);
+            ctx.clip(region);
+            if (cell.textRot) {
+                this.drawRotatedText(ctx, text, textX*dpr, yPos * dpr, cell.textRot);
+            } else {
+                ctx.fillText(text, textX * dpr, yPos * dpr);
+            }
         }
-        ctx.rect((left + 1.4) * dpr, (top + 1.4) * dpr, (width - 2.8) * dpr, (rowH - 1) * dpr); // Adjust y position based on your text baseline
-        let region = new Path2D();
-        region.rect((left + 1.4) * dpr, (top + 1.4) * dpr, (width - 2.8) * dpr, (rowH - 1) * dpr);
-        ctx.clip(region);
-        ctx.fillText(text, textX * dpr, yPos * dpr);
 
         // ctx.rect((left+1.4) * dpr, (top+1.4) * dpr, (width-2.8) * dpr, (this.metrics.rowHeight(row)-1) * dpr); // Adjust y position based on your text baseline
         // let region = new Path2D();
@@ -3150,7 +3260,7 @@ export default class Sheet {
         // ctx.clip(region);
         // ctx.fillText(text, (textX) * dpr, ((top + this.metrics.rowHeight(row) / 2)+1) * dpr);
 
-        if (cell.ul && cell._dims) {
+        if (cell.ul && cell._dims && !cell.wrapText) {
             ctx.beginPath();
             ctx.strokeStyle = cell.color || 'black';
             ctx.lineWidth = cell.fontSize ? this.getFontSize(cell.row, cell.col) / 6 : 2;
@@ -3183,7 +3293,7 @@ export default class Sheet {
     }
 
     getFontSize(row: number, col: number) {
-        return this.getCell(row, col)?.fontSize ?? 12;
+        return this.getCell(row, col)?.fontSize ?? this.defaultFontSize;
     }
 
     getCellColor(row: number, col: number) {
@@ -3197,10 +3307,10 @@ export default class Sheet {
         return text;
     }
 
-    getFontString(row: number | null = null, col: number | null = null) {
-        let fontSize = 12*this.effectiveDevicePixelRatio()*this.zoomLevel;
-        if (row != null && col != null && this.getCell(row, col).fontSize != null) {
-            fontSize = this.getCell(row, col).fontSize*this.effectiveDevicePixelRatio()*this.zoomLevel;
+    getFontString(row: number | null = null, col: number | null = null, scale = true) {
+        let fontSize = this.getCell(row, col).fontSize == null ? this.defaultFontSize : this.getCell(row, col).fontSize;
+        if (scale) {
+            fontSize = fontSize*this.effectiveDevicePixelRatio()*this.zoomLevel;
         }
         let bold, italic, fontFamily = 'Arial';
         if (row != null && col != null) {
@@ -3214,10 +3324,10 @@ export default class Sheet {
 
         fontString += `${fontSize}px ${fontFamily}`;
 
-        if (this.quality() === 'max' && this.effectiveDevicePixelRatio() >= 1) {
+        // if (this.quality() === 'max' && this.effectiveDevicePixelRatio() >= 1) {
             // Only use subpixel rendering when not zoomed out
-            fontString += ', sans-serif';
-        }
+            // fontString += ', sans-serif';
+        // }
 
         return fontString;
     }

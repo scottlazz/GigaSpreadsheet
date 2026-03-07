@@ -211,6 +211,10 @@ export default class SparseGrid {
         return colData;
     }
 
+    getRow(row) {
+        return this._data[row];
+    }
+
     deleteCol(col) {
         const colData = this.getCol(col);
         const colCount = this._colCounts[col];

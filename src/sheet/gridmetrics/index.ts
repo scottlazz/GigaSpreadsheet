@@ -55,7 +55,9 @@ export default class Metrics {
         return this.getColWidth(col);
     }
     rowHeight(row: any) {
-        return this.sheet.heightOverrides[row] != null ? this.sheet.heightOverrides[row]*this.sheet.zoomLevel : this.sheet.cellHeight*this.sheet.zoomLevel;
+        if (row in this.sheet.heightOverrides) return this.sheet.heightOverrides[row]*this.sheet.zoomLevel;
+        if (row in this.sheet.maxHeightInRow && this.sheet.maxHeightInRow[row].max > this.sheet.cellHeight) return this.sheet.maxHeightInRow[row].max*this.sheet.zoomLevel;
+        return this.sheet.cellHeight*this.sheet.zoomLevel;
     }
     getCellHeight(row: number, col = null) {
         return this.rowHeight(row);
@@ -102,6 +104,70 @@ export default class Metrics {
         }
         return { left, top, width, height, row, col };
     }
+    calculateRotatedDimensions(width, height, degrees) {
+        const radians = degrees * Math.PI / 180;
+        let angle = Math.abs(radians);
+        if (angle >= Math.PI / 2) {
+            angle = Math.PI - angle;
+        }
+        const newWidth = (width * Math.abs(Math.cos(angle))) + (height * Math.abs(Math.sin(angle)));
+        const newHeight = (width * Math.abs(Math.sin(angle))) + (height * Math.abs(Math.cos(angle)));
+        return {
+            width: newWidth,
+            height: newHeight
+        };
+    }
+    measureCell(ctx: any, cell: any) {
+        if (cell.wrapText) {
+            const wm = this.measureWrapText(ctx, cell.text || '',
+                this.getCellWidth(cell.col)*this.sheet.effectiveDevicePixelRatio()
+            )
+            const scaledHeight = (wm.height);
+            cell._dims = {height: scaledHeight, lines: wm.lines, lineHeight: wm.lineHeight}
+            return {mwidth: this.getCellWidth(cell.col), mheight: scaledHeight, height: wm.height};
+        } else {
+            const m = ctx.measureText(cell.text);
+            const height = m.actualBoundingBoxAscent + m.actualBoundingBoxDescent;
+            const mwidth = (m.width/(this.sheet.effectiveDevicePixelRatio()*this.sheet.zoomLevel))+5;
+            const mheight = ((height*1.1)/(this.sheet.effectiveDevicePixelRatio()*this.sheet.zoomLevel))+5;
+            if (cell.textRot) {
+                const newDims = this.calculateRotatedDimensions(mwidth, mheight, cell.textRot);
+                cell._dims = {width: newDims.width, height: newDims.height};
+                return {height, mwidth: newDims.width, mheight: newDims.height, m};
+            } else {
+                cell._dims = {width: mwidth, height: mheight};
+                return {height, mwidth, mheight, m};
+            }
+        }
+    }
+    measureWrapText(ctx: any, text, maxWidth: number) {
+        var words = text.split(' ');
+        var line = '';
+        const lines = [];
+        let y = 0;
+        let lineHeight;
+        for (var n = 0; n < words.length; n++) {
+            var testLine = line + words[n] + ' ';
+            var metrics = ctx.measureText(testLine);
+            if (!lineHeight) {
+                lineHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
+                lineHeight = ((lineHeight/this.sheet.effectiveDevicePixelRatio()*this.sheet.zoomLevel)/this.sheet.zoomLevel)+5
+            }
+            var testWidth = metrics.width;
+            if (testWidth > maxWidth && n > 0) {
+                lines.push(line);
+                line = words[n] + ' ';
+                y += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        if (line) {
+            lines.push(line);
+            y += lineHeight;
+        }
+        return { height: y, lines, lineHeight: lineHeight };
+    }
     getCellCoordsCanvas(row: number, col: number): CellCoordsRect {
         const block = this.sheet.getSubBlock(row, col);
         // if (!block) return null;
@@ -143,10 +209,8 @@ export default class Metrics {
         // Adjust for header and row numbers
         let x = Math.max(0, (this.sheet.rowNumberWidth + 8) - scrollLeft) - rect.left + scrollLeft - this.sheet.rowNumberWidth; // 50 for row numbers
         let y = (this.sheet.headerRowHeight + 8) - rect.top + scrollTop - this.sheet.headerRowHeight;
-        // console.log(x,y)
         x = scrollLeft;
         y = scrollTop;
-        // console.log(scrollLeft,scrollTop)
         if (x < 0 || y < 0) return { row: -1, col: -1 };
 
         // Find column
@@ -197,8 +261,6 @@ export default class Metrics {
         row = Math.min(row+1, this.sheet.totalRowBounds);
         col = Math.min(col+1, this.sheet.totalColBounds);
 
-        // if (this.maxRows) row = Math.min(row, this.maxRows);
-        // if (this.maxCols) col = Math.min(col, this.maxCols);
         return {
             row,
             col

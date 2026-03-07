@@ -386,10 +386,6 @@ html {
   cursor: nwse-resize;
 }
 
-.grid-placeholder {
-  /* animation: placeholderAnimation 1.5s linear infinite; */
-}
-
 @keyframes placeholderAnimation {
   /* 0% { background-position: 0 0; }
             100% { backgroundPosition: 40px 40px; } */
@@ -410,6 +406,7 @@ html {
   font: 12px Arial;
   box-sizing: border-box;
   z-index: 300;
+  max-width: 200px;
 }
 
 body {

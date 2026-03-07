@@ -93,7 +93,7 @@ export default class HistoryManager {
         } else {
             this.sheet.rerenderCells(updatedCells);
         }
-        // this.sheet.updateSelection();
+        this.sheet.updateSelection();
         if (this.sheet.selectionBoundRect) {
             this.sheet.selectCell({ row: this.sheet.selectionBoundRect.startRow, col: this.sheet.selectionBoundRect.startCol, clear: true });
         }
@@ -160,7 +160,7 @@ export default class HistoryManager {
         } else {
             this.sheet.rerenderCells(updatedCells);
         }
-        // this.sheet.updateSelection();
+        this.sheet.updateSelection();
         if (this.sheet.selectionBoundRect) {
             this.sheet.selectCell({ row: this.sheet.selectionBoundRect.startRow, col: this.sheet.selectionBoundRect.startCol, clear: true });
         }
