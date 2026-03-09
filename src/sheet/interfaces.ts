@@ -26,5 +26,7 @@ export interface CellCoordsRect {
     width: number,
     height: number,
     row: number,
-    col: number
+    col: number,
+    endRow?: number,
+    endCol?: number
 }

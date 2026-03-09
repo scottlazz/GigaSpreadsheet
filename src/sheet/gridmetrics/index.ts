@@ -89,20 +89,22 @@ export default class Metrics {
     }
     getCellCoordsContainer(row: number, col: number): CellCoordsRect {
         const merge = this.sheet.getMerge(row, col);
-        let left, top, width, height, value;
+        let left, top, width, height, endRow, endCol;
         if (merge) {
             left = this.getWidthOffset(merge.startCol, true);
             top = this.getHeightOffset(merge.startRow, true);
             width = this.getMergeWidth(merge);
             height = this.getMergeHeight(merge);
             row = merge.startRow, col = merge.startCol;
+            endRow = merge.endRow, endCol = merge.endCol;
         } else {
             left = this.getWidthOffset(col, true);
             top = this.getHeightOffset(row, true);
             width = this.getCellWidth(row, col);
             height = this.rowHeight(row);
+            endRow = row, endCol = col;
         }
-        return { left, top, width, height, row, col };
+        return { left, top, width, height, row, col, endRow, endCol };
     }
     calculateRotatedDimensions(width, height, degrees) {
         const radians = degrees * Math.PI / 180;
@@ -117,17 +119,35 @@ export default class Metrics {
             height: newHeight
         };
     }
+    getWidthBetweenColumnsWrapAccum(col1: number, col2: number) {
+        let accumulatedWidth = 0;
+        for (let _col = col1; _col <= col2; _col++) {
+            const colWidth = this.textWrapWidth(_col);
+            accumulatedWidth += colWidth;
+        }
+        return accumulatedWidth;
+    }
+    calcTextWrapWidth(cell) {
+        const col = cell.col;
+        const merge = this.sheet.getMerge(cell.row, cell.col);
+        if (merge) {
+            return this.getWidthBetweenColumnsWrapAccum(merge.startCol, merge.endCol)*this.sheet.zoomLevel;
+        }
+        if (col in this.sheet.widthOverrides) return this.sheet.widthOverrides[col]*this.sheet.zoomLevel;
+        // return bounds.width;
+        return this.sheet.cellWidth*this.sheet.zoomLevel;
+    }
     textWrapWidth(col) {
         if (col in this.sheet.widthOverrides) return this.sheet.widthOverrides[col]*this.sheet.zoomLevel;
         return this.sheet.cellWidth*this.sheet.zoomLevel;
     }
     measureCell(ctx: any, cell: any) {
         if (cell.wrapText) {
-            const width = this.textWrapWidth(cell.col)*this.sheet.effectiveDevicePixelRatio();
+            const width = this.calcTextWrapWidth(cell);
             const wm = this.measureWrapText(ctx, cell.text || '',
-                width
+                width*this.sheet.effectiveDevicePixelRatio()
             )
-            const scaledHeight = (wm.height);
+            const scaledHeight = (wm.height+4);
             cell._dims = {height: scaledHeight, lines: wm.lines, lineHeight: wm.lineHeight}
             return {mwidth: width, mheight: scaledHeight, height: wm.height};
         } else {
@@ -156,7 +176,7 @@ export default class Metrics {
             var metrics = ctx.measureText(testLine);
             if (!lineHeight) {
                 lineHeight = metrics.actualBoundingBoxAscent + metrics.actualBoundingBoxDescent;
-                lineHeight = ((lineHeight/this.sheet.effectiveDevicePixelRatio()*this.sheet.zoomLevel)/this.sheet.zoomLevel)+5
+                lineHeight = ((lineHeight/this.sheet.effectiveDevicePixelRatio())/this.sheet.zoomLevel)+5
             }
             var testWidth = metrics.width;
             if (testWidth > maxWidth && n > 0) {
