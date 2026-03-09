@@ -1,7 +1,7 @@
 import Sheet from ".";
 import { Rect } from "./interfaces";
 
-export default class Selection {
+export default class GridSelection {
     panes: any[];
     sheet: Sheet;
     rect: Rect;

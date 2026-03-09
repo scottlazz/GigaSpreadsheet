@@ -1,3 +1,6 @@
 .parcel-cache/
 node_modules/
 packages/financial
+coverage/
+*.tgz
+tests/

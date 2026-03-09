@@ -19,8 +19,9 @@ import KeyboardHandler from './keyboardHandler';
 import GridMetrics from './gridmetrics';
 import RowNumbers from './rownumbers';
 import HeaderIdentifiers from './headeridentifiers';
-import Selection from './selection';
+import GridSelection from './gridselection';
 import Ghost from './ghostselection';
+import State from './state';
 
 export default class Sheet {
     wrapper: HTMLElement;
@@ -54,8 +55,8 @@ export default class Sheet {
     data: any;
     parser: any;
     isResizing: boolean;
-    activeSelection: Selection;
-    activeSelections: Selection[];
+    activeSelection: GridSelection;
+    activeSelections: GridSelection[];
     resizeStart: any;
     resizeInitialSize: any;
     busy: boolean;
@@ -114,11 +115,14 @@ export default class Sheet {
     gridlinesColor: string;
     defaultFontSize: number;
     drawGridlinesOverBackground: any;
+    state: State;
+    defaultValign: string;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = options.zoomLevel || 1;
         this.drawGridlinesOverBackground = options.drawGridlinesOverBackground || false;
         this.gridlinesColor = options.gridlinesColor || '#dddddd';
         this.defaultFontSize = options.defaultFontSize || 12;
+        this.defaultValign = options.defaultValign || 'top';
         this.events = {};
         this.toolbar = null;
         this._selectionBoundRects = [];
@@ -229,6 +233,9 @@ export default class Sheet {
         this.metrics = new GridMetrics(this);
         this.rowNumbers = new RowNumbers(this);
         this.headerIdentifiers = new HeaderIdentifiers(this);
+        this.state = new State(this);
+        this.state.isEditable = options.isEditable == null ? true : options.isEditable;
+        this.toggleEditable(this.state.isEditable);
         this.mergedCells = options.mergedCells || [];
         this.heightOverrides = this.buildOverrides(options.heightOverrides);
         this.widthOverrides = this.buildOverrides(options.widthOverrides);
@@ -309,6 +316,15 @@ export default class Sheet {
             this.leftFreezeContainer.style.backgroundColor = theme['background-color'];
             this.topFreezeContainer.style.backgroundColor = theme['background-color'];
             this.cornerFreezeContainer.style.backgroundColor = theme['background-color'];
+        }
+    }
+
+    toggleEditable(editable?: boolean) {
+        this.state.isEditable = editable != null ? editable : !this.state.isEditable;
+        if (this.state.isEditable) {
+            this.container.classList.remove('sheet-not-editable');
+        } else {
+            this.container.classList.add('sheet-not-editable');
         }
     }
 
@@ -569,7 +585,7 @@ export default class Sheet {
                 this.setCells(selectedCells, 'valign', valign);
                 const c = selectedCells[0];
                 if (c?.row == null) return;
-                const value = this.getCell(c.row, c.col)?.valign || 'top';
+                const value = this.getCell(c.row, c.col)?.valign || 'middle';
                 this.toolbar?.set('valign', value);
             } else if (action === 'Bottom align') {
                 const valign = 'bottom';
@@ -577,7 +593,7 @@ export default class Sheet {
                 this.setCells(selectedCells, 'valign', valign);
                 const c = selectedCells[0];
                 if (c?.row == null) return;
-                const value = this.getCell(c.row, c.col)?.valign || 'top';
+                const value = this.getCell(c.row, c.col)?.valign || 'bottom';
                 this.toolbar?.set('valign', value);
             } else if (action === 'Grow Font') {
                 const selectedCells = this.getSelectedCells();
@@ -599,6 +615,12 @@ export default class Sheet {
                 const selectedCells = this.getSelectedCells();
                 this.setCellsMutate(selectedCells, (cell: any) => {
                     cell.wrapText = !cell.wrapText;
+                });
+            } else if (action === 'Rotate') {
+                const selectedCells = this.getSelectedCells();
+                this.setCellsMutate(selectedCells, (cell: any) => {
+                    if (!cell.textRot) cell.textRot = 0;
+                    cell.textRot = (cell.textRot + 15) % 360;
                 });
             } else if (action === 'Shrink Font') {
                 const selectedCells = this.getSelectedCells();
@@ -1172,6 +1194,7 @@ export default class Sheet {
         );
     }
     startCellEdit(row: number, col: number, startingValue?: string) {
+        if (!this.state.isEditable) return;
         if (row < 0 || row > this.totalRowBounds || col < 0 || col > this.totalColBounds) return;
         let left, top, width, height, value;
         ({ left, top, width, height, row, col } = this.metrics.getCellCoordsContainer(row, col));
@@ -1827,7 +1850,7 @@ export default class Sheet {
         // }
         // this.activeSelection = newSelection;
         // return newSelection;
-        const activeSelection = new Selection(this);
+        const activeSelection = new GridSelection(this);
         this.activeSelection = activeSelection;
         this.activeSelections.push(activeSelection);
         return activeSelection;
@@ -1858,7 +1881,7 @@ export default class Sheet {
         this.toolbar?.set('backgroundColor', backgroundColor);
         const textAlign = this.getCell(row, col).ta || 'left';
         this.toolbar?.set('textAlign', textAlign);
-        const valign = this.getCell(row, col).valign || 'top';
+        const valign = this.getCell(row, col).valign || this.defaultValign;
         this.toolbar?.set('valign', valign);
         const bold = this.getCell(row, col).bold || false;
         this.toolbar?.set('bold', bold);
@@ -3150,7 +3173,7 @@ export default class Sheet {
         if (textAlign !== 'left') {
             ctx.textAlign = this.getCellTextAlign(row, col);
         }
-        const valign = cell.valign || 'top';
+        const valign = cell.valign || this.defaultValign;
         if (valign === 'top') {
             ctx.textBaseline = 'top';
         } else if (valign === 'bottom') {
@@ -3203,7 +3226,7 @@ export default class Sheet {
         const dpr = this.effectiveDevicePixelRatio();
         const rowH = height;
         let yPos: number;
-        const valign = cell.valign || 'top';
+        const valign = cell.valign || this.defaultValign;
         if (cell.wrapText && cell._dims?.lines) {
             if (valign === 'top') {
                 ctx.textBaseline = 'top';
@@ -3213,7 +3236,7 @@ export default class Sheet {
                 yPos = top + rowH - (cell._dims.height*this.zoomLevel);
             } else { // middle/default
                 ctx.textBaseline = 'top';
-                yPos = (top + (rowH / 2)-((cell._dims.height*this.zoomLevel)/2));
+                yPos = (top + (rowH / 2)-((cell._dims.height*this.zoomLevel)/2))+5;
             }
             const { lines, lineHeight } = cell._dims;
             ctx.rect((left + 1.4) * dpr, (top + 1.4) * dpr, (width - 2.8) * dpr, (rowH - 1) * dpr); // Adjust y position based on your text baseline
@@ -3223,7 +3246,12 @@ export default class Sheet {
             const h = lineHeight;
             for(let i = 0; i < lines.length; i++) {
                 const line = lines[i];
-                ctx.fillText(line, textX * dpr, (yPos + (h*i*this.zoomLevel)) * dpr);
+                // ctx.fillText(line, textX * dpr, (yPos + (h*i*this.zoomLevel)) * dpr);
+                if (cell.textRot) {
+                    this.drawRotatedText(ctx, line, textX*dpr, (yPos + (h*i*this.zoomLevel)) * dpr, cell.textRot);
+                } else {
+                    ctx.fillText(line, textX * dpr, (yPos + (h*i*this.zoomLevel)) * dpr);
+                }
             }
         } else {
             if (valign === 'top') {

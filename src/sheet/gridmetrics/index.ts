@@ -147,7 +147,13 @@ export default class Metrics {
             const wm = this.measureWrapText(ctx, cell.text || '',
                 width*this.sheet.effectiveDevicePixelRatio()
             )
-            const scaledHeight = (wm.height+4);
+            const scaledHeight = (wm.height+10);
+            if (cell.textRot) {
+                const newDims = this.calculateRotatedDimensions(width, scaledHeight, cell.textRot);
+                console.log(wm.lineHeight)
+                cell._dims = {width: newDims.width, height: scaledHeight, lines: wm.lines, lineHeight: wm.lineHeight};
+                return { mwidth: newDims.width, mheight: newDims.height};
+            }
             cell._dims = {height: scaledHeight, lines: wm.lines, lineHeight: wm.lineHeight}
             return {mwidth: width, mheight: scaledHeight, height: wm.height};
         } else {

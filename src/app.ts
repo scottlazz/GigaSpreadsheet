@@ -27,6 +27,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 toolbar: true,
                 formulaBar: true,
                 cellHeaders: true,
+                isEditable: false,
                 // drawGridlinesOverBackground: true,
                 zoomLevel: 1,
                 gridlinesColor: '#dddddd',
@@ -34,6 +35,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 // gridlinesColor: 'red',
                 freeze: {row: 0, col: 0},
                 defaultFontSize: 15,
+                defaultValign: 'middle'
                 // theme: {'background-color': 'red'}
                 // blockRows: 5,
                 // blockCols: 4,

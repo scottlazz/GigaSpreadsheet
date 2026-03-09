@@ -102,8 +102,11 @@ export class Toolbar {
                 <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Zoom in">
                     +
                 </button>
-                <button class="gigasheet-toolbar-btn toolbar-text-align" data-tooltip="Wrap">
+                <button class="gigasheet-toolbar-btn" data-tooltip="Wrap">
                     w
+                </button>
+                <button class="gigasheet-toolbar-btn" data-tooltip="Rotate">
+                    r
                 </button>
                 <input style="width:32px;" data-tooltip="Background Color" class="gigasheet-toolbar-btn" type="color" value="#FFFFFF">
                 </button>

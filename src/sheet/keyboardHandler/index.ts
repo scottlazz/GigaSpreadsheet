@@ -23,6 +23,11 @@ export default class KeyboardHandler {
             this.sheet.openFormatMenu();
             e.preventDefault();
         }
+        else if (key === 'f10') {
+            if (isLocked) return;
+            this.sheet.toggleEditable();
+            e.preventDefault();
+        }
         // Escape key to cancel editing
         else if (key === 'escape' && this.sheet.editInput.style.display !== 'none') {
             this.sheet.cancelCellEdit();

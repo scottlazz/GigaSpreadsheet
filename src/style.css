@@ -371,6 +371,10 @@ html {
   z-index: 210;
 }
 
+.sheet-not-editable .selected-cell {
+  background-color: rgba(26, 115, 232, 0.05);
+}
+
 .selection-handle {
   position: absolute;
   width: 6px;
