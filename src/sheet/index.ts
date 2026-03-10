@@ -117,12 +117,15 @@ export default class Sheet {
     drawGridlinesOverBackground: any;
     state: State;
     defaultValign: string;
+    defaultHorizAlign: string;
+    randInterval: NodeJS.Timeout;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = options.zoomLevel || 1;
         this.drawGridlinesOverBackground = options.drawGridlinesOverBackground || false;
         this.gridlinesColor = options.gridlinesColor || '#dddddd';
         this.defaultFontSize = options.defaultFontSize || 12;
         this.defaultValign = options.defaultValign || 'top';
+        this.defaultHorizAlign = options.defaultHorizAlign || 'left';
         this.events = {};
         this.toolbar = null;
         this._selectionBoundRects = [];
@@ -361,27 +364,32 @@ export default class Sheet {
         this.updateSelection();
     }
 
-    intervalSetRandomData() {
+    intervalSetRandomData(bounds?: Rect, frequency = 1500) {
+        clearInterval(this.randInterval);
         if (!this.initialCells) return;
-        setInterval(() => {
-            for(let cell of this.initialCells) {
-                if (
-                    // true
-                    !cell.text || (
-                    !isNaN(cell.text) &&
-                        !Number.isNaN(parseFloat(cell.text))
-                        && !Number.isInteger(parseFloat(cell.text)))
-                ) {
-                    let mul = 1;
-                    if (Math.random() > .8) mul = -1;
-                    this.setCell(cell.row,cell.col, 'text', (Math.random()*10*mul).toFixed(3));
-                    // const _cell = this.getCell(cell.row,cell.col);
-                    // _cell.text = (Math.random()*10*mul).toFixed(3);
-                    // this.putCellObj(cell.row,cell.col,Object.assign({}, _cell))
-                    this.renderCell(cell.row,cell.col);
+        let cells = this.data.getAllCells().filter(cell => cell.hasOwnProperty('_dims') ? Object.keys(cell).length > 4 : Object.keys(cell).length > 3)
+            .filter(c => {
+                if (!bounds) return true;
+                return c.row >= bounds.startRow && c.row <= bounds.endRow
+                    && c.col >= bounds.startCol && c.col <= bounds.endCol
+            });
+            this.randInterval = setInterval(() => {
+                for(let cell of cells) {
+                    if (
+                        // true
+                        !cell.text || (
+                        !isNaN(cell.text) &&
+                            !Number.isNaN(parseFloat(cell.text))
+                            // && !Number.isInteger(parseFloat(cell.text))
+                        )
+                    ) {
+                        let mul = 1;
+                        if (Math.random() > .8) mul = -1;
+                        this.setCell(cell.row,cell.col, 'text', (Math.random()*10*mul).toFixed(3));
+                        this.renderCell(cell.row,cell.col);
+                    }
                 }
-            }
-        }, 1500)
+            }, frequency)
     }
 
     initRender() {
@@ -561,7 +569,7 @@ export default class Sheet {
                 this.setCells(selectedCells, 'ta', textAlign);
                 const c = selectedCells[0];
                 if (c?.row == null) return;
-                const value = this.getCell(c.row, c.col)?.ta || 'left';
+                const value = this.getCell(c.row, c.col)?.ta || 'center';
                 this.toolbar?.set('textAlign', value);
             } else if (action === 'Right align') {
                 const textAlign = 'right';
@@ -569,7 +577,7 @@ export default class Sheet {
                 this.setCells(selectedCells, 'ta', textAlign);
                 const c = selectedCells[0];
                 if (c?.row == null) return;
-                const value = this.getCell(c.row, c.col)?.ta || 'left';
+                const value = this.getCell(c.row, c.col)?.ta || 'right';
                 this.toolbar?.set('textAlign', value);
             } else if (action === 'Top align') {
                 const valign = 'top';
@@ -1879,7 +1887,7 @@ export default class Sheet {
         this.toolbar?.set('fontFamily', fontFamily);
         const backgroundColor = this.getCell(row, col).bc || '#FFFFFF';
         this.toolbar?.set('backgroundColor', backgroundColor);
-        const textAlign = this.getCell(row, col).ta || 'left';
+        const textAlign = this.getCell(row, col).ta || this.defaultHorizAlign;
         this.toolbar?.set('textAlign', textAlign);
         const valign = this.getCell(row, col).valign || this.defaultValign;
         this.toolbar?.set('valign', valign);
@@ -2643,7 +2651,7 @@ export default class Sheet {
         // left border
         const leftCell = this.getCellOrMerge(cell.row, cell.col-1);
         const leftBorder = this.getBorder(cell, 'left') || this.getBorder(leftCell, 'right');
-        const gridlinesColor = this.shouldDrawGridlines && this.drawGridlinesOverBackground && this.gridlinesColor;
+        const gridlinesColor = this.shouldDrawGridlines && this.drawGridlinesOverBackground && (!fromBlockRender || cell.bc) && this.gridlinesColor;
         //  || cell.bc || leftCell?.bc;
         if (leftBorder || gridlinesColor) {
             this.setBorStroke(ctx, leftBorder || gridlinesColor);
@@ -2750,6 +2758,18 @@ export default class Sheet {
         return null;
     }
 
+    getLayer(row,col) {
+        if (col < this.freeze.col && row < this.freeze.row) {
+            return 'cornerpane';
+        } else if (col < this.freeze.col) {
+            return 'leftepane';
+        } else if (row < this.freeze.row) {
+            return 'toppane';
+        } else {
+            return 'main';
+        }
+    }
+
     immediateRenderCell(row: any, col: any, fromBlockRender: boolean) {
         if (this.isMergedOver(row,col)) {
             if (!fromBlockRender) return;
@@ -2773,7 +2793,7 @@ export default class Sheet {
         if (cell.renderType === 'custom' && this.options.renderCustomCell) {
             let left, top, width, height, value;
             ({ left, top, width, height, row, col } = this.metrics.getCellCoordsContainer(row, col));
-            const customCell = this.options.renderCustomCell(cell, { left, top, width, height });
+            const customCell = this.options.renderCustomCell(cell, { left, top, width, height, layer: this.getLayer(row,col) });
             return;
         }
 
@@ -3012,13 +3032,21 @@ export default class Sheet {
         if (!this.selectionEnd) return;
         return this.selectionEnd.row === row && this.selectionEnd.col === col;
     }
-    positionElement(el: any, x: number, y: number, width: number, height: number, append = true) {
+    positionElement(el: any, x: number, y: number, width: number, height: number, layer = 'main') {
         el.style.top = `${y}px`;
         el.style.left = `${x}px`;
         el.style.width = `${width}px`;
         el.style.height = `${height}px`;
         el.style.position = 'absolute';
-        append && this.container.appendChild(el);
+        if (layer === 'main') {
+            this.container.appendChild(el);
+        } else if (layer === 'leftpane') {
+            this.leftFreezeContainer.appendChild(el);
+        } else if (layer === 'toppane') {
+            this.topFreezeContainer.appendChild(el);
+        } else if (layer === 'cornerpane') {
+            this.cornerFreezeContainer.appendChild(el);
+        }
     }
     getCellId(row: number, col: number) {
         return this.getCell(row, col)?._id;
@@ -3130,7 +3158,7 @@ export default class Sheet {
         return this.getCell(row, col)?.text || '';
     }
     getCellTextAlign(row: number, col: number) {
-        return this.getCell(row, col)?.ta;
+        return this.getCell(row, col)?.ta || this.defaultHorizAlign;
     }
 
     // renderbackground
@@ -3169,10 +3197,10 @@ export default class Sheet {
         if (this.getCell(cell.row, cell.col)?.textBaseline != null) {
             ctx.textBaseline = this.getCell(cell.row, cell.col).textBaseline;
         }
-        const textAlign = this.getCellTextAlign(cell.row, cell.col) || 'left';
-        if (textAlign !== 'left') {
-            ctx.textAlign = this.getCellTextAlign(row, col);
-        }
+        // const textAlign = this.getCellTextAlign(cell.row, cell.col) || this.defaultHorizAlign;
+        // if (textAlign !== this.defaultHorizAlign) {
+        ctx.textAlign = this.getCellTextAlign(row, col);
+        // }
         const valign = cell.valign || this.defaultValign;
         if (valign === 'top') {
             ctx.textBaseline = 'top';
@@ -3213,7 +3241,7 @@ export default class Sheet {
 
         this.setTextCtx(ctx, row, col);
         let textX = left;
-        const textAlign = this.getCellTextAlign(row, col) || 'left';
+        const textAlign = this.getCellTextAlign(row, col) || this.defaultHorizAlign;
         if (textAlign !== 'left') {
             if (textAlign === 'center') {
                 textX += width / 2;

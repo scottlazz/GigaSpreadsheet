@@ -62,7 +62,16 @@ export default class KeyboardHandler {
         else if (key === 'k' && e.ctrlKey) {
             if (isLocked) return;
             let cells = this.sheet.data.getAllCells();
-            cells = cells.filter(cell => cell.hasOwnProperty('_dims') ? Object.keys(cell).length > 4 : Object.keys(cell).length > 3);
+            const ephemeralKeys = new Set(['_dims', '_id']);
+            cells = cells.filter(cell => cell.hasOwnProperty('_dims') ? Object.keys(cell).length > 4 : Object.keys(cell).length > 3).map(cell => {
+                const c = {};
+                for(let key in cell) {
+                    if (!ephemeralKeys.has(key)) {
+                        c[key] = cell[key];
+                    }
+                }
+                return c;
+            });
             console.log({
                 cellHeight: this.sheet.cellHeight,
                 cellWidth: this.sheet.cellWidth,
@@ -71,7 +80,8 @@ export default class KeyboardHandler {
                 heightOverrides: Object.assign({}, this.sheet.heightOverrides),
                 widthOverrides: Object.assign({}, this.sheet.widthOverrides),
                 gridlinesOn: this.sheet.gridlinesOn,
-                initialCells: cells
+                initialCells: cells,
+                freeze: this.sheet.freeze,
             });
             // data = this.data.
             e.preventDefault();
