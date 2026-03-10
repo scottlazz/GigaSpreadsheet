@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 toolbar: true,
                 formulaBar: true,
                 cellHeaders: true,
-                isEditable: false,
+                isEditable: true,
                 // drawGridlinesOverBackground: true,
                 zoomLevel: 1,
                 gridlinesColor: '#dddddd',

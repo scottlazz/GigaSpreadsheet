@@ -6,3 +6,4 @@ tsconfig.tsbuildinfo
 _sampledata.ts
 _sampledata.ts.bak
 coverage/
+scripts/

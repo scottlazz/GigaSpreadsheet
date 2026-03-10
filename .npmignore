@@ -1,6 +1,13 @@
 .parcel-cache/
 node_modules/
-packages/financial
+financial/
 coverage/
 *.tgz
 tests/
+_sampledata.*
+scripts/
+app.*
+golden.*
+goldenConfig.*
+goldenroot.*
+sampledata.*
