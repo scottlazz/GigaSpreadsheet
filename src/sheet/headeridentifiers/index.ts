@@ -9,7 +9,7 @@ export default class HeaderIdentifiers {
     constructor(sheet: Sheet) {
         this.sheet = sheet;
         this.headerContainer = this.sheet._container.querySelector('.header-container')!
-        this.headerContainer.innerHTML = `<div class="header-cell" style="width:${this.sheet.rowNumberWidth}px;"></div>`;
+        this.headerContainer.innerHTML = ``;
         this.headerContainer.onmousedown = (e: any) => {
             if (e.button !== 0) return;
             if (e.target.getAttribute('data-col') != null) {
@@ -52,13 +52,13 @@ export default class HeaderIdentifiers {
             }`;
     }
     renderHeaders() {
-        let totalWidth = this.sheet.rowNumberWidth;
-        let sc = this.sheet.visibleStartCol;
+        let totalWidth = 0;
+        let sc = Math.max(this.sheet.visibleStartCol, this.sheet.freeze.col);
         let ec = this.sheet.visibleEndCol;
-        let diff = sc % this.sheet.blockCols;
-        sc = sc - diff;
+        // let diff = sc % this.sheet.blockCols;
+        // sc = sc - diff;
         ec = ec + (this.sheet.blockCols - (ec % this.sheet.blockCols) - 1);
-        this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffset(sc)}px`;
+        // this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffset(sc)}px`;
         if (this.sheet.options.cellHeaders === false) {
             // let totalWidth = this.sheet.rowNumberWidth;
             // for (let col: any = 0; col <= this.sheet.totalColBounds; col++) {
@@ -76,7 +76,7 @@ export default class HeaderIdentifiers {
         if (this.headerContainer.style.width === `${(this.sheet.metrics.getWidthOffset(ec+1) + extra).toFixed(2)}px`) {
             return;
         }
-        this.renderHeaderElems.innerHTML = `<div class="header-cell" style="width:${this.sheet.rowNumberWidth}px"></div>`; // empty first cell for corner
+        this.renderHeaderElems.innerHTML = ``;
         for (let col: any = sc; col <= ec; col++) {
             const width = this.sheet.metrics.getColWidth(col);
             totalWidth += width;

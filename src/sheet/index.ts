@@ -119,6 +119,7 @@ export default class Sheet {
     defaultValign: string;
     defaultHorizAlign: string;
     randInterval: NodeJS.Timeout;
+    mainContainer: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = options.zoomLevel || 1;
         this.drawGridlinesOverBackground = options.drawGridlinesOverBackground || false;
@@ -173,16 +174,21 @@ export default class Sheet {
         _container.insertAdjacentHTML('beforeend', `
         <div class="grid-container">
             <div class="corner-cell"></div>
+            <div class="col-headers-corner"></div>
             <div class="header-container"></div>
+            <div class="row-headers-corner"></div>
             <div class="corner-freeze-container"></div><div class="top-freeze-container"></div>
             <div class="row-number-container"></div>
             <div class="left-freeze-container"></div>
-            <div class="selection-layer"></div>
+            <div class="main-grid-container">
+                <div class="selection-layer"></div>
+            </div>
             </div>
             `);
             // <div class="grid-row2">
             // </div>
         this.container = _container.querySelector('.grid-container')!;
+        this.mainContainer = _container.querySelector('.main-grid-container')!;
         // this.gridRow2 = _container.querySelector('.grid-row2')!;
         this.cornerFreezeContainer = _container.querySelector('.corner-freeze-container')!;
         this.leftFreezeContainer = _container.querySelector('.left-freeze-container')!;
@@ -218,11 +224,13 @@ export default class Sheet {
         this.paddingBlocks = options.paddingBlocks ?? 1; // Extra blocks to render around visible area
         this.padding = options.padding || 1; // number of adjacent blocks to render
         if (options.cellHeaders !== false) {
-            this.selectionLayer.style.top = `${this.headerRowHeight}px`;
-            this.selectionLayer.style.left = `${this.rowNumberWidth}px`;
-            this.cornerCell.style.width = `${this.rowNumberWidth}px`;
-            this.cornerCell.style.height = `${this.headerRowHeight}px`;
-            this.cornerCell.style.marginTop = `-${this.headerRowHeight + 1}px`; // -1 for border
+            // this.selectionLayer.style.top = `${this.headerRowHeight}px`;
+            // this.selectionLayer.style.left = `${this.rowNumberWidth}px`;
+            this.selectionLayer.style.top = '0';
+            this.selectionLayer.style.left = '0';
+            // this.cornerCell.style.width = `${this.rowNumberWidth}px`;
+            // this.cornerCell.style.height = `${this.headerRowHeight}px`;
+            // this.cornerCell.style.marginTop = `-${this.headerRowHeight + 1}px`; // -1 for border
         }
         if (options.subscribeFinance) {
             // this.subscribeFinance();
@@ -295,7 +303,7 @@ export default class Sheet {
         this.probe.style.borderRadius = '5px';
         // this.probe.style.background = 'red';
         this.selectionLayer.appendChild(this.probe);
-
+        // this.setFreezeDimensions();
         this.applyTheme(this.options.theme);
 
         this.data = null;
@@ -394,6 +402,7 @@ export default class Sheet {
 
     initRender() {
         this.updateGridDimensions();
+        this.setFreezeDimensions();
         this.headerIdentifiers.renderHeaders();
         this.rowNumbers.renderRowNumbers();
         this.updateVisibleGrid();
@@ -722,12 +731,20 @@ export default class Sheet {
             }
         })
     }
+    setFreezeDimensions () {
+        const width = this.metrics.getWidthOffset(this.freeze.col);
+        const height = this.metrics.getHeightOffset(this.freeze.row);
+        console.log('setfreezedims', width, height)
+        this._container.style.setProperty('--left-freeze-width', `${width}px`);
+        this._container.style.setProperty('--top-freeze-height', `${height}px`);
+    }
     freezeCells() {
         if (!this.selectionBoundRect) return;
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
         this.freeze = {row: startRow, col: startCol};
         this.container.scrollLeft = 0;
         this.container.scrollTop = 0;
+        this.setFreezeDimensions();
         this.forceRerender();
     }
     showContextMenu(x: number, y: number, row: number, col: number) {
@@ -889,17 +906,18 @@ export default class Sheet {
         const hasCellHeaders = this.options.cellHeaders !== false;
         this.options.cellHeaders = !hasCellHeaders;
         if (this.options.cellHeaders) {
-            this.selectionLayer.style.left = `${this.rowNumberWidth}px`;
-            this.selectionLayer.style.top = `${this.headerRowHeight}px`;
-            this.cornerCell.style.width = `${this.rowNumberWidth}px`;
-            this.cornerCell.style.height = `${this.headerRowHeight}px`;
-            this.cornerCell.style.marginTop = `-${this.headerRowHeight + 1}px`; // -1 for border
+            // this.selectionLayer.style.left = `${this.rowNumberWidth}px`;
+            // // this.selectionLayer.style.top = `${this.headerRowHeight}px`;
+            // this.selectionLayer.style.top = `${0}px`;
+            // this.cornerCell.style.width = `${this.rowNumberWidth}px`;
+            // this.cornerCell.style.height = `${this.headerRowHeight}px`;
+            // this.cornerCell.style.marginTop = `-${this.headerRowHeight + 1}px`; // -1 for border
         } else {
-            this.selectionLayer.style.left = '';
-            this.selectionLayer.style.top = '';
-            this.cornerCell.style.width = '';
-            this.cornerCell.style.height = '';
-            this.cornerCell.style.marginTop = '';
+            // this.selectionLayer.style.left = '';
+            // this.selectionLayer.style.top = '';
+            // this.cornerCell.style.width = '';
+            // this.cornerCell.style.height = '';
+            // this.cornerCell.style.marginTop = '';
         }
         this.rowNumbers.toggle();
         this.headerIdentifiers.toggle();
@@ -1765,8 +1783,8 @@ export default class Sheet {
             // x = e.clientX;
         } else {
             // x = x - this.rowNumberWidth;
-            x = (e.clientX - rect.left + scrollLeft - this.rowNumberWidth);
-            y = (e.clientY - rect.top + scrollTop - this.headerRowHeight); // 30 for header
+            x = (e.clientX - rect.left + scrollLeft);
+            y = (e.clientY - rect.top + scrollTop); // 30 for header
         }
 
         if (x < 0 || y < 0) return { row: -1, col: -1 };
@@ -2045,8 +2063,10 @@ export default class Sheet {
     updateHeightAccum() {
         let prevRowBounds = this.totalRowBounds;
         const oldHeight = this.heightAccum.length;
-        this.heightAccum = [this.headerRowHeight];
-        let heightSum = this.headerRowHeight;
+        // this.heightAccum = [this.headerRowHeight];
+        // let heightSum = this.headerRowHeight;
+        this.heightAccum = [];
+        let heightSum = 0;
         for (
             let row = 0;
             row < oldHeight - 1 ||
@@ -2175,13 +2195,13 @@ export default class Sheet {
         const width = this.metrics.getWidthOffset(this.freeze.col);
         if (this.leftFreezeContainer) {
             // this.leftFreezeContainer.style.top = `${this.topFreezeHeight}px`;
-            this.leftFreezeContainer.style.height = `${height}px`;
-            this.leftFreezeContainer.style.width = `${width}px`;
-            this.leftFreezeContainer.style.left = `${this.rowNumberWidth}px`;
+            // this.leftFreezeContainer.style.height = `${height}px`;
+            // this.leftFreezeContainer.style.width = `${width}px`;
+            // this.leftFreezeContainer.style.left = `${this.rowNumberWidth}px`;
             if (this.freeze.row && this.freeze.col) {
-                this.leftFreezeContainer.style.marginTop = `${-this.topFreezeHeight-5}px`;
+                // this.leftFreezeContainer.style.marginTop = `${-this.topFreezeHeight-5}px`;
             } else {
-                this.leftFreezeContainer.style.marginTop = '';
+                // this.leftFreezeContainer.style.marginTop = '';
             }
         }
         
@@ -2246,23 +2266,23 @@ export default class Sheet {
         // console.log('width::', width)
         // const leftFreezeWidth = this.metrics.getWidthOffset(this.freeze.col);
         if (this.topFreezeContainer) {
-            this.topFreezeContainer.style.height = `${height}px`;
-            this.topFreezeContainer.style.width = `${width-this.rowNumberWidth}px`;
+            // this.topFreezeContainer.style.height = `${height}px`;
+            // this.topFreezeContainer.style.width = `${width-this.rowNumberWidth}px`;
             if (this.freeze.col) {
-                this.topFreezeContainer.style.marginLeft = '-1px';
+                // this.topFreezeContainer.style.marginLeft = '-1px';
             } else {
-                this.topFreezeContainer.style.marginLeft = '';
+                // this.topFreezeContainer.style.marginLeft = '';
             }
             // this.topFreezeContainer.style.width = `${1000}px`;
-            this.topFreezeContainer.style.top = `${this.headerRowHeight}px`;
+            // this.topFreezeContainer.style.top = `${this.headerRowHeight}px`;
             // this.topFreezeContainer.style.left = `${leftFreezeWidth+this.rowNumberWidth}px`;
             // this.topFreezeContainer.style.marginLeft = `${-this.rowNumberWidth-leftFreezeWidth-1}px`;
             // console.log('topfreeze', height)
             if (!this.freeze.row) {
-                this.rowNumbers.rowNumberContainer.style.marginTop = '';
+                // this.rowNumbers.rowNumberContainer.style.marginTop = '';
                 this.topFreezeContainer.style.display = 'none';
             } else {
-                this.rowNumbers.rowNumberContainer.style.marginTop = `${-height-4}px`;
+                // this.rowNumbers.rowNumberContainer.style.marginTop = `${-height-4}px`;
                 this.topFreezeContainer.style.display = '';
             }
         }
@@ -2329,14 +2349,14 @@ export default class Sheet {
         // console.log('width::', width)
         const leftFreezeWidth = this.metrics.getWidthOffset(this.freeze.col);
         if (this.cornerFreezeContainer) {
-            this.cornerFreezeContainer.style.height = `${height}px`;
-            this.cornerFreezeContainer.style.width = `${width}px`;
-            this.cornerFreezeContainer.style.left = `${this.rowNumberWidth}px`;
+            // this.cornerFreezeContainer.style.height = `${height}px`;
+            // this.cornerFreezeContainer.style.width = `${width}px`;
+            // this.cornerFreezeContainer.style.left = `${this.rowNumberWidth}px`;
             // this.cornerFreezeContainer.style.top = `0px`;
-            this.cornerFreezeContainer.style.top = `${this.headerRowHeight}px`;
+            // this.cornerFreezeContainer.style.top = `${this.headerRowHeight}px`;
             
-            this.cornerFreezeContainer.style.marginTop = `${-1}px`;
-            this.cornerFreezeContainer.style.marginLeft = `${-leftFreezeWidth}px`;
+            // this.cornerFreezeContainer.style.marginTop = `${-1}px`;
+            // this.cornerFreezeContainer.style.marginLeft = `${-leftFreezeWidth}px`;
             // this.cornerFreezeContainer.style.marginTop = `${-this.headerRowHeight}px`;
             // this.rowNumbers.rowNumberContainer.style.marginTop = `${-height}px`;
             if (this.freeze.row && this.freeze.col) {
@@ -2483,7 +2503,7 @@ export default class Sheet {
             if (container) {
                 container.appendChild(blockContainer);
             } else {
-                this.container.appendChild(blockContainer);
+                this.mainContainer.appendChild(blockContainer);
             }
         }
 
@@ -3039,7 +3059,7 @@ export default class Sheet {
         el.style.height = `${height}px`;
         el.style.position = 'absolute';
         if (layer === 'main') {
-            this.container.appendChild(el);
+            this.mainContainer.appendChild(el);
         } else if (layer === 'leftpane') {
             this.leftFreezeContainer.appendChild(el);
         } else if (layer === 'toppane') {

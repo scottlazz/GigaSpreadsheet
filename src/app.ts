@@ -44,7 +44,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 renderCustomCell: (cell: any, { left, top, width, height, layer, container }: any) => {
                     const button = document.createElement('button');
                     button.onclick = update;
-                    button.style.zIndex = "90";
+                    button.style.zIndex = "4";
                     button.textContent = cell.text;
                     button.style.position = 'absolute';
                     sheet.setElRegistry(cell.row, cell.col, button, 'custom');

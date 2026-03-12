@@ -63,12 +63,13 @@ export default class RowNumbers {
     }
     renderRowNumbers() {
         let sr = this.sheet.visibleStartRow;
+        sr = Math.max(sr, this.sheet.freeze.row);
         let totalHeight = 0;
         let ve = this.sheet.visibleEndRow;
         let diff = sr % this.sheet.blockRows;
-        sr = sr - diff;
+        // sr = sr - diff;
         ve = ve + (this.sheet.blockRows - (ve % this.sheet.blockRows) - 1);
-        this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;
+        // this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;
         if (this.sheet.options.cellHeaders === false) {
             // let totalHeight = 0;
             // for (let row: any = 0; row <= this.sheet.totalRowBounds; row++) {

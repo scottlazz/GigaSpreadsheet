@@ -3,12 +3,6 @@ export default {
   "cellWidth": 64,
   "mergedCells": [
     {
-      "startRow": 1,
-      "endRow": 2,
-      "startCol": 3,
-      "endCol": 6
-    },
-    {
       "startRow": 4,
       "endRow": 4,
       "startCol": 10,
@@ -36,38 +30,10 @@ export default {
   "autosize": false,
   "heightOverrides": {},
   "widthOverrides": {
-    "2": 260
+    "2": 103
   },
   "gridlinesOn": true,
   "initialCells": [
-    {
-      "row": 1,
-      "col": 2,
-      "text": "Text wrap",
-      "ta": "center",
-      "bc": "#f4c4f5",
-      "border": 30,
-      "bold": true,
-      "fontSize": 13
-    },
-    {
-      "row": 1,
-      "col": 3,
-      "text": "Merge Cell",
-      "border": 6
-    },
-    {
-      "row": 2,
-      "col": 1,
-      "textRot": 90,
-      "text": "rotated text!"
-    },
-    {
-      "row": 2,
-      "col": 2,
-      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
-      "wrapText": true
-    },
     {
       "row": 3,
       "col": 10,
@@ -1572,7 +1538,7 @@ export default {
     }
   ],
   "freeze": {
-    "row": 1,
+    "row": 2,
     "col": 2
   }
 }

@@ -46,11 +46,11 @@ export class Block {
             left = this.sheet.metrics.getWidthOffset(this.startCol);
             top = this.sheet.metrics.getHeightOffset(this.startRow);
         } else if (this.region === 'toppane') {
-            left = this.sheet.metrics.getWidthOffset(this.startCol, true);
+            left = this.sheet.metrics.getWidthOffset(this.startCol);
             top = this.sheet.metrics.getHeightOffset(this.startRow);
         } else {
-            left = this.sheet.metrics.getWidthOffset(this.startCol, true);
-            top = this.sheet.metrics.getHeightOffset(this.startRow, true);
+            left = this.sheet.metrics.getWidthOffset(this.startCol);
+            top = this.sheet.metrics.getHeightOffset(this.startRow);
         }
 
         // Calculate vertical position (top)

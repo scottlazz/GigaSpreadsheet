@@ -85,7 +85,12 @@ html {
 
 .grid-container {
   font-family: Arial, sans-serif;
-  white-space: nowrap;
+  /* white-space: nowrap; */
+  grid-template-columns: var(--row-header-width) var(--left-freeze-width) 2000px;
+  grid-template-rows: var(--col-header-height) var(--top-freeze-height) 2000px;
+  height: 1000px;
+  width: 1400px;
+  display: grid;
   /* display: flex;
   flex-direction: column;
   flex: 1; */
@@ -108,50 +113,46 @@ html {
 }
 
 .row-number-container {
-  position: sticky;
-  /* top: 0; */
-  left: 0;
-  float: left;
   background: #e6e6e6;
-  z-index: 100;
   font-size: 12px;
   flex-shrink: 0;
-  /* margin-top:0.5px; */
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  grid-area: 3/1/4;
 }
 .left-freeze-container {
   position: sticky;
   /* top: 0; */
-  float: left;
+  /* float: left; */
   /* background: #e6e6e6; */
   background: white;
   overflow: hidden;
   border-right: 1px solid rgb(153, 153, 153, 0.5);
-  z-index: 91;
-  width: 100px;
   font-size: 12px;
   flex-shrink: 0;
-  /* margin-top:0.5px; */
+  left: var(--row-header-width);
+  grid-area: 3/2/4;
+  z-index: 4;
+}
+.main-grid-container {
+  position: sticky;
 }
 .corner-freeze-container {
   position: sticky;
-  display: inline-block;
-  /* top: 0;
-  left: 0; */
-  /* background: #e6e6e6; */
   background: white;
   overflow: hidden;
   border-bottom: 1px solid rgb(153, 153, 153, 0.5);
   border-right: 1px solid rgb(153, 153, 153, 0.5);
   z-index: 92;
-  width: 100px;
   font-size: 12px;
   flex-shrink: 0;
-  /* margin-top:0.5px; */
-  /* box-sizing: border-box; */
+  top: var(--col-header-height);
+  left: var(--row-header-width);
+  z-index: 15;
+  grid-area: 2/2;
 }
 .top-freeze-container {
-  position: sticky;
-  display: inline-block;
   /* top: 0; */
   /* float: left; */
   /* left: 0; */
@@ -159,13 +160,12 @@ html {
   background: white;
   overflow: hidden;
   border-bottom: 1px solid rgb(153, 153, 153, 0.5);
-  z-index: 91;
-  height: 100px;
-  width: 200px;
   font-size: 12px;
   flex-shrink: 0;
-  /* box-sizing: border-box; */
-  /* margin-top:0.5px; */
+  position: sticky;
+  top: var(--col-header-height);
+  grid-row: 2;
+  z-index: 4;
 }
 .grid-container,.left-freeze-container,.top-freeze-container,.corner-freeze-container {
   background: white;
@@ -238,16 +238,17 @@ html {
 
 .header-container {
   position: sticky;
-  top: 0;
-  /* left: 0; */
   white-space: nowrap;
   background: #e6e6e6;
-  z-index: 100;
+  /* z-index: 100; */
   display: flex;
   font-size: 12px;
   flex-shrink: 0;
-  /* border-bottom: 1px solid #999999; */
-  /* box-sizing: border-box; */
+
+  position: sticky;
+  top: 0;
+  grid-column: 3/4;
+  z-index: 5;
 }
 
 .header-cell {
@@ -271,18 +272,12 @@ html {
 .header-cell:hover, .row-number:hover {
   background-color: #1a73e81a;
 }
-/* 
-.corner-cell {
-  position: sticky;
-  top: 0;
-  left: 0;
-  z-index: 150;
-  background: #f0f0f0;
-  border-right: 1px solid #999999;
-  border-bottom: 1px solid #999999;
-  flex-shrink: 0;
-} */
-
+:root {
+  /* --left-freeze-width: 200px;
+  --top-freeze-height: 150px; */
+  --col-header-height: 20px;
+  --row-header-width: 43px;
+}
 .corner-cell {
   position: sticky;
   top: 0;
@@ -290,11 +285,22 @@ html {
   z-index: 205;
   background-color: #e6e6e6;
   flex-shrink: 0;
-  /* border-right: 1px solid rgb(153, 153, 153, 0.5); */
-  /* border-bottom: 1px solid rgb(153, 153, 153, 0.5); */
-  /* box-sizing: border-box; */
 }
-
+.col-headers-corner {
+  background: blue;
+  position: sticky;
+  top: 0;
+  left: var(--row-header-width);
+  z-index: 11;
+}
+.row-headers-corner {
+  background: green;
+  position: sticky;
+  left: 0;
+  top: var(--col-header-height);
+  z-index: 11;
+  grid-area: 2/1;
+}
 .corner-cell::after {
   content: "";
   height: 1px;
@@ -319,7 +325,7 @@ html {
 .selection-layer {
   position: absolute;
   /* pointer-events: none; */
-  z-index: 90;
+  /* z-index: 90; */
 }
 
 .dragg-border {
@@ -368,7 +374,6 @@ html {
   border: 1px solid #1a73e8;
   background-color: rgba(26, 115, 232, 0.3);
   box-shadow: inset 0 0 0 1px #fff;
-  z-index: 210;
 }
 
 .sheet-not-editable .selected-cell {

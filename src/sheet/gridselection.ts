@@ -101,8 +101,8 @@ export default class GridSelection {
         if (this.panes[1]) {
             const clone = child.cloneNode();
             if (this.sheet.options.cellHeaders === false) {
-                const top = this.sheet.metrics.getHeightOffset(rect.startRow);
-                clone.style.top = `${top}px`;
+                // const top = this.sheet.metrics.getHeightOffset(rect.startRow);
+                // clone.style.top = `${top}px`;
             }
             this.panes[1].appendChild(clone);
         }
