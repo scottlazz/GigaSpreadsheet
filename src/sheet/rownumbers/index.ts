@@ -7,9 +7,12 @@ export default class RowNumbers {
     renderRowNumberElems: HTMLDivElement;
     renderRowNumberPadder: HTMLDivElement;
     psuedoStyle: HTMLStyleElement;
+    rowHeadersCorner: HTMLDivElement;
+    curRange: any;
     constructor(sheet: Sheet) {
         this.sheet = sheet;
         this.rowNumberContainer = this.sheet._container.querySelector('.row-number-container')!
+        this.rowHeadersCorner = this.sheet._container.querySelector('.row-headers-corner')!
         if (this.sheet.options.cellHeaders !== false) {
             this.rowNumberContainer.style.width = `${this.sheet.rowNumberWidth}px`;
             this.rowNumberContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;
@@ -61,10 +64,12 @@ export default class RowNumbers {
         el.innerHTML = `<div>${label}</div>`
         return el;
     }
-    renderRowNumbers() {
+    renderRowNumbers(force = true) {
         const { visibleStartRow } = this.sheet.metrics.getVisibleRangeLeft();
         let sr = visibleStartRow;
         sr = Math.max(sr, this.sheet.freeze.row);
+        if (sr === this.curRange && !force) return;
+        this.curRange = sr;
         let totalHeight = 0;
         let ve = this.sheet.visibleEndRow;
         let diff = sr % this.sheet.blockRows;
@@ -85,6 +90,24 @@ export default class RowNumbers {
             // this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;
             // this.rowNumberContainer.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;
             return;
+        }
+        this.rowHeadersCorner.innerHTML = '';
+        const srr = 0;
+        let th = 0;
+        for(let row: any = srr; row < this.sheet.freeze.row; row++) {
+            const rowNumberEl: any = this.createRowNumber(row + 1);
+            // rowNumberEl.textContent = row + 1;
+            th += this.sheet.metrics.rowHeight(row);
+            rowNumberEl.style.height = `${this.sheet.metrics.rowHeight(row)}px`;
+            rowNumberEl.style.lineHeight = `${this.sheet.metrics.rowHeight(row)}px`;
+            rowNumberEl.setAttribute('data-rnrow', row);
+            this.rowHeadersCorner.appendChild(rowNumberEl);
+
+            const rowNumberHandle = document.createElement('div');
+            rowNumberHandle.className = 'row-handle';
+            rowNumberHandle.setAttribute('data-row', row);
+            rowNumberHandle.style.top = `${th - 5}px`;
+            this.rowHeadersCorner.appendChild(rowNumberHandle);
         }
         this.renderRowNumberElems.innerHTML = '';
         for (let row: any = sr; row <= ve; row++) {

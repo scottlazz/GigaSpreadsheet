@@ -119,7 +119,7 @@ export default class Metrics {
     }
     getCellCoordsContainer(row: number, col: number): CellCoordsRect {
         const merge = this.sheet.getMerge(row, col);
-        let left, top, width, height, endRow, endCol;
+        let left, top, width, height, endRow, endCol, container, layer;
         if (merge) {
             left = this.getWidthOffsetRelativeToPanel(merge.startCol);
             top = this.getHeightOffsetRelativeToPanel(merge.startRow);
@@ -128,13 +128,15 @@ export default class Metrics {
             row = merge.startRow, col = merge.startCol;
             endRow = merge.endRow, endCol = merge.endCol;
         } else {
-            left = this.getWidthOffsetRelativeToPanel(col, true);
-            top = this.getHeightOffsetRelativeToPanel(row, true);
+            left = this.getWidthOffsetRelativeToPanel(col);
+            top = this.getHeightOffsetRelativeToPanel(row);
             width = this.getCellWidth(row, col);
             height = this.rowHeight(row);
             endRow = row, endCol = col;
         }
-        return { left, top, width, height, row, col, endRow, endCol };
+        layer = this.sheet.getLayer(row,col);
+        container = this.sheet.panes[layer];
+        return { left, top, width, height, row, col, endRow, endCol, container, layer };
     }
     calculateRotatedDimensions(width, height, degrees) {
         const radians = degrees * Math.PI / 180;

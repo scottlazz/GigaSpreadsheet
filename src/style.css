@@ -287,18 +287,22 @@ html {
   flex-shrink: 0;
 }
 .col-headers-corner {
-  background: blue;
   position: sticky;
   top: 0;
   left: var(--header-width);
-  z-index: 11;
+  z-index: 16;
+  background-color: #e6e6e6;
+  font-size: 12px;
+  line-height: 20px;
+  height: 20px;
 }
 .row-headers-corner {
-  background: green;
   position: sticky;
+  background-color: #e6e6e6;
   left: 0;
   top: var(--header-height);
-  z-index: 11;
+  z-index: 16;
+  font-size: 12px;
   grid-area: 2/1;
 }
 .corner-cell::after {

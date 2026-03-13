@@ -28,5 +28,7 @@ export interface CellCoordsRect {
     row: number,
     col: number,
     endRow?: number,
-    endCol?: number
+    endCol?: number,
+    container?: any,
+    layer?: string,
 }

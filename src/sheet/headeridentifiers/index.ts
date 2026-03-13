@@ -6,9 +6,13 @@ export default class HeaderIdentifiers {
     renderHeaderPadder: HTMLDivElement;
     renderHeaderElems: HTMLDivElement;
     psuedoStyle: HTMLStyleElement;
+    colHeadersCorner: HTMLDivElement;
+    curRange: any;
     constructor(sheet: Sheet) {
         this.sheet = sheet;
+        this.curRange = null;
         this.headerContainer = this.sheet._container.querySelector('.header-container')!
+        this.colHeadersCorner = this.sheet._container.querySelector('.col-headers-corner')!
         this.headerContainer.innerHTML = ``;
         this.headerContainer.onmousedown = (e: any) => {
             if (e.button !== 0) return;
@@ -52,10 +56,12 @@ export default class HeaderIdentifiers {
                 width: ${1/devicePixelRatio}px !important;
             }`;
     }
-    renderHeaders() {
+    renderHeaders(force=true) {
         let totalWidth = 0;
         const { visibleStartCol } = this.sheet.metrics.getVisibleRangeMain();
         let sc = Math.max(visibleStartCol, this.sheet.freeze.col);
+        if (sc === this.curRange && !force) return;
+        this.curRange = sc;
         let ec = this.sheet.visibleEndCol;
         // let diff = sc % this.sheet.blockCols;
         // sc = sc - diff;
@@ -78,6 +84,28 @@ export default class HeaderIdentifiers {
         // if (this.headerContainer.style.width === `${(this.sheet.metrics.getWidthOffset(ec+1) + extra).toFixed(2)}px`) {
         //     return;
         // }
+        this.colHeadersCorner.innerHTML = '';
+        const scc = 0;
+        let tw = 0;
+        for (let col = scc; col < this.sheet.freeze.col; col++) {
+            const width = this.sheet.metrics.getColWidth(col);
+            tw += width;
+            let headerCell;
+            headerCell = document.createElement('div');
+            headerCell.className = 'header-cell';
+            headerCell.setAttribute('data-hccol', col);
+            headerCell.textContent = this.sheet.getColumnName(col);
+            headerCell.style.width = `${width}px`;
+            this.colHeadersCorner.appendChild(headerCell);
+            let headerHandle;
+            headerHandle = document.createElement('div');
+            headerHandle.className = 'header-handle';
+            // headerHandle.style.cursor = 'unset';
+            headerHandle.style.height = `${this.sheet.headerRowHeight}px`;
+            headerHandle.style.left = `${tw - 8}px`;
+            headerHandle.setAttribute('data-col', col);
+            this.colHeadersCorner.appendChild(headerHandle);
+        }
         this.renderHeaderElems.innerHTML = ``;
         for (let col: any = sc; col <= ec; col++) {
             const width = this.sheet.metrics.getColWidth(col);

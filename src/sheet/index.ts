@@ -117,8 +117,10 @@ export default class Sheet {
     state: State;
     defaultValign: string;
     defaultHorizAlign: string;
-    randInterval: NodeJS.Timeout;
+    randInterval: any;
     mainContainer: any;
+    panes: { main: any; leftpane: any; toppane: any; cornerpane: any; };
+    programmaticCell: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = options.zoomLevel || 1;
         this.drawGridlinesOverBackground = options.drawGridlinesOverBackground || false;
@@ -126,6 +128,7 @@ export default class Sheet {
         this.defaultFontSize = options.defaultFontSize || 12;
         this.defaultValign = options.defaultValign || 'top';
         this.defaultHorizAlign = options.defaultHorizAlign || 'left';
+        this.programmaticCell = options.programmaticCell;
         this.events = {};
         this.toolbar = null;
         this._selectionBoundRects = [];
@@ -171,19 +174,19 @@ export default class Sheet {
         _container.appendChild(this.psuedoStyle);
         // _container.innerHTML += header;
         _container.insertAdjacentHTML('beforeend', `
-        <div class="grid-container">
-            <div class="corner-cell"></div>
-            <div class="col-headers-corner"></div>
-            <div class="header-container"></div>
-            <div class="row-headers-corner"></div>
-            <div class="corner-freeze-container"></div><div class="top-freeze-container"></div>
-            <div class="row-number-container"></div>
-            <div class="left-freeze-container"></div>
-            <div class="main-grid-container">
+            <div class="grid-container">
+                <div class="corner-cell"></div>
+                <div class="col-headers-corner"></div>
+                <div class="header-container"></div>
+                <div class="row-headers-corner"></div>
+                <div class="corner-freeze-container"></div>
+                <div class="top-freeze-container"></div>
+                <div class="row-number-container"></div>
+                <div class="left-freeze-container"></div>
+                <div class="main-grid-container"></div>
+                <div class="selection-layer"></div>
             </div>
-            <div class="selection-layer"></div>
-            </div>
-            `);
+        `);
             // <div class="grid-row2">
             // </div>
         this.container = _container.querySelector('.grid-container')!;
@@ -192,6 +195,12 @@ export default class Sheet {
         this.cornerFreezeContainer = _container.querySelector('.corner-freeze-container')!;
         this.leftFreezeContainer = _container.querySelector('.left-freeze-container')!;
         this.topFreezeContainer = _container.querySelector('.top-freeze-container')!;
+        this.panes = {
+            main: this.mainContainer,
+            leftpane: this.leftFreezeContainer,
+            toppane: this.topFreezeContainer,
+            cornerpane: this.cornerFreezeContainer,
+        }
         this.wrapper.appendChild(_container);
         this.ctxmenu = new ContextMenu();
         _container.append(this.ctxmenu.container)
@@ -750,7 +759,9 @@ export default class Sheet {
         this.container.scrollLeft = 0;
         this.container.scrollTop = 0;
         this.setFreezeDimensions();
-        this.forceRerender();
+        this.updateVisibleGrid(false, true);
+        this.updateSelection();
+        // this.forceRerender();
     }
     showContextMenu(x: number, y: number, row: number, col: number) {
         const rect = this.container.getBoundingClientRect();
@@ -1220,8 +1231,8 @@ export default class Sheet {
     startCellEdit(row: number, col: number, startingValue?: string) {
         if (!this.state.isEditable) return;
         if (row < 0 || row > this.totalRowBounds || col < 0 || col > this.totalColBounds) return;
-        let left, top, width, height, value;
-        ({ left, top, width, height, row, col } = this.metrics.getCellCoordsContainer(row, col));
+        let left, top, width, height, value, container;
+        ({ left, top, width, height, row, col, container } = this.metrics.getCellCoordsContainer(row, col));
         const cell = this.getCellOrMerge(row,col);
         value = startingValue != null ? '' : this.getCellText(cell.row, cell.col);
 
@@ -1229,8 +1240,6 @@ export default class Sheet {
             const customEditor = this.options.launchCustomEditor(cell, { left, top, width, height });
             return;
         }
-
-        let { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
 
         if (row < this.freeze.row) {
             left = this.metrics.getWidthOffsetRelativeToPanel(col);
@@ -1247,28 +1256,7 @@ export default class Sheet {
         this.editInput.style.width = (value.length + 1) + "ch";
         this.editInput.style.height = `${height}px`;
         this.editInput.style.display = 'block';
-        if (col < this.freeze.col && row < this.freeze.row) {
-            if (this.editInput.parentElement !== this.cornerFreezeContainer) {
-                this.editInput.remove();
-                this.cornerFreezeContainer.appendChild(this.editInput);
-            }
-        } else if (col < this.freeze.col) {
-            if (this.editInput.parentElement !== this.leftFreezeContainer) {
-                this.editInput.remove();
-                this.leftFreezeContainer.appendChild(this.editInput);
-            }
-        } else if (row < this.freeze.row) {
-            this.editInput.style.top = `${top-this.headerRowHeight}px`;
-            if (this.editInput.parentElement !== this.topFreezeContainer) {
-                this.editInput.remove();
-                this.topFreezeContainer.appendChild(this.editInput);
-            }
-        } else {
-            if (this.editInput.parentElement !== this.container) {
-                this.editInput.remove();
-                this.container.appendChild(this.editInput);
-            }
-        }
+        container.appendChild(this.editInput);
         this.editInput.focus();
         // prevent focus from shifting element
         this.topFreezeContainer.scrollTop = 0;
@@ -2094,21 +2082,20 @@ export default class Sheet {
         if (updateVisHeight || updateVisWidth) {
             this.updateGridDimensions();
             this.metrics.calculateVisibleRange();
-            this.rowNumbers.renderRowNumbers();
-            this.headerIdentifiers.renderHeaders();
-            // this.forceRerender();
+            this.rowNumbers.renderRowNumbers(false);
+            this.headerIdentifiers.renderHeaders(false);
             this.updateVisibleGrid();
         } else {
             this.updateGridDimensions();
             this.metrics.calculateVisibleRange();
-            this.rowNumbers.renderRowNumbers();
-            this.headerIdentifiers.renderHeaders();
+            this.rowNumbers.renderRowNumbers(false);
+            this.headerIdentifiers.renderHeaders(false);
             this.updateVisibleGrid();
         }
         this.updateSelection(false, false);
     }
 
-    updateLeftFreeze(force = false) {
+    updateLeftFreeze(force = false, forceNew = false) {
         // this.metrics.calculateVisibleRange();
         const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.getVisibleRangeLeft();
         // Determine which blocks we need to render
@@ -2130,7 +2117,7 @@ export default class Sheet {
         // Remove blocks that are no longer needed
         const toRemove: any = [];
         this.activeLeftPaneBlocks.forEach((block, key) => {
-            if (!neededBlocks.has(key)) {
+            if (!neededBlocks.has(key) || forceNew) {
                 toRemove.push(key);
                 this.releaseBlock(block);
             } else if (force) {
@@ -2144,15 +2131,11 @@ export default class Sheet {
                 }
             }
         });
-        if (this.leftFreezeContainer) {
-            const totalRenderRows = visibleEndRow + this.blockRows-(visibleEndRow%this.blockRows);
-            const height = this.metrics.getHeightOffset(totalRenderRows);
-            const width = this.leftFreezeWidth;
-            this.leftFreezeContainer.style.width = `${width}px`;
-            this.leftFreezeContainer.style.height = `${height}px`;
-        } else {
-            this.leftFreezeContainer.style.width = '';
-        }
+        const totalRenderRows = visibleEndRow + this.blockRows-(visibleEndRow%this.blockRows);
+        const height = this.metrics.getHeightOffset(totalRenderRows);
+        const width = this.leftFreezeWidth;
+        this.leftFreezeContainer.style.width = `${width}px`;
+        this.leftFreezeContainer.style.height = `${height}px`;
         
         toRemove.forEach((key: any) => this.activeLeftPaneBlocks.delete(key));
 
@@ -2168,7 +2151,7 @@ export default class Sheet {
             });
         })
     }
-    updateTopFreeze(force = false) {
+    updateTopFreeze(force = false, forceNew = false) {
 
         const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.getVisibleRangeTop();
 
@@ -2190,7 +2173,7 @@ export default class Sheet {
         // Remove blocks that are no longer needed
         const toRemove: any = [];
         this.activeTopPaneBlocks.forEach((block, key) => {
-            if (!neededBlocks.has(key)) {
+            if (!neededBlocks.has(key) || forceNew) {
                 toRemove.push(key);
                 this.releaseBlock(block);
             } else if (force) {
@@ -2204,20 +2187,12 @@ export default class Sheet {
                 }
             }
         });
-        if (this.topFreezeContainer) {
-            const totalRenderCols = this.visibleEndCol + this.blockCols-(this.visibleEndCol%this.blockCols);
-            const height = this.topFreezeHeight;
-            const width = this.metrics.getWidthOffset(totalRenderCols);
-            this.topFreezeContainer.style.height = `${height}px`;
-            this.topFreezeContainer.style.width = `${width-this.rowNumberWidth}px`;
-            if (!this.freeze.row) {
-                this.topFreezeContainer.style.display = 'none';
-            } else {
-                this.topFreezeContainer.style.display = '';
-            }
-        } else {
-            this.topFreezeContainer.style.height = '';
-        }
+        const totalRenderCols = this.visibleEndCol + this.blockCols-(this.visibleEndCol%this.blockCols);
+        const height = this.topFreezeHeight;
+        const width = this.metrics.getWidthOffset(totalRenderCols);
+        this.topFreezeContainer.style.height = `${height}px`;
+        this.topFreezeContainer.style.width = `${width-this.rowNumberWidth}px`;
+
         
         toRemove.forEach((key: any) => this.activeTopPaneBlocks.delete(key));
 
@@ -2233,7 +2208,7 @@ export default class Sheet {
             });
         })
     }
-    updateCornerFreeze(force = false) {
+    updateCornerFreeze(force = false, forceNew = false) {
         // this.metrics.calculateVisibleRange();
 
         // Determine which blocks we need to render
@@ -2254,7 +2229,7 @@ export default class Sheet {
 
         const toRemove: any = [];
         this.activeCornerPaneBlocks.forEach((block, key) => {
-            if (!neededBlocks.has(key)) {
+            if (!neededBlocks.has(key) || forceNew) {
                 toRemove.push(key);
                 this.releaseBlock(block);
             } else if (force) {
@@ -2268,20 +2243,6 @@ export default class Sheet {
                 }
             }
         });
-        if (this.cornerFreezeContainer) {
-            // const totalRenderCols = this.visibleEndCol + this.blockCols-(this.visibleEndCol%this.blockCols);
-            // const height = this.topFreezeHeight;
-            // const width = this.metrics.getWidthOffset(this.freeze.col);
-            // const width = this.metrics.getWidthOffset(totalRenderCols);
-            // const leftFreezeWidth = this.metrics.getWidthOffset(this.freeze.col);
-            // this.cornerFreezeContainer.style.height = `${height}px`;
-            // this.cornerFreezeContainer.style.width = `${width}px`;
-            if (this.freeze.row && this.freeze.col) {
-                this.cornerFreezeContainer.style.display = '';
-            } else {
-                this.cornerFreezeContainer.style.display = 'none';
-            }
-        }
         
         toRemove.forEach((key: any) => this.activeCornerPaneBlocks.delete(key));
 
@@ -2298,14 +2259,14 @@ export default class Sheet {
         })
     }
 
-    updateVisibleGrid(force = false) {
+    updateVisibleGrid(force = false, forceNew = false) {
 
         
         this.metrics.calculateVisibleRange();
 
-        this.updateLeftFreeze(force);
-        this.updateTopFreeze(force);
-        this.updateCornerFreeze(force);
+        this.updateLeftFreeze(force, forceNew);
+        this.updateTopFreeze(force, forceNew);
+        this.updateCornerFreeze(force, forceNew);
 
         const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.getVisibleRangeMain(); // main panel metrics
         
@@ -2328,7 +2289,7 @@ export default class Sheet {
         // Remove blocks that are no longer needed
         const toRemove: any = [];
         this.activeBlocks.forEach((block, key) => {
-            if (!neededBlocks.has(key)) {
+            if (!neededBlocks.has(key) || forceNew) {
                 toRemove.push(key);
                 this.releaseBlock(block);
             } else if (force) {
@@ -2680,11 +2641,11 @@ export default class Sheet {
         return block?.canvas.getContext('2d');
     }
 
-    getLayer(row,col) {
+    getLayer(row: number,col:number) {
         if (col < this.freeze.col && row < this.freeze.row) {
             return 'cornerpane';
         } else if (col < this.freeze.col) {
-            return 'leftepane';
+            return 'leftpane';
         } else if (row < this.freeze.row) {
             return 'toppane';
         } else {
@@ -2723,8 +2684,7 @@ export default class Sheet {
         if (!block) return;
         let ctx = block?.canvas.getContext('2d');
         let left, top, width, height;
-        
-        
+
         this.renderCellBackground(ctx, row, col);
         this.renderBorders(ctx,row,col,fromBlockRender);
         if (this.getCell(row, col).cellType === 'button') {
@@ -3056,11 +3016,12 @@ export default class Sheet {
     }
 
     hasCell(row: number, col: number) {
-        return !this.data.has(row, col) || !this.data.get(row, col);
+        return this.data.has(row, col);
     }
 
     getCell(row: number, col: number) {
         if (!this.data) return { row, col };
+        if (!this.hasCell(row,col) && this.programmaticCell) return this.programmaticCell(row,col);
         if (!this.data.has(row, col) || !this.data.get(row, col)) return { row, col };
         const cell = this.data.get(row, col);
         cell.row = row; cell.col = col; // bug: inserting can change row/col
@@ -3069,6 +3030,7 @@ export default class Sheet {
     getCellOrMerge(row: number, col: number) {
         const merge = this.getMerge(row, col);
         if (merge) return this.getCell(merge.startRow, merge.startCol);
+        if (!this.hasCell(row,col) && this.programmaticCell) return this.programmaticCell(row,col);
         return this.getCell(row,col);
     }
     getCellText(row: number, col: number) {
@@ -3143,6 +3105,7 @@ export default class Sheet {
         let left, top, width, height;
         ({ left, top, width, height } = this.metrics.getCellCoordsCanvas(row, col));
         const cell = this.getCellOrMerge(row,col);
+        if (cell.renderType === 'custom') return;
         row = cell.row, col = cell.col;
         const value = this.getCellText(row, col);
         let text = value !== undefined && value !== null ? String(value) : '';

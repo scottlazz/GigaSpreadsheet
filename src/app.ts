@@ -36,6 +36,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 formulaBar: true,
                 cellHeaders: true,
                 isEditable: true,
+                // programmaticCell: (row,col) => {
+                //     return {row,col,text: `${row} ${col}`}
+                // },
                 // drawGridlinesOverBackground: true,
                 zoomLevel: 1,
                 gridlinesColor: '#dddddd',
@@ -50,6 +53,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 // blockCols: 4,
                 renderCustomCell: (cell: any, { left, top, width, height, layer, container }: any) => {
                     const button = document.createElement('button');
+                    // button.style.opacity = '.8'
                     button.onclick = update;
                     button.style.overflow = 'hidden';
                     button.style.zIndex = "4";
