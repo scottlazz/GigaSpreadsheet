@@ -121,15 +121,15 @@ export default class Metrics {
         const merge = this.sheet.getMerge(row, col);
         let left, top, width, height, endRow, endCol;
         if (merge) {
-            left = this.getWidthOffset(merge.startCol, true);
-            top = this.getHeightOffset(merge.startRow, true);
+            left = this.getWidthOffsetRelativeToPanel(merge.startCol);
+            top = this.getHeightOffsetRelativeToPanel(merge.startRow);
             width = this.getMergeWidth(merge);
             height = this.getMergeHeight(merge);
             row = merge.startRow, col = merge.startCol;
             endRow = merge.endRow, endCol = merge.endCol;
         } else {
-            left = this.getWidthOffset(col, true);
-            top = this.getHeightOffset(row, true);
+            left = this.getWidthOffsetRelativeToPanel(col, true);
+            top = this.getHeightOffsetRelativeToPanel(row, true);
             width = this.getCellWidth(row, col);
             height = this.rowHeight(row);
             endRow = row, endCol = col;

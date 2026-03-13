@@ -88,8 +88,7 @@ html {
   /* white-space: nowrap; */
   grid-template-columns: auto auto minmax(0, 1fr);
   grid-template-rows: auto auto minmax(0, 1fr);
-  height: 1000px;
-  width: 1400px;
+
   display: grid;
   /* display: flex;
   flex-direction: column;
@@ -98,6 +97,7 @@ html {
 
 .canvas-block-container {
   position: absolute;
+  z-index: -1;
 }
 
 .canvas-block {

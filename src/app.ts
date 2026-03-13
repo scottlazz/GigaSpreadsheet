@@ -26,8 +26,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
         Object.assign(
             {},
             // cells,
+            demo,
             {
-                initialCells: cells,
+                // initialCells: cells,
                 // gridlinesOn: false,
                 autosizeHeight: true,
                 autosizeWidth: true,
@@ -40,7 +41,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 gridlinesColor: '#dddddd',
                 // gridlinesColor: 'rgba(255, 0, 0, 0.1)',
                 // gridlinesColor: 'red',
-                freeze: {row: 3, col: 3},
+                freeze: {row: 5, col: 2},
                 defaultFontSize: 15,
                 defaultValign: 'middle',
                 defaultHorizAlign: 'center',
@@ -50,6 +51,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 renderCustomCell: (cell: any, { left, top, width, height, layer, container }: any) => {
                     const button = document.createElement('button');
                     button.onclick = update;
+                    button.style.overflow = 'hidden';
                     button.style.zIndex = "4";
                     button.textContent = cell.text;
                     button.style.position = 'absolute';

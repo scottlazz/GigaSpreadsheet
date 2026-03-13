@@ -62,14 +62,15 @@ export default class RowNumbers {
         return el;
     }
     renderRowNumbers() {
-        let sr = this.sheet.visibleStartRow;
+        const { visibleStartRow } = this.sheet.metrics.getVisibleRangeLeft();
+        let sr = visibleStartRow;
         sr = Math.max(sr, this.sheet.freeze.row);
         let totalHeight = 0;
         let ve = this.sheet.visibleEndRow;
         let diff = sr % this.sheet.blockRows;
         // sr = sr - diff;
         ve = ve + (this.sheet.blockRows - (ve % this.sheet.blockRows) - 1);
-        // this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;
+        this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffsetRelativeToPanel(sr)}px`;
         if (this.sheet.options.cellHeaders === false) {
             // let totalHeight = 0;
             // for (let row: any = 0; row <= this.sheet.totalRowBounds; row++) {
@@ -77,8 +78,8 @@ export default class RowNumbers {
                 // }
                 // // this.totalHeight = totalHeight;
                 // this.rowNumberContainer.style.height = `${totalHeight + 20}px`;
-                this.rowNumberContainer.style.width = '1px';
-                this.rowNumberContainer.style.position = 'absolute';
+                // this.rowNumberContainer.style.width = '1px';
+                // this.rowNumberContainer.style.position = 'absolute';
                 this.rowNumberContainer.style.background = 'transparent';
                 this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffset(ve)}px`;
             // this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;

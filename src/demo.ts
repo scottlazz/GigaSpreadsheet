@@ -2,30 +2,30 @@ export default {
   "cellHeight": 20,
   "cellWidth": 64,
   "mergedCells": [
-    // {
-    //   "startRow": 4,
-    //   "endRow": 4,
-    //   "startCol": 10,
-    //   "endCol": 13
-    // },
-    // {
-    //   "startRow": 4,
-    //   "endRow": 4,
-    //   "startCol": 14,
-    //   "endCol": 19
-    // },
-    // {
-    //   "startRow": 4,
-    //   "endRow": 4,
-    //   "startCol": 20,
-    //   "endCol": 24
-    // },
-    // {
-    //   "startRow": 3,
-    //   "endRow": 3,
-    //   "startCol": 10,
-    //   "endCol": 11
-    // }
+    {
+      "startRow": 4,
+      "endRow": 4,
+      "startCol": 10,
+      "endCol": 13
+    },
+    {
+      "startRow": 4,
+      "endRow": 4,
+      "startCol": 14,
+      "endCol": 19
+    },
+    {
+      "startRow": 4,
+      "endRow": 4,
+      "startCol": 20,
+      "endCol": 24
+    },
+    {
+      "startRow": 3,
+      "endRow": 3,
+      "startCol": 10,
+      "endCol": 11
+    }
   ],
   "autosize": false,
   "heightOverrides": {},

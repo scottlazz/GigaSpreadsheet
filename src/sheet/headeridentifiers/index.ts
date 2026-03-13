@@ -54,12 +54,13 @@ export default class HeaderIdentifiers {
     }
     renderHeaders() {
         let totalWidth = 0;
-        let sc = Math.max(this.sheet.visibleStartCol, this.sheet.freeze.col);
+        const { visibleStartCol } = this.sheet.metrics.getVisibleRangeMain();
+        let sc = Math.max(visibleStartCol, this.sheet.freeze.col);
         let ec = this.sheet.visibleEndCol;
         // let diff = sc % this.sheet.blockCols;
         // sc = sc - diff;
         ec = ec + (this.sheet.blockCols - (ec % this.sheet.blockCols) - 1);
-        // this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffset(sc)}px`;
+        this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffsetRelativeToPanel(sc)}px`;
         if (this.sheet.options.cellHeaders === false) {
             // let totalWidth = this.sheet.rowNumberWidth;
             // for (let col: any = 0; col <= this.sheet.totalColBounds; col++) {
@@ -67,16 +68,16 @@ export default class HeaderIdentifiers {
             //     totalWidth += width;
             // };
             // this.headerContainer.style.width = `${totalWidth + 10}px`;
-            this.headerContainer.style.height = '1px';
-            this.headerContainer.style.position = 'absolute';
+            // this.headerContainer.style.height = '1px';
+            // this.headerContainer.style.position = 'absolute';
             this.headerContainer.style.background = 'transparent';
             this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffset(ec)}px`;
             return;
         }
         const extra = this.sheet.rowNumberWidth;
-        if (this.headerContainer.style.width === `${(this.sheet.metrics.getWidthOffset(ec+1) + extra).toFixed(2)}px`) {
-            return;
-        }
+        // if (this.headerContainer.style.width === `${(this.sheet.metrics.getWidthOffset(ec+1) + extra).toFixed(2)}px`) {
+        //     return;
+        // }
         this.renderHeaderElems.innerHTML = ``;
         for (let col: any = sc; col <= ec; col++) {
             const width = this.sheet.metrics.getColWidth(col);

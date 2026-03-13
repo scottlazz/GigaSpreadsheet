@@ -66,6 +66,7 @@ export default class GridSelection {
         this.sheet.createGhost(this.rect, coords);
     }
     updateDrag() {
+        if (!this.panes[0].children[0]) return;
         this.addDrag(
             this.panes[0].children[0]
         );
