@@ -17,11 +17,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
             sheet.intervalSetRandomData({startRow: 6, endRow: 19, startCol: 11, endCol: 24}, 300);
         }
     }
+    for(let i = 0; i < 200; i++) {
+        for(let j = 0; j < 200; j++) {
+            cells.push({row: i, col: j, text: `[${i},${j}]`})
+        }
+    }
     sheet = new Sheet(wrapper,
         Object.assign(
             {},
-            demo,
+            // cells,
             {
+                initialCells: cells,
                 // gridlinesOn: false,
                 autosizeHeight: true,
                 autosizeWidth: true,
@@ -34,7 +40,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 gridlinesColor: '#dddddd',
                 // gridlinesColor: 'rgba(255, 0, 0, 0.1)',
                 // gridlinesColor: 'red',
-                // freeze: {row: 0, col: 0},
+                freeze: {row: 3, col: 3},
                 defaultFontSize: 15,
                 defaultValign: 'middle',
                 defaultHorizAlign: 'center',

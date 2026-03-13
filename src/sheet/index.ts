@@ -5,7 +5,7 @@ import { launchFormatMenu } from './windows/format';
 import { createLineChart } from './graphs/linechart';
 // import FinancialSubscriber from '../packages/financial/index';
 import { dependencyTree, tickerReg, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft, removeDependents } from "../packages/dependencytracker";
-import { hasBorderStr, addBorder, isNumeric, debounce } from "./utils";
+import { hasBorderStr, addBorder, isNumeric, debounce, getOverlappingRect } from "./utils";
 import { shiftTextRefs, rowColToRef } from "./shiftops";
 import { Rect, GigaSheetTypeOptions, CellCoordsRect } from './interfaces';
 import ContextMenu from './components/contextmenu';
@@ -181,8 +181,8 @@ export default class Sheet {
             <div class="row-number-container"></div>
             <div class="left-freeze-container"></div>
             <div class="main-grid-container">
-                <div class="selection-layer"></div>
             </div>
+            <div class="selection-layer"></div>
             </div>
             `);
             // <div class="grid-row2">
@@ -226,8 +226,8 @@ export default class Sheet {
         if (options.cellHeaders !== false) {
             // this.selectionLayer.style.top = `${this.headerRowHeight}px`;
             // this.selectionLayer.style.left = `${this.rowNumberWidth}px`;
-            this.selectionLayer.style.top = '0';
-            this.selectionLayer.style.left = '0';
+            // this.selectionLayer.style.top = '0';
+            // this.selectionLayer.style.left = '0';
             // this.cornerCell.style.width = `${this.rowNumberWidth}px`;
             // this.cornerCell.style.height = `${this.headerRowHeight}px`;
             // this.cornerCell.style.marginTop = `-${this.headerRowHeight + 1}px`; // -1 for border
@@ -302,7 +302,7 @@ export default class Sheet {
         this.probe.style.height = '10px';
         this.probe.style.borderRadius = '5px';
         // this.probe.style.background = 'red';
-        this.selectionLayer.appendChild(this.probe);
+        this.container.appendChild(this.probe);
         // this.setFreezeDimensions();
         this.applyTheme(this.options.theme);
 
@@ -427,7 +427,6 @@ export default class Sheet {
         //         const [row,col] = key.split(',');
         //         this.renderCell(row,col,false);
         //     }
-        //     console.log('gigasheet::ontick', data)
         // });
     }
 
@@ -469,6 +468,7 @@ export default class Sheet {
         resizeObserver.observe(this.container);
 
         // Selection event listeners
+        // this.container.addEventListener('mousedown', this.handleMouseDown.bind(this));
         this.container.addEventListener('mousedown', this.handleMouseDown.bind(this));
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
@@ -493,13 +493,11 @@ export default class Sheet {
         });
 
         this._container.querySelector('.align-button-group')?.addEventListener('click', (e: any) => {
-            // console.log('clicked align buttons', e.target?.getAttribute('data-align'))
             const textAlign = e.target?.getAttribute('data-align');
             const selectedCells = this.getSelectedCells();
             this.setCells(selectedCells, 'ta', textAlign);
         })
         this._container.querySelector('.quick-text-actions-buttons')?.addEventListener('click', async (e: any) => {
-            // console.log('clicked align buttons', e.target?.getAttribute('data-align'))
             const action = e.target?.getAttribute('data-action');
             if (action === 'copy') {
                 document.execCommand('copy');
@@ -731,12 +729,20 @@ export default class Sheet {
             }
         })
     }
-    setFreezeDimensions () {
-        const width = this.metrics.getWidthOffset(this.freeze.col);
+    get leftFreezeWidth () {
+        return this.metrics.getWidthOffset(this.freeze.col);
+    }
+    get topFreezeHeight () {
         const height = this.metrics.getHeightOffset(this.freeze.row);
-        console.log('setfreezedims', width, height)
+        return height;
+    }
+    setFreezeDimensions () {
+        const width = this.leftFreezeWidth;
+        const height = this.topFreezeHeight;
         this._container.style.setProperty('--left-freeze-width', `${width}px`);
         this._container.style.setProperty('--top-freeze-height', `${height}px`);
+        this._container.style.setProperty('--header-width', `${this.rowNumberWidth}px`);
+        this._container.style.setProperty('--header-height', `${this.headerRowHeight}px`);
     }
     freezeCells() {
         if (!this.selectionBoundRect) return;
@@ -1234,9 +1240,12 @@ export default class Sheet {
 
         let { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
 
+        if (row < this.freeze.row) {
+            left = this.metrics.getWidthOffsetRelativeToPanel(col);
+        }
         if (col < this.freeze.col) {
             left = this.metrics.getWidthOffset(col);
-            top = this.metrics.getHeightOffset(row);
+            top = this.metrics.getHeightOffsetRelativeToPanel(row);
         }
         // Set up edit input
         this.editInput.value = value;
@@ -1326,7 +1335,6 @@ export default class Sheet {
         }
         this.historyManager.flushChanges();
         if (field === 'cellType') {
-            // console.log('forcing rerender')
             this.forceRerender();
         }
     }
@@ -1386,13 +1394,11 @@ export default class Sheet {
         if (
             this.lastBlockCanvases !== this.blockCanvases()
         ) {
-            console.log("RESIZE");
             this.lastBlockCanvases = this.blockCanvases();
             this.forceRerender();
         } else if (Math.abs(this.effectiveDevicePixelRatio() - this.lastDevicePixelRatio) > 0.00) {
             // Only update if scale changed significantly
             this.lastDevicePixelRatio = this.effectiveDevicePixelRatio();
-            console.log('update render quality')
             requestAnimationFrame(() => {
                 if (this.busy) return;
                 const createTimeout = () =>
@@ -1431,19 +1437,27 @@ export default class Sheet {
         this.selectionHandle = document.createElement('div');
         this.selectionHandle.className = 'selection-handle bottom-right';
         this.selectionHandle.style.display = 'none';
-        this.selectionLayer.appendChild(this.selectionHandle);
+        this.container.appendChild(this.selectionHandle);
 
         // Add drag event for the handle
-        this.selectionHandle.addEventListener('mousedown', (e) => {
-            e.stopPropagation();
-            if (!this.selectedCell) return;
-            this.isResizing = true;
-            this.resizeStart = { x: e.clientX, y: e.clientY };
-            this.resizeInitialSize = {
-                width: this.selectedCell.offsetWidth,
-                height: this.selectedCell.offsetHeight
-            };
-        });
+        // this.selectionHandle.addEventListener('mousedown', (e) => {
+        //     e.stopPropagation();
+        //     if (!this.selectedCell) return;
+        //     this.isResizing = true;
+        //     this.resizeStart = { x: e.clientX, y: e.clientY };
+        //     this.resizeInitialSize = {
+        //         width: this.selectedCell.offsetWidth,
+        //         height: this.selectedCell.offsetHeight
+        //     };
+        // });
+    }
+
+    getPanelFromEl(el) {
+        if (!el) return;
+        if (el.closest?.('.main-grid-container')) return 'mainpanel';
+        if (el.closest?.('.left-freeze-container')) return 'leftpanel';
+        if (el.closest?.('.top-freeze-container')) return 'toppanel';
+        if (el.closest?.('.corner-freeze-container')) return 'cornerpanel';
     }
 
     handleMouseDown(e: any) { // handle dragging select cell logic
@@ -1460,6 +1474,7 @@ export default class Sheet {
             this.hideContextMenu();
         }
         this._container.focus();
+        // console.log('mousedown e', this.getPanelFromEl(e.target));
         if (e.button === 2) {
             let x = e.clientX;
             x = x - this._container.getBoundingClientRect().x;
@@ -1517,12 +1532,12 @@ export default class Sheet {
             ) {
                 return;
             } else {
-                this.selectionLayer.innerHTML = '';
+                // this.selectionLayer.innerHTML = '';
                 while(this.activeSelections.length > 0) {
                     const selection = this.activeSelections.pop();
                     selection.remove();
                 }
-                this.selectionLayer.appendChild(this.probe)
+                this.container.appendChild(this.probe)
                 this.addNewSelection(row,col);
             }
         }
@@ -1598,7 +1613,6 @@ export default class Sheet {
             const scrollTop = this.container.scrollTop;
             const rect = this.container.getBoundingClientRect();
             // this.draggingRow.el.style.top = `${scrollTop + e.clientY - this.headerRowHeight - rect.y - 5}px`;
-            // console.log('dragging', (scrollTop + e.clientY - this.headerRowHeight - rect.y - 5) - this.renderRowNumberPadder.offsetTop);
             const top = (scrollTop + e.clientY - this.headerRowHeight - rect.y - 5) - this.rowNumbers.renderRowNumberPadder.getBoundingClientRect().height;
             this.draggingRow.el.style.top = `${top}px`;
         } else if (this.draggingGhost) {
@@ -1611,6 +1625,7 @@ export default class Sheet {
                 this.selectionEnd = { row, col };
                 if (!this.selectionStart) return;
                 this.selectionBoundRect = this.getBoundingRectCells(this.selectionStart.row, this.selectionStart.col, row, col);
+                console.log(`selecting rc bounds [${row},${col}] ${JSON.stringify(this.selectionBoundRect)}`)
                 this.updateSelection();
             }
             let scrollLeft = this.container.scrollLeft;
@@ -1646,20 +1661,7 @@ export default class Sheet {
                 block: 'nearest',
                 inline: 'nearest',
             });
-        } else if (this.isResizing) {
-            const dx = e.clientX - this.resizeStart.x;
-            const dy = e.clientY - this.resizeStart.y;
-
-            const newWidth = Math.max(this.cellWidth, this.resizeInitialSize.width + dx);
-            const newHeight = Math.max(this.cellHeight, this.resizeInitialSize.height + dy);
-
-            if (!this.selectedCell) return;
-            this.selectedCell.style.width = `${newWidth}px`;
-            this.selectedCell.style.height = `${newHeight}px`;
-
-            // Position the handle
-            this.positionSelectionHandle();
-        }
+        } else if (this.isResizing) {}
     }
 
     handleMouseUp(e: any) {
@@ -1766,32 +1768,36 @@ export default class Sheet {
         const woffset = this.metrics.getWidthOffset(this.freeze.col, true);
         const hoffset = this.metrics.getHeightOffset(this.freeze.row, true);
         // const woffset = this.metrics.getHeightOffset(this.freeze.col, true);
-        // console.log(e.clientX, woffset)
-        // console.log(e.clientY-this.headerRowHeight, rect.top + hoffset)
         // Adjust for header and row numbers
-        // console.log('clientx', e.clientX-rect.left, woffset)
         let x,y;
-        if (e.clientX-rect.left < woffset && e.clientY < rect.top + hoffset) {
+        let pane;
+        if (e.clientX-rect.left < woffset && e.clientY < rect.top + hoffset) { // freeze corner
             x = (e.clientX-rect.left - this.rowNumberWidth);
             y = (e.clientY - rect.top - this.headerRowHeight);
-        } else if (e.clientX-rect.left < woffset) {
+            pane = 'corner';
+        } else if (e.clientX-rect.left < woffset) { // freeze left
             x = (e.clientX-rect.left - this.rowNumberWidth);
-            y = (e.clientY - rect.top + scrollTop - this.headerRowHeight);
-        } else if (e.clientY < rect.top + hoffset) {
+            y = (e.clientY - rect.top + scrollTop - this.headerRowHeight - this.topFreezeHeight);
+            pane = 'left';
+        } else if (e.clientY < rect.top + hoffset) { // freeze top
+            x = (e.clientX - rect.left + scrollLeft - this.rowNumberWidth - this.leftFreezeWidth);
             y = (e.clientY - rect.top - this.headerRowHeight);
-            x = (e.clientX - rect.left + scrollLeft - this.rowNumberWidth);
-            // x = e.clientX;
+            pane = 'top';
         } else {
             // x = x - this.rowNumberWidth;
-            x = (e.clientX - rect.left + scrollLeft);
-            y = (e.clientY - rect.top + scrollTop); // 30 for header
+            x = (e.clientX - rect.left + scrollLeft - this.rowNumberWidth - this.leftFreezeWidth);
+            y = (e.clientY - rect.top + scrollTop - this.headerRowHeight - this.topFreezeHeight); // 30 for header
+            pane = 'main';
+            // x = ((e.clientX - rect.left) + scrollLeft);
+            // y = (e.clientY - rect.top + scrollTop); // 30 for header
         }
-
         if (x < 0 || y < 0) return { row: -1, col: -1 };
 
-        let col = this.metrics.bsearch(this.widthAccum, x + this.rowNumberWidth) - 1;
-        let row = this.metrics.bsearch(this.heightAccum, y + this.headerRowHeight) - 1;
-        // console.log(row,col)
+        let colExtra = pane === 'main' || pane === 'top' ? this.leftFreezeWidth : 0;
+        let rowExtra = pane === 'main' || pane === 'left' ? this.topFreezeHeight : 0;
+        let col = this.metrics.bsearch(this.widthAccum, x + this.rowNumberWidth + colExtra) - 1;
+        let row = this.metrics.bsearch(this.heightAccum, y + this.headerRowHeight + rowExtra) - 1;
+        // console.log('SELECTED!', [row,col])
         return {
             row: Math.min(row, this.totalRowBounds),
             col: Math.min(col, this.totalColBounds)
@@ -1938,7 +1944,7 @@ export default class Sheet {
 
         let { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
 
-        let left = this.metrics.getWidthOffset(startCol);
+        let left = this.metrics.getWidthOffsetRelativeToPanel(startCol);
         let width = this.metrics.getWidthBetweenColumns(startCol, endCol+1);
 
         if (!fromKeyInput && (this.visibleEndRow < startRow || this.visibleEndCol < startCol)) {
@@ -1950,19 +1956,9 @@ export default class Sheet {
         endRow = Math.min(endRow, this.visibleEndRow);
         if (rebuild) {
             this.activeSelection.clear();
-            const top = this.metrics.getHeightOffset(startRow); // Below header
-            const height = this.metrics.getHeightBetweenRows(startRow, endRow+1);
-
-            // Create selection element
-            this.selectedCell = document.createElement('div');
-            this.selectedCell.className = 'selected-cell';
-            this.selectedCell.style.left = `${left}px`;
-            this.selectedCell.style.top = `${top}px`;
-            this.selectedCell.style.width = `${width+1}px`;
-            this.selectedCell.style.height = `${height+1}px`;
 
             this.activeSelection.setRect({startRow,startCol,endRow,endCol});
-            this.activeSelection.appendChild(this.selectedCell, this.selectionBoundRect, {left,top, width: width+1, height: height+1});
+            this.activeSelection.appendChild(this.selectionBoundRect);
         }
 
         // Add resize handle
@@ -2063,10 +2059,10 @@ export default class Sheet {
     updateHeightAccum() {
         let prevRowBounds = this.totalRowBounds;
         const oldHeight = this.heightAccum.length;
-        // this.heightAccum = [this.headerRowHeight];
-        // let heightSum = this.headerRowHeight;
-        this.heightAccum = [];
-        let heightSum = 0;
+        this.heightAccum = [this.headerRowHeight];
+        let heightSum = this.headerRowHeight;
+        // this.heightAccum = [];
+        // let heightSum = 0;
         for (
             let row = 0;
             row < oldHeight - 1 ||
@@ -2131,7 +2127,6 @@ export default class Sheet {
         const updateVisWidth = this.updateVisWidth();
 
         if (updateVisHeight || updateVisWidth) {
-            console.log('SCROLL UPDATE VIS HEIGHT OR WIDTH')
             this.updateGridDimensions();
             this.metrics.calculateVisibleRange();
             this.rowNumbers.renderRowNumbers();
@@ -2148,20 +2143,15 @@ export default class Sheet {
         this.updateSelection(false, false);
     }
 
-    get topFreezeHeight () {
-        const height = this.metrics.getHeightOffset(this.freeze.row);
-        return height;
-    }
-
     updateLeftFreeze(force = false) {
         // this.metrics.calculateVisibleRange();
-
+        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.getVisibleRangeLeft();
         // Determine which blocks we need to render
         const padding = this.padding;
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
-        const startBlockRow = Math.max(0, Math.floor(this.visibleStartRow / this.blockRows) - padding);
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.visibleEndRow - 1) / this.blockRows));
+        const startBlockRow = Math.max(0, Math.floor(visibleStartRow / this.blockRows) - padding);
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1) / this.blockRows));
         const startBlockCol = Math.max(0);
         let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.col - 1) / this.blockCols));
         
@@ -2189,11 +2179,14 @@ export default class Sheet {
                 }
             }
         });
+        // console.log('updateLeftFreeze', visibleStartRow)
         // if (this.activeLeftPaneBlocks.size) return;
-        const totalRenderRows = this.visibleEndRow + this.blockRows-(this.visibleEndRow%this.blockRows);
-        const height = this.metrics.getHeightOffset(totalRenderRows);
-        const width = this.metrics.getWidthOffset(this.freeze.col);
+        // const totalRenderRows = visibleEndRow + this.blockRows-(visibleEndRow%this.blockRows);
+        // const height = this.metrics.getHeightOffset(totalRenderRows);
+        // const width = this.metrics.getWidthOffset(this.freeze.col);
         if (this.leftFreezeContainer) {
+            const width = this.leftFreezeWidth;
+            this.leftFreezeContainer.style.width = `${width}px`;
             // this.leftFreezeContainer.style.top = `${this.topFreezeHeight}px`;
             // this.leftFreezeContainer.style.height = `${height}px`;
             // this.leftFreezeContainer.style.width = `${width}px`;
@@ -2203,6 +2196,8 @@ export default class Sheet {
             } else {
                 // this.leftFreezeContainer.style.marginTop = '';
             }
+        } else {
+            this.leftFreezeContainer.style.width = '';
         }
         
         toRemove.forEach((key: any) => this.activeLeftPaneBlocks.delete(key));
@@ -2212,7 +2207,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeLeftPaneBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, this.freeze.col, null, this.leftFreezeContainer, this.activeLeftPaneBlocks, 'leftpane');
+                    const block = this.createBlock(blockRow, blockCol, this.freeze.col, null, this.leftFreezeContainer, this.activeLeftPaneBlocks, 'leftpane', visibleStartRow, visibleStartCol);
                 } else {
                     // Ensure existing blocks are properly positioned
                     const block = this.activeLeftPaneBlocks.get(key);
@@ -2225,14 +2220,15 @@ export default class Sheet {
     updateTopFreeze(force = false) {
         // this.metrics.calculateVisibleRange();
 
+        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.getVisibleRangeTop();
         // Determine which blocks we need to render
         const padding = this.padding;
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = 0;
         let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.row - 1) / this.blockRows));
-        const startBlockCol = Math.max(0, Math.floor(this.visibleStartCol / this.blockCols) - padding);
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.visibleEndCol - 1) / this.blockCols));
+        const startBlockCol = Math.max(0, Math.floor(visibleStartCol / this.blockCols) - padding);
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2263,10 +2259,9 @@ export default class Sheet {
         const height = this.topFreezeHeight;
         const width = this.metrics.getWidthOffset(totalRenderCols);
         // const left = this.metrics.getWidthOffset(this.freeze.col+1);
-        // console.log('width::', width)
         // const leftFreezeWidth = this.metrics.getWidthOffset(this.freeze.col);
         if (this.topFreezeContainer) {
-            // this.topFreezeContainer.style.height = `${height}px`;
+            this.topFreezeContainer.style.height = `${height}px`;
             // this.topFreezeContainer.style.width = `${width-this.rowNumberWidth}px`;
             if (this.freeze.col) {
                 // this.topFreezeContainer.style.marginLeft = '-1px';
@@ -2277,7 +2272,6 @@ export default class Sheet {
             // this.topFreezeContainer.style.top = `${this.headerRowHeight}px`;
             // this.topFreezeContainer.style.left = `${leftFreezeWidth+this.rowNumberWidth}px`;
             // this.topFreezeContainer.style.marginLeft = `${-this.rowNumberWidth-leftFreezeWidth-1}px`;
-            // console.log('topfreeze', height)
             if (!this.freeze.row) {
                 // this.rowNumbers.rowNumberContainer.style.marginTop = '';
                 this.topFreezeContainer.style.display = 'none';
@@ -2285,6 +2279,8 @@ export default class Sheet {
                 // this.rowNumbers.rowNumberContainer.style.marginTop = `${-height-4}px`;
                 this.topFreezeContainer.style.display = '';
             }
+        } else {
+            this.topFreezeContainer.style.height = '';
         }
         
         toRemove.forEach((key: any) => this.activeTopPaneBlocks.delete(key));
@@ -2294,7 +2290,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeTopPaneBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, null, this.freeze.row, this.topFreezeContainer, this.activeTopPaneBlocks, 'toppane');
+                    const block = this.createBlock(blockRow, blockCol, null, this.freeze.row, this.topFreezeContainer, this.activeTopPaneBlocks, 'toppane', visibleStartRow, visibleStartCol);
                 } else {
                     // Ensure existing blocks are properly positioned
                     const block = this.activeTopPaneBlocks.get(key);
@@ -2346,7 +2342,6 @@ export default class Sheet {
         const width = this.metrics.getWidthOffset(this.freeze.col);
         // const width = this.metrics.getWidthOffset(totalRenderCols);
         // const left = this.metrics.getWidthOffset(this.freeze.col+1);
-        // console.log('width::', width)
         const leftFreezeWidth = this.metrics.getWidthOffset(this.freeze.col);
         if (this.cornerFreezeContainer) {
             // this.cornerFreezeContainer.style.height = `${height}px`;
@@ -2392,17 +2387,17 @@ export default class Sheet {
         this.updateLeftFreeze(force);
         this.updateTopFreeze(force);
         this.updateCornerFreeze(force);
+
+        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.getVisibleRangeMain(); // main panel metrics
         
         // Determine which blocks we need to render
         const padding = this.padding;
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
-        const startBlockRow = Math.max(0, Math.floor(this.visibleStartRow / this.blockRows) - padding);
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.visibleEndRow - 1) / this.blockRows));
-        const startBlockCol = Math.max(0, Math.floor(this.visibleStartCol / this.blockCols) - padding);
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.visibleEndCol - 1) / this.blockCols));
-        // console.log('endblock', [endBlockRow,endBlockCol])
-        // console.log('visible blocks', [startBlockRow, startBlockCol], 'through', [endBlockRow, endBlockCol])
+        const startBlockRow = Math.max(0, Math.floor(visibleStartRow / this.blockRows) - padding);
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1) / this.blockRows));
+        const startBlockCol = Math.max(0, Math.floor(visibleStartCol / this.blockCols) - padding);
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2443,7 +2438,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol);
+                    const block = this.createBlock(blockRow, blockCol, null, null, this.mainContainer, this.activeBlocks, 'main', visibleStartRow, visibleStartCol);
                 } else {
                     // Ensure existing blocks are properly positioned
                     const block = this.activeBlocks.get(key);
@@ -2464,13 +2459,15 @@ export default class Sheet {
         }
     }
 
-    createBlock(blockRow: number, blockCol: number, maxCols?: number, maxRows?: number, container?: any, activeSet?: any, region?: string) {
+    createBlock(blockRow: number, blockCol: number, maxCols?: number, maxRows?: number, container?: any, activeSet?: any, region?: string, offsetRow?: number, offsetCol?: number) {
         // Calculate block boundaries
-        const startRow = blockRow * this.blockRows;
-        let endRow = Math.min(startRow + this.blockRows);
+        let startRow = blockRow * this.blockRows;
+        if (offsetRow) startRow+=offsetRow;
+        let endRow = startRow + this.blockRows;
         // if (maxRows) endRow = Math.min(endRow, maxRows);
         if (this.maxRows) endRow = Math.min(endRow, this.maxRows);
-        const startCol = blockCol * this.blockCols;
+        let startCol = blockCol * this.blockCols;
+        if (offsetCol) startCol+=offsetCol;
         let endCol = Math.min(startCol + this.blockCols);
         // if (maxCols) endCol = Math.min(endCol, maxCols);
         if (this.maxCols) endCol = Math.min(endCol, this.maxCols);
@@ -2528,16 +2525,25 @@ export default class Sheet {
     // }
 
     getBlock(row: number, col: number) {
-        const blockRow = Math.floor(row / this.blockRows);
-        const blockCol = Math.floor(col / this.blockCols);
-        const key = this.getKey(blockRow, blockCol);
+        // if (row >= this.freeze.row) row-= this.freeze.row;
+        let blockRow = Math.floor(row / this.blockRows);
+        let blockCol = Math.floor(col / this.blockCols);
+        let key = this.getKey(blockRow, blockCol);
+        console.log('GETBLOCK', row,col,key)
         if(col < this.freeze.col && row < this.freeze.row) {
             return this.activeCornerPaneBlocks.get(key);
         } else if (col < this.freeze.col) {
+            blockRow = Math.floor((row-this.freeze.row) / this.blockRows);
+            key = this.getKey(blockRow, blockCol);
             return this.activeLeftPaneBlocks.get(key);
         } else if (row < this.freeze.row) {
+            blockCol = Math.floor((col-this.freeze.col) / this.blockCols);
+            key = this.getKey(blockRow, blockCol);
             return this.activeTopPaneBlocks.get(key);
-        } else if (this.activeBlocks.has(key)) {
+        } else {
+            blockRow = Math.floor((row-this.freeze.row) / this.blockRows);
+            blockCol = Math.floor((col-this.freeze.col) / this.blockCols);
+            key = this.getKey(blockRow, blockCol);
             return this.activeBlocks.get(key);
         }
         return null;
@@ -2575,7 +2581,6 @@ export default class Sheet {
         return null;
     }
     setGridlinesCtx(ctx: any, bgc: any) {
-        // console.log('bgc:', bgc)
         if (bgc) {
             ctx.strokeStyle = bgc;
             return;
@@ -2766,18 +2771,6 @@ export default class Sheet {
         return block?.canvas.getContext('2d');
     }
 
-    getOverlappingRect(rect1: Rect, rect2: Rect): Rect {
-        const startRow = Math.max(rect1.startRow, rect2.startRow);
-        const startCol = Math.max(rect1.startCol, rect2.startCol);
-        const endRow = Math.min(rect1.endRow, rect2.endRow);
-        const endCol = Math.min(rect1.endCol, rect2.endCol);
-
-        if (startRow <= endRow && startCol <= endCol) {
-            return { startRow, startCol, endRow, endCol };
-        }
-        return null;
-    }
-
     getLayer(row,col) {
         if (col < this.freeze.col && row < this.freeze.row) {
             return 'cornerpane';
@@ -2797,7 +2790,7 @@ export default class Sheet {
             const merge = this.getMerge(row,col);
             const _block = this.getSubBlock(row, col);
             if (_block) {
-                const rect = this.getOverlappingRect(merge, {startRow: _block.startRow, endRow: _block.endRow-1, startCol: _block.startCol, endCol: _block.endCol-1});
+                const rect = getOverlappingRect(merge, {startRow: _block.startRow, endRow: _block.endRow-1, startCol: _block.startCol, endCol: _block.endCol-1});
                 for(let r = rect.startRow; r <= rect.endRow; r++) {
                     for(let c = rect.startCol; c <= rect.endCol; c++) {
                         delete this.scheduledRenders[this.getKey(r,c)];
@@ -2947,7 +2940,6 @@ export default class Sheet {
                         }
                     } else if (mheight > this.cellHeight) {
                         this.maxHeightInRow[cell.row] = {max: mheight, col: cell.col};
-                        // console.log(this.maxHeightInRow[cell.row])
                         needsRerender = true;
                     }
                 }
@@ -3249,13 +3241,13 @@ export default class Sheet {
         row = cell.row, col = cell.col;
         const value = this.getCellText(row, col);
         let text = value !== undefined && value !== null ? String(value) : '';
-        try {
-            removeDependents(row,col);
-            text = this.parser.evaluateExpression(text, [row,col]);
-        } catch (e) {
-            console.warn(e);
-            text = text;
-        }
+        // try {
+        //     removeDependents(row,col);
+        //     text = this.parser.evaluateExpression(text, [row,col]);
+        // } catch (e) {
+        //     console.warn(e);
+        //     text = text;
+        // }
         if (text === '') return;
         ctx.save(); // Save the current state
 

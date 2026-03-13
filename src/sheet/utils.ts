@@ -1,3 +1,5 @@
+import { Rect } from "./interfaces";
+
 export const borderLeft = (1 << 1);
 export const borderTop = (1 << 2);
 export const borderRight = (1 << 3);
@@ -125,6 +127,23 @@ export function rgbToHex(rgbString: string) {
   const hexB = toHex(b);
 
   return `#${hexR}${hexG}${hexB}`;
+}
+
+export function rowColInRect(row: number,col: number,rect: Rect) {
+    return row >= rect.startRow && row <= rect.endRow &&
+        col >= rect.startCol && col <= rect.endCol;
+}
+
+export function getOverlappingRect(rect1: Rect, rect2: Rect): Rect {
+    const startRow = Math.max(rect1.startRow, rect2.startRow);
+    const startCol = Math.max(rect1.startCol, rect2.startCol);
+    const endRow = Math.min(rect1.endRow, rect2.endRow);
+    const endCol = Math.min(rect1.endCol, rect2.endCol);
+
+    if (startRow <= endRow && startCol <= endCol) {
+        return { startRow, startCol, endRow, endCol };
+    }
+    return null;
 }
 
 // function replaceRgbWithHex(input: string): string {

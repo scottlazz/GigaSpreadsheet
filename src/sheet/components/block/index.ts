@@ -43,14 +43,15 @@ export class Block {
         // }
         let left, top;
         if (this.region === 'leftpane' || this.region === 'cornerpane') {
-            left = this.sheet.metrics.getWidthOffset(this.startCol);
-            top = this.sheet.metrics.getHeightOffset(this.startRow);
+            left = this.sheet.metrics.getWidthOffsetRelativeToPanel(this.startCol);
+            top = this.sheet.metrics.getHeightOffsetRelativeToPanel(this.startRow);
         } else if (this.region === 'toppane') {
-            left = this.sheet.metrics.getWidthOffset(this.startCol);
-            top = this.sheet.metrics.getHeightOffset(this.startRow);
+            left = this.sheet.metrics.getWidthOffsetRelativeToPanel(this.startCol);
+            top = this.sheet.metrics.getHeightOffsetRelativeToPanel(this.startRow);
         } else {
-            left = this.sheet.metrics.getWidthOffset(this.startCol);
-            top = this.sheet.metrics.getHeightOffset(this.startRow);
+            // left = this.sheet.metrics.getWidthOffset(this.startCol);
+            left = this.sheet.metrics.getWidthOffsetRelativeToPanel(this.startCol);
+            top = this.sheet.metrics.getHeightOffsetRelativeToPanel(this.startRow);
         }
 
         // Calculate vertical position (top)

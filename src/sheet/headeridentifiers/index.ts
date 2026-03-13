@@ -23,15 +23,16 @@ export default class HeaderIdentifiers {
         this.renderHeaderPadder = document.createElement('div');
         this.renderHeaderElems = document.createElement('div');
         this.renderHeaderElems.style.position = 'relative';
+        this.renderHeaderElems.style.height = `${this.sheet.headerRowHeight}px`;
         this.headerContainer.appendChild(this.renderHeaderPadder);
         this.headerContainer.appendChild(this.renderHeaderElems);
 
-        this.psuedoStyle = document.createElement("style");
-        this.psuedoStyle.innerHTML =`
-            .header-handle::after {
-                width: ${1/devicePixelRatio}px !important;
-            }`;
-        this.headerContainer.appendChild(this.psuedoStyle);
+        // this.psuedoStyle = document.createElement("style");
+        // this.psuedoStyle.innerHTML =`
+        //     .header-handle::after {
+        //         width: ${1/devicePixelRatio}px !important;
+        //     }`;
+        // this.headerContainer.appendChild(this.psuedoStyle);
     }
     toggle() {
         if (this.sheet.options.cellHeaders !== false) {

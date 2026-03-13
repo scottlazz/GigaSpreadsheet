@@ -86,8 +86,8 @@ html {
 .grid-container {
   font-family: Arial, sans-serif;
   /* white-space: nowrap; */
-  grid-template-columns: var(--row-header-width) var(--left-freeze-width) 2000px;
-  grid-template-rows: var(--col-header-height) var(--top-freeze-height) 2000px;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   height: 1000px;
   width: 1400px;
   display: grid;
@@ -131,7 +131,7 @@ html {
   border-right: 1px solid rgb(153, 153, 153, 0.5);
   font-size: 12px;
   flex-shrink: 0;
-  left: var(--row-header-width);
+  left: var(--header-width);
   grid-area: 3/2/4;
   z-index: 4;
 }
@@ -147,8 +147,8 @@ html {
   z-index: 92;
   font-size: 12px;
   flex-shrink: 0;
-  top: var(--col-header-height);
-  left: var(--row-header-width);
+  top: var(--header-height);
+  left: var(--header-width);
   z-index: 15;
   grid-area: 2/2;
 }
@@ -163,7 +163,7 @@ html {
   font-size: 12px;
   flex-shrink: 0;
   position: sticky;
-  top: var(--col-header-height);
+  top: var(--header-height);
   grid-row: 2;
   z-index: 4;
 }
@@ -275,8 +275,8 @@ html {
 :root {
   /* --left-freeze-width: 200px;
   --top-freeze-height: 150px; */
-  --col-header-height: 20px;
-  --row-header-width: 43px;
+  /* --header-height: 20px;
+  --header-width: 43px; */
 }
 .corner-cell {
   position: sticky;
@@ -290,14 +290,14 @@ html {
   background: blue;
   position: sticky;
   top: 0;
-  left: var(--row-header-width);
+  left: var(--header-width);
   z-index: 11;
 }
 .row-headers-corner {
   background: green;
   position: sticky;
   left: 0;
-  top: var(--col-header-height);
+  top: var(--header-height);
   z-index: 11;
   grid-area: 2/1;
 }
@@ -384,16 +384,16 @@ html {
   position: absolute;
   width: 6px;
   height: 6px;
-  background-color: #1a73e8;
-  z-index: 220;
-  pointer-events: auto;
+  /* background-color: #1a73e8; */
+  /* z-index: 220; */
+  /* pointer-events: auto; */
 }
 
-.selection-handle.bottom-right {
+/* .selection-handle.bottom-right {
   right: -3px;
   bottom: -3px;
   cursor: nwse-resize;
-}
+} */
 
 @keyframes placeholderAnimation {
   /* 0% { background-position: 0 0; }

@@ -68,6 +68,36 @@ export default class Metrics {
     getWidthOffset(col: number, withStickyLeftBar = false) {
         return this.sheet.widthAccum[col] - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
     }
+    getWidthOffsetRelativeToPanel(col: number, withStickyLeftBar = false) {
+        if (col >= this.sheet.freeze.col) {
+            return this.sheet.widthAccum[col] - this.sheet.widthAccum[this.sheet.freeze.col]
+        } else {
+            
+            return this.sheet.widthAccum[col] - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
+        }
+    }
+    getWidthOffsetRelativeToPanelName(col: number, panelName: string, withStickyLeftBar = false) {
+        if (panelName === 'main' || panelName === 'toppane') {
+            return this.sheet.widthAccum[col] - this.sheet.widthAccum[this.sheet.freeze.col]
+        } else {
+            
+            return this.sheet.widthAccum[col] - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
+        }
+    }
+    getHeightOffsetRelativeToPanel(row: number, withStickyHeader = false) {
+        if (row >= this.sheet.freeze.row) {
+            return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.row];
+        } else {
+            return this.sheet.heightAccum[row] - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
+        }
+    }
+    getHeightOffsetRelativeToPanelName(row: number, panelName: string, withStickyHeader = false) {
+        if (panelName === 'main' || panelName === 'leftpane') {
+            return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.row];
+        } else {
+            return this.sheet.heightAccum[row] - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
+        }
+    }
     getHeightOffset(row: number, withStickyHeader = false) {
         return this.sheet.heightAccum[row] - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
     }
@@ -150,7 +180,6 @@ export default class Metrics {
             const scaledHeight = (wm.height+10);
             if (cell.textRot) {
                 const newDims = this.calculateRotatedDimensions(width, scaledHeight, cell.textRot);
-                console.log(wm.lineHeight)
                 cell._dims = {width: newDims.width, height: scaledHeight, lines: wm.lines, lineHeight: wm.lineHeight};
                 return { mwidth: newDims.width, mheight: newDims.height};
             }
@@ -271,6 +300,22 @@ export default class Metrics {
         this.sheet.visibleStartCol = visStartCol;
         this.sheet.visibleEndRow = visEndRow;
         this.sheet.visibleEndCol = visEndCol;
+    }
+    getVisibleRangeMain() {
+        let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.sheet;
+        visibleStartRow = visibleStartRow+this.sheet.freeze.row;
+        visibleStartCol = visibleStartCol+this.sheet.freeze.col;
+        return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
+    }
+    getVisibleRangeTop() {
+        let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.sheet;
+        visibleStartCol = visibleStartCol+this.sheet.freeze.col;
+        return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
+    }
+    getVisibleRangeLeft() {
+        let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.sheet;
+        visibleStartRow = visibleStartRow+this.sheet.freeze.row;
+        return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
     }
 
     getBottomRightBounds() {

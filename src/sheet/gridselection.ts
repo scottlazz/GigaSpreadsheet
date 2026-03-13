@@ -1,6 +1,6 @@
 import Sheet from ".";
 import { Rect } from "./interfaces";
-
+import { getOverlappingRect } from './utils';
 export default class GridSelection {
     panes: any[];
     sheet: Sheet;
@@ -18,7 +18,7 @@ export default class GridSelection {
     }
     addMain() {
         const el = document.createElement('div'); // main
-        this.sheet.selectionLayer.appendChild(el);
+        this.sheet.mainContainer.appendChild(el);
         this.panes[0] = el;
     }
     addLeft() {
@@ -87,34 +87,59 @@ export default class GridSelection {
         square.className = 'dragg-border dragg-square';
         el.appendChild(square);
     }
-    appendChild(child, rect, dims) {
-        if (this.panes[0]) {
-            const clone = child.cloneNode();
-            let top = dims.top;
+    createSelectedCell(rect, panelName='main') {
+        let { startRow, startCol, endRow, endCol } = rect;
+        const top = this.sheet.metrics.getHeightOffsetRelativeToPanelName(startRow, panelName); // Below header
+        const height = this.sheet.metrics.getHeightBetweenRows(startRow, endRow+1);
+        let left = this.sheet.metrics.getWidthOffsetRelativeToPanelName(startCol, panelName);
+        let width = this.sheet.metrics.getWidthBetweenColumns(startCol, endCol+1);
+        // Create selection element
+        const selectedCell = document.createElement('div');
+        selectedCell.className = 'selected-cell';
+        selectedCell.style.left = `${left}px`;
+        selectedCell.style.top = `${top}px`;
+        selectedCell.style.width = `${width+1}px`;
+        selectedCell.style.height = `${height+1}px`;
+        return selectedCell;
+    }
+    appendChild(rect) {
+        const fr = this.sheet.freeze.row, fc = this.sheet.freeze.col;
+        const uft = rect.startRow >= fr || rect.endRow >= fr;
+        const pfl = rect.startCol >= fc || rect.endCol >= fc;
+        let { startRow, startCol, endRow, endCol } = rect;
+        if (this.panes[0] && (
+            uft && pfl
+        )) {
+            // const clone = child.cloneNode();
+            // let top = dims.top;
             if (this.sheet.freeze.row && this.sheet.options.cellHeaders === false) {
-                top = top - this.sheet.metrics.getHeightOffset(this.sheet.freeze.row)-5;
+                // top = top - this.sheet.metrics.getHeightOffset(this.sheet.freeze.row)-5;
             }
-            clone.style.top = `${top}px`;
+            // clone.style.top = `${top}px`;
             // this.addDrag(clone);
-            this.panes[0].appendChild(clone);
+            const selectedCell = this.createSelectedCell(rect, 'main');
+            this.panes[0].appendChild(selectedCell);
         }
-        if (this.panes[1]) {
-            const clone = child.cloneNode();
+        if (this.panes[1] && rect.startCol < this.sheet.freeze.col && rect.endRow >= this.sheet.freeze.row) {
+            // const clone = child.cloneNode();
             if (this.sheet.options.cellHeaders === false) {
                 // const top = this.sheet.metrics.getHeightOffset(rect.startRow);
                 // clone.style.top = `${top}px`;
             }
-            this.panes[1].appendChild(clone);
+            const selectedCell = this.createSelectedCell(rect, 'leftpane');
+            this.panes[1].appendChild(selectedCell);
         }
-        if (this.panes[2]) {
-            const clone = child.cloneNode();
-            let left = dims.left+this.sheet.rowNumberWidth;
-            clone.style.left = `${left}px`;
-            this.panes[2].appendChild(clone);
+        if (this.panes[2] && rect.startRow < this.sheet.freeze.row && rect.endCol >= this.sheet.freeze.col) {
+            // const clone = child.cloneNode();
+            // let left = dims.left+this.sheet.rowNumberWidth;
+            // clone.style.left = `${left}px`;
+            const selectedCell = this.createSelectedCell(rect, 'toppane');
+            this.panes[2].appendChild(selectedCell);
         };
-        if (this.panes[3]) {
-            const clone = child.cloneNode();
-            this.panes[3].appendChild(clone);
+        if (this.panes[3] && rect.startRow < this.sheet.freeze.row && rect.startCol < this.sheet.freeze.col) {
+            // const clone = child.cloneNode();
+            const selectedCell = this.createSelectedCell(rect, 'cornerpane');
+            this.panes[3].appendChild(selectedCell);
         };
     }
 }
