@@ -69,31 +69,36 @@ export default class Metrics {
         return this.sheet.widthAccum[col] - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
     }
     getWidthOffsetRelativeToPanel(col: number, withStickyLeftBar = false) {
-        if (col >= this.sheet.freeze.col) {
-            return this.sheet.widthAccum[col] - this.sheet.widthAccum[this.sheet.freeze.col]
+        if (col >= this.sheet.freeze.endCol) {
+            return this.sheet.widthAccum[col] - this.sheet.widthAccum[this.sheet.freeze.endCol]
         } else {
+            return this.sheet.widthAccum[col] - this.sheet.widthAccum[this.sheet.freeze.startCol]
             
-            return this.sheet.widthAccum[col] - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
+            // return this.sheet.widthAccum[col] - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
         }
     }
     getWidthOffsetRelativeToPanelName(col: number, panelName: string, withStickyLeftBar = false) {
         if (panelName === 'main' || panelName === 'toppane') {
-            return this.sheet.widthAccum[col] - this.sheet.widthAccum[this.sheet.freeze.col]
-        } else {
-            
-            return this.sheet.widthAccum[col] - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
+            return this.sheet.widthAccum[col] - this.sheet.widthAccum[this.sheet.freeze.endCol];
+        } else if (panelName === 'leftpane' || panelName === 'cornerpane') {
+            return this.sheet.widthAccum[col] - this.sheet.widthAccum[this.sheet.freeze.startCol];
+        } else { // corner
+            // return this.sheet.widthAccum[col] - (withStickyLeftBar ? 0 : this.sheet.rowNumberWidth);
         }
     }
     getHeightOffsetRelativeToPanel(row: number, withStickyHeader = false) {
-        if (row >= this.sheet.freeze.row) {
-            return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.row];
+        if (row >= this.sheet.freeze.endRow) {
+            return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.endRow];
         } else {
-            return this.sheet.heightAccum[row] - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
+            return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.startRow];
+            // return this.sheet.heightAccum[row] - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
         }
     }
     getHeightOffsetRelativeToPanelName(row: number, panelName: string, withStickyHeader = false) {
         if (panelName === 'main' || panelName === 'leftpane') {
-            return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.row];
+            return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.endRow];
+        } else if (panelName === 'toppane' || panelName === 'cornerpane') {
+            return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.startRow];
         } else {
             return this.sheet.heightAccum[row] - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
         }
@@ -305,18 +310,18 @@ export default class Metrics {
     }
     getVisibleRangeMain() {
         let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.sheet;
-        visibleStartRow = visibleStartRow+this.sheet.freeze.row;
-        visibleStartCol = visibleStartCol+this.sheet.freeze.col;
+        visibleStartRow = visibleStartRow+this.sheet.freeze.endRow;
+        visibleStartCol = visibleStartCol+this.sheet.freeze.endCol;
         return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
     }
     getVisibleRangeTop() {
         let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.sheet;
-        visibleStartCol = visibleStartCol+this.sheet.freeze.col;
+        visibleStartCol = visibleStartCol+this.sheet.freeze.endCol;
         return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
     }
     getVisibleRangeLeft() {
         let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.sheet;
-        visibleStartRow = visibleStartRow+this.sheet.freeze.row;
+        visibleStartRow = visibleStartRow+this.sheet.freeze.endRow;
         return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
     }
 

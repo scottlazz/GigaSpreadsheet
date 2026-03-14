@@ -15,10 +15,7 @@ export default class RowNumbers {
         this.rowHeadersCorner = this.sheet._container.querySelector('.row-headers-corner')!
         if (this.sheet.options.cellHeaders !== false) {
             this.rowNumberContainer.style.width = `${this.sheet.rowNumberWidth}px`;
-            this.rowNumberContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;
-            this.rowNumberContainer.style.marginTop = `${-this.sheet.topFreezeHeight}px`;
         }
-        // this.rowNumberContainer = sheet.rowNumberContainer;
 
         this.rowNumberContainer.onmousedown = (e: any) => {
             if (e.button !== 0) return;
@@ -42,13 +39,11 @@ export default class RowNumbers {
         if (this.sheet.options.cellHeaders !== false) {
             this.rowNumberContainer.style.width = `${this.sheet.rowNumberWidth}px`;
             this.rowNumberContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;
-            this.rowNumberContainer.style.marginTop = `${-this.sheet.topFreezeHeight}px`;
             this.rowNumberContainer.style.position = '';
             this.rowNumberContainer.style.background = '';
         } else {
             this.rowNumberContainer.style.width = '';
             this.rowNumberContainer.style.lineHeight = '';
-            this.rowNumberContainer.style.marginTop = '';
         }
     }
     resize() {
@@ -67,7 +62,7 @@ export default class RowNumbers {
     renderRowNumbers(force = true) {
         const { visibleStartRow } = this.sheet.metrics.getVisibleRangeLeft();
         let sr = visibleStartRow;
-        sr = Math.max(sr, this.sheet.freeze.row);
+        sr = Math.max(sr, this.sheet.freeze.startRow);
         if (sr === this.curRange && !force) return;
         this.curRange = sr;
         let totalHeight = 0;
@@ -92,7 +87,7 @@ export default class RowNumbers {
             return;
         }
         this.rowHeadersCorner.innerHTML = '';
-        const srr = 0;
+        const srr = this.sheet.freeze.startRow;
         let th = 0;
         for(let row: any = srr; row < this.sheet.freeze.row; row++) {
             const rowNumberEl: any = this.createRowNumber(row + 1);

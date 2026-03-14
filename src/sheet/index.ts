@@ -212,12 +212,21 @@ export default class Sheet {
         this.container.scrollLeft = 0;
         this.container.scrollTop = 0;
         this.heightAccum = [];
-        this.freeze = options.freeze || {col: 0, row: 0};
+        const defaultFreeze = {
+            col: 0, row: 0,
+            startRow: 0, startCol: 0,
+            endRow: 0, endCol: 0
+        };
+        this.freeze = options.freeze || defaultFreeze;
         if (typeof this.freeze !== 'object') {
-            this.freeze = {row: 0, col: 0};
+            this.freeze = defaultFreeze;
         }
         if (!this.freeze.hasOwnProperty('row')) this.freeze.row = 0;
         if (!this.freeze.hasOwnProperty('col')) this.freeze.col = 0;
+        if (!this.freeze.startRow) this.freeze.startRow = 0;
+        if (!this.freeze.startCol) this.freeze.startCol = 0;
+        if (!this.freeze.endRow) this.freeze.endRow = 0;
+        if (!this.freeze.endCol) this.freeze.endCol = 0;
         this.cornerCell = _container.querySelector('.corner-cell')!;
         this.selectionLayer = _container.querySelector('.selection-layer')!;
         this.formatButton = _container.querySelector('.format-button')!;
@@ -738,10 +747,13 @@ export default class Sheet {
         })
     }
     get leftFreezeWidth () {
-        return this.metrics.getWidthOffset(this.freeze.col);
+        // return this.metrics.getWidthOffset(this.freeze.col);
+        return this.metrics.getWidthBetweenColumns(this.freeze.startCol, this.freeze.endCol);
     }
     get topFreezeHeight () {
-        const height = this.metrics.getHeightOffset(this.freeze.row);
+        // const height = this.metrics.getHeightOffset(this.freeze.row);
+        // return height;
+        const height = this.metrics.getHeightBetweenRows(this.freeze.startRow, this.freeze.endRow)
         return height;
     }
     setFreezeDimensions () {
@@ -755,7 +767,14 @@ export default class Sheet {
     freezeCells() {
         if (!this.selectionBoundRect) return;
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
-        this.freeze = {row: startRow, col: startCol};
+        let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this;
+        // console.log('visrange', { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol})
+        this.freeze = {
+            row: startRow, col: startCol,
+            startRow: visibleStartRow, startCol: visibleStartCol,
+            endRow: startRow, endCol: startCol,
+        };
+        console.log('FREEZE:', this.freeze)
         this.container.scrollLeft = 0;
         this.container.scrollTop = 0;
         this.setFreezeDimensions();
@@ -1239,14 +1258,6 @@ export default class Sheet {
         if (this.options.launchCustomEditor) {
             const customEditor = this.options.launchCustomEditor(cell, { left, top, width, height });
             return;
-        }
-
-        if (row < this.freeze.row) {
-            left = this.metrics.getWidthOffsetRelativeToPanel(col);
-        }
-        if (col < this.freeze.col) {
-            left = this.metrics.getWidthOffset(col);
-            top = this.metrics.getHeightOffsetRelativeToPanel(row);
         }
         // Set up edit input
         this.editInput.value = value;
@@ -1745,10 +1756,11 @@ export default class Sheet {
         const rect = this.container.getBoundingClientRect();
         const scrollLeft = this.container.scrollLeft;
         const scrollTop = this.container.scrollTop;
-        const woffset = this.metrics.getWidthOffset(this.freeze.col, true);
-        const hoffset = this.metrics.getHeightOffset(this.freeze.row, true);
-        // const woffset = this.metrics.getHeightOffset(this.freeze.col, true);
-        // Adjust for header and row numbers
+        // const woffset = this.metrics.getWidthOffset(this.freeze.col, true);
+        const woffset = this.leftFreezeWidth+this.rowNumberWidth;
+        // const hoffset = this.metrics.getHeightOffset(this.freeze.row, true);
+        const hoffset = this.topFreezeHeight+this.headerRowHeight;
+
         let x,y;
         let pane;
         if (e.clientX-rect.left < woffset && e.clientY < rect.top + hoffset) { // freeze corner
@@ -1764,19 +1776,29 @@ export default class Sheet {
             y = (e.clientY - rect.top - this.headerRowHeight);
             pane = 'top';
         } else {
-            // x = x - this.rowNumberWidth;
             x = (e.clientX - rect.left + scrollLeft - this.rowNumberWidth - this.leftFreezeWidth);
             y = (e.clientY - rect.top + scrollTop - this.headerRowHeight - this.topFreezeHeight); // 30 for header
             pane = 'main';
-            // x = ((e.clientX - rect.left) + scrollLeft);
-            // y = (e.clientY - rect.top + scrollTop); // 30 for header
         }
         if (x < 0 || y < 0) return { row: -1, col: -1 };
 
-        let colExtra = pane === 'main' || pane === 'top' ? this.leftFreezeWidth : 0;
-        let rowExtra = pane === 'main' || pane === 'left' ? this.topFreezeHeight : 0;
-        let col = this.metrics.bsearch(this.widthAccum, x + this.rowNumberWidth + colExtra) - 1;
-        let row = this.metrics.bsearch(this.heightAccum, y + this.headerRowHeight + rowExtra) - 1;
+        let colOffset = 0, rowOffset = 0;
+        if (pane === 'main') {
+            colOffset = this.metrics.getWidthOffset(this.freeze.endCol);
+            rowOffset = this.metrics.getHeightOffset(this.freeze.endRow);
+        } else if (pane === 'left') {
+            rowOffset = this.metrics.getHeightOffset(this.freeze.endRow);
+            colOffset = this.metrics.getWidthOffset(this.freeze.startCol);
+        } else if (pane === 'top') {
+            rowOffset = this.metrics.getHeightOffset(this.freeze.startRow);
+            colOffset = this.metrics.getWidthOffset(this.freeze.endCol);
+        } else if (pane === 'corner') {
+            rowOffset = this.metrics.getHeightOffset(this.freeze.startRow);
+            colOffset = this.metrics.getWidthOffset(this.freeze.startCol);
+
+        }
+        let col = this.metrics.bsearch(this.widthAccum, x + this.rowNumberWidth + colOffset) - 1;
+        let row = this.metrics.bsearch(this.heightAccum, y + this.headerRowHeight + rowOffset) - 1;
         // console.log('SELECTED!', [row,col])
         return {
             row: Math.min(row, this.totalRowBounds),
@@ -2143,7 +2165,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeLeftPaneBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, this.freeze.col, null, this.leftFreezeContainer, this.activeLeftPaneBlocks, 'leftpane', this.freeze.row);
+                    const block = this.createBlock(blockRow, blockCol, this.freeze.col, null, this.leftFreezeContainer, this.activeLeftPaneBlocks, 'leftpane', this.freeze.endRow, this.freeze.startCol);
                 } else {
                     const block = this.activeLeftPaneBlocks.get(key);
                     block.positionBlock();
@@ -2200,7 +2222,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeTopPaneBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, null, this.freeze.row, this.topFreezeContainer, this.activeTopPaneBlocks, 'toppane', null, this.freeze.col);
+                    const block = this.createBlock(blockRow, blockCol, null, this.freeze.row, this.topFreezeContainer, this.activeTopPaneBlocks, 'toppane', this.freeze.startRow, this.freeze.endCol);
                 } else {
                     const block = this.activeTopPaneBlocks.get(key);
                     block.positionBlock();
@@ -2250,7 +2272,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeCornerPaneBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, this.freeze.col, this.freeze.row, this.cornerFreezeContainer, this.activeCornerPaneBlocks, 'cornerpane');
+                    const block = this.createBlock(blockRow, blockCol, this.freeze.col, this.freeze.row, this.cornerFreezeContainer, this.activeCornerPaneBlocks, 'cornerpane', this.freeze.startRow, this.freeze.startCol);
                 } else {
                     const block = this.activeCornerPaneBlocks.get(key);
                     block.positionBlock();
@@ -2319,7 +2341,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, null, null, this.mainContainer, this.activeBlocks, 'main', this.freeze.row, this.freeze.col);
+                    const block = this.createBlock(blockRow, blockCol, null, null, this.mainContainer, this.activeBlocks, 'main', this.freeze.endRow, this.freeze.endCol);
                 } else {
                     const block = this.activeBlocks.get(key);
                     block.positionBlock();
@@ -2401,20 +2423,20 @@ export default class Sheet {
         let blockRow = Math.floor(row / this.blockRows);
         let blockCol = Math.floor(col / this.blockCols);
         let key;
-        if(col < this.freeze.col && row < this.freeze.row) {
+        if(col < this.freeze.endCol && row < this.freeze.endRow) {
             key = this.getKey(blockRow, blockCol);
             return this.activeCornerPaneBlocks.get(key);
-        } else if (col < this.freeze.col) {
-            blockRow = Math.floor((row-this.freeze.row) / this.blockRows);
+        } else if (col < this.freeze.endCol) {
+            blockRow = Math.floor((row-this.freeze.endRow) / this.blockRows);
             key = this.getKey(blockRow, blockCol);
             return this.activeLeftPaneBlocks.get(key);
-        } else if (row < this.freeze.row) {
-            blockCol = Math.floor((col-this.freeze.col) / this.blockCols);
+        } else if (row < this.freeze.endRow) {
+            blockCol = Math.floor((col-this.freeze.endCol) / this.blockCols);
             key = this.getKey(blockRow, blockCol);
             return this.activeTopPaneBlocks.get(key);
         } else {
-            blockRow = Math.floor((row-this.freeze.row) / this.blockRows);
-            blockCol = Math.floor((col-this.freeze.col) / this.blockCols);
+            blockRow = Math.floor((row-this.freeze.endRow) / this.blockRows);
+            blockCol = Math.floor((col-this.freeze.endCol) / this.blockCols);
             key = this.getKey(blockRow, blockCol);
             return this.activeBlocks.get(key);
         }

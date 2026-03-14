@@ -46,7 +46,7 @@ export default class HeaderIdentifiers {
             this.headerContainer.style.height = '';
         } else {
             this.headerContainer.style.lineHeight = '';
-            this.headerContainer.style.height = '1px';
+            this.headerContainer.style.height = '';
             this.renderHeaderElems.innerHTML = '';
         }
     }
@@ -59,7 +59,7 @@ export default class HeaderIdentifiers {
     renderHeaders(force=true) {
         let totalWidth = 0;
         const { visibleStartCol } = this.sheet.metrics.getVisibleRangeMain();
-        let sc = Math.max(visibleStartCol, this.sheet.freeze.col);
+        let sc = Math.max(visibleStartCol, this.sheet.freeze.startCol);
         if (sc === this.curRange && !force) return;
         this.curRange = sc;
         let ec = this.sheet.visibleEndCol;
@@ -85,7 +85,7 @@ export default class HeaderIdentifiers {
         //     return;
         // }
         this.colHeadersCorner.innerHTML = '';
-        const scc = 0;
+        const scc = this.sheet.freeze.startCol;
         let tw = 0;
         for (let col = scc; col < this.sheet.freeze.col; col++) {
             const width = this.sheet.metrics.getColWidth(col);

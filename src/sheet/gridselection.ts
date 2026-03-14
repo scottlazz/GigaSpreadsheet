@@ -104,41 +104,25 @@ export default class GridSelection {
         return selectedCell;
     }
     appendChild(rect) {
-        const fr = this.sheet.freeze.row, fc = this.sheet.freeze.col;
+        const fr = this.sheet.freeze.endRow, fc = this.sheet.freeze.endCol;
         const uft = rect.startRow >= fr || rect.endRow >= fr;
         const pfl = rect.startCol >= fc || rect.endCol >= fc;
         let { startRow, startCol, endRow, endCol } = rect;
         if (this.panes[0] && (
             uft && pfl
         )) {
-            // const clone = child.cloneNode();
-            // let top = dims.top;
-            if (this.sheet.freeze.row && this.sheet.options.cellHeaders === false) {
-                // top = top - this.sheet.metrics.getHeightOffset(this.sheet.freeze.row)-5;
-            }
-            // clone.style.top = `${top}px`;
-            // this.addDrag(clone);
             const selectedCell = this.createSelectedCell(rect, 'main');
             this.panes[0].appendChild(selectedCell);
         }
-        if (this.panes[1] && rect.startCol < this.sheet.freeze.col && rect.endRow >= this.sheet.freeze.row) {
-            // const clone = child.cloneNode();
-            if (this.sheet.options.cellHeaders === false) {
-                // const top = this.sheet.metrics.getHeightOffset(rect.startRow);
-                // clone.style.top = `${top}px`;
-            }
+        if (this.panes[1] && rect.startCol < this.sheet.freeze.endCol && rect.endRow >= this.sheet.freeze.endRow) {
             const selectedCell = this.createSelectedCell(rect, 'leftpane');
             this.panes[1].appendChild(selectedCell);
         }
-        if (this.panes[2] && rect.startRow < this.sheet.freeze.row && rect.endCol >= this.sheet.freeze.col) {
-            // const clone = child.cloneNode();
-            // let left = dims.left+this.sheet.rowNumberWidth;
-            // clone.style.left = `${left}px`;
+        if (this.panes[2] && rect.startRow < this.sheet.freeze.endRow && rect.endCol >= this.sheet.freeze.endCol) {
             const selectedCell = this.createSelectedCell(rect, 'toppane');
             this.panes[2].appendChild(selectedCell);
         };
-        if (this.panes[3] && rect.startRow < this.sheet.freeze.row && rect.startCol < this.sheet.freeze.col) {
-            // const clone = child.cloneNode();
+        if (this.panes[3] && rect.startRow < this.sheet.freeze.endRow && rect.startCol < this.sheet.freeze.endCol) {
             const selectedCell = this.createSelectedCell(rect, 'cornerpane');
             this.panes[3].appendChild(selectedCell);
         };
