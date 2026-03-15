@@ -334,34 +334,35 @@ export default class Sheet {
 
             // })
             this.selectCell({ row: 0, col: 0 });
-        this.mastadon = document.createElement('div');
-        this.mastadon.style.width = '500px'
-        this.mastadon.style.height = '80px'
-        this.mastadon.style.position = 'fixed'
-        this.mastadon.style.right = '0'
-        this.mastadon.style.top = '0'
-        this.mastadon.style.background = 'black'
-        this.mastadon.style.zIndex = '999'
-        this.mastadon.style.color = 'white'
-        this.mastadon.style.whitespace = 'white'
-        this.mastadon.style.wordBreak = 'break-all'
-        this.mastadon.style.fontSize = '13px'
-        document.body.appendChild(this.mastadon);
-        const pretty = (tl: {row:number,col:number}, br: {row:number,col:number}) => {
-            if (tl == null) return 'null';
-            return `${this.getColumnName(tl.col)}${tl.row+1}:${this.getColumnName(br.col)}${br.row+1}`
-        }
-        setInterval(()=> {
-            // const { row: visStartRow, col: visStartCol } = this.metrics.getTopLeftBounds();
-            // const { row: visEndRow, col: visEndCol } = this.metrics.getBottomRightBounds();
-            this.mastadon.innerHTML = `
-                <div>MAIN ${pretty(this.metrics.main.getTopLeftBounds(),this.metrics.main.getBottomRightBounds())}</div>
-                <div>LEFT ${pretty(this.metrics.left.getTopLeftBounds(),this.metrics.left.getBottomRightBounds())}</div>
-                <div>TOP&nbsp;&nbsp;&nbsp;${pretty(this.metrics.top.getTopLeftBounds(),this.metrics.top.getBottomRightBounds())}</div>
-                <div>COR&nbsp;&nbsp;${pretty(this.metrics.corner.getTopLeftBounds(),this.metrics.corner.getBottomRightBounds())}</div>
-                </div>
-            `
-        }, 1000)
+
+        // this.mastadon = document.createElement('div');
+        // this.mastadon.style.width = '500px'
+        // this.mastadon.style.height = '80px'
+        // this.mastadon.style.position = 'fixed'
+        // this.mastadon.style.right = '0'
+        // this.mastadon.style.top = '0'
+        // this.mastadon.style.background = 'black'
+        // this.mastadon.style.zIndex = '999'
+        // this.mastadon.style.color = 'white'
+        // this.mastadon.style.whitespace = 'white'
+        // this.mastadon.style.wordBreak = 'break-all'
+        // this.mastadon.style.fontSize = '13px'
+        // document.body.appendChild(this.mastadon);
+        // const pretty = (tl: {row:number,col:number}, br: {row:number,col:number}) => {
+        //     if (tl == null) return 'null';
+        //     return `${this.getColumnName(tl.col)}${tl.row+1}:${this.getColumnName(br.col)}${br.row+1}`
+        // }
+        // setInterval(()=> {
+        //     // const { row: visStartRow, col: visStartCol } = this.metrics.getTopLeftBounds();
+        //     // const { row: visEndRow, col: visEndCol } = this.metrics.getBottomRightBounds();
+        //     this.mastadon.innerHTML = `
+        //         <div>MAIN ${pretty(this.metrics.main.getTopLeftBounds(),this.metrics.main.getBottomRightBounds())}</div>
+        //         <div>LEFT ${pretty(this.metrics.left.getTopLeftBounds(),this.metrics.left.getBottomRightBounds())}</div>
+        //         <div>TOP&nbsp;&nbsp;&nbsp;${pretty(this.metrics.top.getTopLeftBounds(),this.metrics.top.getBottomRightBounds())}</div>
+        //         <div>COR&nbsp;&nbsp;${pretty(this.metrics.corner.getTopLeftBounds(),this.metrics.corner.getBottomRightBounds())}</div>
+        //         </div>
+        //     `
+        // }, 1000)
     }
 
     applyTheme(theme) {
@@ -801,6 +802,7 @@ export default class Sheet {
             };
         }
         console.log('FREEZE:', this.freeze)
+        this.clearAllElRegistry();
         this.container.scrollLeft = 0;
         this.container.scrollTop = 0;
         this.setFreezeDimensions();
@@ -2972,7 +2974,14 @@ export default class Sheet {
     clearElRegistry(row: number, col: number) {
         const _id = this.getCellId(row, col);
         if (this.elRegistry[_id]) {
-            this.elRegistry[_id].el.parentNode?.removeChild(this.elRegistry[_id].el);
+            this.elRegistry[_id].el?.remove();
+        }
+    }
+    clearAllElRegistry() {
+        for(let _id in this.elRegistry) {
+            const obj = this.elRegistry[_id];
+            obj.el?.remove();
+            delete this.elRegistry[_id];
         }
     }
     isSelectStart(row: number, col: number) {
