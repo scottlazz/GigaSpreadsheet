@@ -1,6 +1,6 @@
 // import Giga from "./giga";
 import Sheet from "./sheet";
-import { fininit } from "./_sampledata";
+import { fininit } from "./sampledata";
 
 import {GoldenLayout} from 'golden-layout';
 import 'golden-layout/dist/css/goldenlayout-base.css';

@@ -32,13 +32,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 // gridlinesOn: false,
                 autosizeHeight: true,
                 autosizeWidth: true,
-                toolbar: true,
-                formulaBar: true,
-                cellHeaders: true,
+                toolbar: false,
+                formulaBar: false,
+                cellHeaders: false,
                 isEditable: true,
-                // programmaticCell: (row,col) => {
-                //     return {row,col,text: `${sheet?.getColumnName(col)}${row+1}`}
-                // },
+                programmaticCell: (row,col) => {
+                    return {row,col,text: `${sheet?.getColumnName(col)}${row+1}`}
+                },
                 // drawGridlinesOverBackground: true,
                 zoomLevel: 1,
                 gridlinesColor: '#dddddd',

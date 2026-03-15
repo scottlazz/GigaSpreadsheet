@@ -59,7 +59,8 @@ export default class HeaderIdentifiers {
     }
     renderHeaders(force=true) {
         let totalWidth = 0;
-        const { visibleStartCol, visibleEndCol } = this.sheet.metrics.top.getVisibleRange();
+        const { visibleStartCol, visibleEndCol } = this.sheet.metrics.hasTopFreeze() ?
+            this.sheet.metrics.top.getVisibleRange() : this.sheet.metrics.main.getVisibleRange();
         let sc = Math.max(visibleStartCol, this.sheet.freeze.startCol);
         if (sc === this.curRange && !force) return;
         this.curRange = sc;
@@ -78,7 +79,7 @@ export default class HeaderIdentifiers {
             // this.headerContainer.style.height = '1px';
             // this.headerContainer.style.position = 'absolute';
             this.headerContainer.style.background = 'transparent';
-            this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffset(ec)}px`;
+            this.renderHeaderPadder.style.width = `${this.sheet.metrics.getWidthOffsetRelativeToPanel(ec)}px`;
             return;
         }
         const extra = this.sheet.rowNumberWidth;

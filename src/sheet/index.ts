@@ -348,6 +348,7 @@ export default class Sheet {
         this.mastadon.style.fontSize = '13px'
         document.body.appendChild(this.mastadon);
         const pretty = (tl: {row:number,col:number}, br: {row:number,col:number}) => {
+            if (tl == null) return 'null';
             return `${this.getColumnName(tl.col)}${tl.row+1}:${this.getColumnName(br.col)}${br.row+1}`
         }
         setInterval(()=> {
@@ -2151,9 +2152,9 @@ export default class Sheet {
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = Math.max(0, Math.floor((visibleStartRow - this.freeze.endRow) / this.blockRows) - padding);
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1 - this.freeze.endRow) / this.blockRows));
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - this.freeze.endRow) / this.blockRows));
         const startBlockCol = 0;
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.endCol - this.freeze.startCol - 1) / this.blockCols));
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.endCol - this.freeze.startCol) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2207,9 +2208,9 @@ export default class Sheet {
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = 0;
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - 1 - this.freeze.startRow) / this.blockRows));
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - this.freeze.startRow) / this.blockRows));
         const startBlockCol = Math.max(0, Math.floor((visibleStartCol-this.freeze.endCol) / this.blockCols) - padding);
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1 - this.freeze.endCol) / this.blockCols));
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - this.freeze.endCol) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2217,7 +2218,6 @@ export default class Sheet {
                 neededBlocks.add(`${blockRow},${blockCol}`);
             }
         }
-        console.log('top needed', neededBlocks)
 
         // Remove blocks that are no longer needed
         const toRemove: any = [];
@@ -2265,9 +2265,9 @@ export default class Sheet {
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = 0;
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - this.freeze.startRow - 1) / this.blockRows));
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - this.freeze.startRow) / this.blockRows));
         const startBlockCol = 0;
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.endCol - this.freeze.startCol - 1) / this.blockCols));
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.endCol - this.freeze.startCol) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2324,9 +2324,9 @@ export default class Sheet {
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = Math.max(0, Math.floor((visibleStartRow-this.freeze.endRow) / this.blockRows) - padding);
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1 - this.freeze.endRow) / this.blockRows));
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - this.freeze.endRow) / this.blockRows));
         const startBlockCol = Math.max(0, Math.floor((visibleStartCol-this.freeze.endCol) / this.blockCols) - padding);
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1 - this.freeze.endCol) / this.blockCols));
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - this.freeze.endCol) / this.blockCols));
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
             for (let blockCol = startBlockCol; blockCol <= endBlockCol; blockCol++) {

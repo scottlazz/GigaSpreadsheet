@@ -15,6 +15,15 @@ export default class Metrics {
         this.top = new TopContainerMetrics(sheet);
         this.corner = new CornerContainerMetrics(sheet);
     }
+    hasTopFreeze() {
+        return !!this.sheet.freeze.endRow;
+    }
+    hasLeftFreeze() {
+        return !!this.sheet.freeze.endCol;
+    }
+    hasCornerFreeze() {
+        return this.hasTopFreeze() && this.hasLeftFreeze();
+    }
     getWidthBetweenColumnsAccum(col1: number, col2: number) {
         let accumulatedWidth = 0;
         for (let _col = col1; _col < col2; _col++) {
@@ -313,9 +322,9 @@ export default class Metrics {
 
     calculateVisibleRange() {
         this.main.calculateVisibleRange();
-        this.left.calculateVisibleRange();
-        this.top.calculateVisibleRange();
-        this.corner.calculateVisibleRange();
+        if (this.hasLeftFreeze()) this.left.calculateVisibleRange();
+        if (this.hasTopFreeze()) this.top.calculateVisibleRange();
+        if (this.hasCornerFreeze()) this.corner.calculateVisibleRange();
         // const { row: visStartRow, col: visStartCol } = this.getTopLeftBounds();
         // const { row: visEndRow, col: visEndCol } = this.getBottomRightBounds();
         // this.sheet.visibleStartRow = visStartRow;
@@ -482,25 +491,31 @@ export class MainContainerMetrics extends ContainerMetrics {
 }
 export class LeftContainerMetrics extends ContainerMetrics {
     getTopLeftBounds() {
+        if (!this.sheet.metrics.hasLeftFreeze()) return null;
         return super.getTopLeftBounds('leftpane');
     }
     getBottomRightBounds() {
+        if (!this.sheet.metrics.hasLeftFreeze()) return null;
         return super.getBottomRightBounds('leftpane');
     }
 }
 export class TopContainerMetrics extends ContainerMetrics {
     getTopLeftBounds() {
+        if (!this.sheet.metrics.hasTopFreeze()) return null;
         return super.getTopLeftBounds('toppane');
     }
     getBottomRightBounds() {
+        if (!this.sheet.metrics.hasTopFreeze()) return null;
         return super.getBottomRightBounds('toppane');
     }
 }
 export class CornerContainerMetrics extends ContainerMetrics {
     getTopLeftBounds() {
+        if (!this.sheet.metrics.hasCornerFreeze()) return null;
         return super.getTopLeftBounds('cornerpane');
     }
     getBottomRightBounds() {
+        if (!this.sheet.metrics.hasCornerFreeze()) return null;
         return super.getBottomRightBounds('cornerpane');
     }
 }

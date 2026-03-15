@@ -60,14 +60,15 @@ export default class RowNumbers {
         return el;
     }
     renderRowNumbers(force = true) {
-        const { visibleStartRow, visibleEndRow } = this.sheet.metrics.left.getVisibleRange();
+        const { visibleStartRow, visibleEndRow } = this.sheet.metrics.hasLeftFreeze() ?
+            this.sheet.metrics.left.getVisibleRange() : this.sheet.metrics.main.getVisibleRange();
         let sr = visibleStartRow;
         sr = Math.max(sr, this.sheet.freeze.startRow);
         if (sr === this.curRange && !force) return;
         this.curRange = sr;
         let totalHeight = 0;
         let ve = visibleEndRow;
-        let diff = sr % this.sheet.blockRows;
+        // let diff = sr % this.sheet.blockRows;
         // sr = sr - diff;
         // console.log('sr??', sr, ve, this.sheet.metrics.getHeightOffsetRelativeToPanel(sr))
         ve = ve + (this.sheet.blockRows - (ve % this.sheet.blockRows) - 1);
@@ -83,7 +84,7 @@ export default class RowNumbers {
                 // this.rowNumberContainer.style.width = '1px';
                 // this.rowNumberContainer.style.position = 'absolute';
                 this.rowNumberContainer.style.background = 'transparent';
-                this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffset(ve)}px`;
+                this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffsetRelativeToPanel(ve)}px`;
             // this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;
             // this.rowNumberContainer.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;
             return;
