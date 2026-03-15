@@ -22,6 +22,7 @@ export default class HeaderIdentifiers {
         }
         if (this.sheet.options.cellHeaders !== false) {
             this.headerContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;
+            this.colHeadersCorner.style.lineHeight = `${this.sheet.headerRowHeight-1}px`;
         }
 
         this.renderHeaderPadder = document.createElement('div');

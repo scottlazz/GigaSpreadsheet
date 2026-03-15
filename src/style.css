@@ -293,8 +293,11 @@ html {
   z-index: 16;
   background-color: #e6e6e6;
   font-size: 12px;
-  line-height: 20px;
-  height: 20px;
+  /* line-height: 20px; */
+  /* height: 20px; */
+}
+.col-headers-corner .header-cell {
+  /* height: calc(100% - 1px); */
 }
 .row-headers-corner {
   position: sticky;
