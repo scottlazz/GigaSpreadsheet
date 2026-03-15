@@ -2153,7 +2153,7 @@ export default class Sheet {
         const startBlockRow = Math.max(0, Math.floor((visibleStartRow - this.freeze.endRow) / this.blockRows) - padding);
         let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1 - this.freeze.endRow) / this.blockRows));
         const startBlockCol = 0;
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - this.freeze.endCol - 1) / this.blockCols));
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.endCol - this.freeze.startCol - 1) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2180,7 +2180,7 @@ export default class Sheet {
             }
         });
         const totalRenderRows = visibleEndRow + this.blockRows-(visibleEndRow%this.blockRows);
-        const height = this.metrics.getHeightOffset(totalRenderRows);
+        const height = this.metrics.getHeightOffsetRelativeToPanel(totalRenderRows);
         const width = this.leftFreezeWidth;
         this.leftFreezeContainer.style.width = `${width}px`;
         this.leftFreezeContainer.style.height = `${height}px`;
@@ -2207,7 +2207,7 @@ export default class Sheet {
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = 0;
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - 1) / this.blockRows));
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - 1 - this.freeze.startRow) / this.blockRows));
         const startBlockCol = Math.max(0, Math.floor((visibleStartCol-this.freeze.endCol) / this.blockCols) - padding);
         let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1 - this.freeze.endCol) / this.blockCols));
         
@@ -2217,6 +2217,7 @@ export default class Sheet {
                 neededBlocks.add(`${blockRow},${blockCol}`);
             }
         }
+        console.log('top needed', neededBlocks)
 
         // Remove blocks that are no longer needed
         const toRemove: any = [];
@@ -2237,7 +2238,7 @@ export default class Sheet {
         });
         const totalRenderCols = visibleEndCol + this.blockCols-(visibleEndCol%this.blockCols);
         const height = this.topFreezeHeight;
-        const width = this.metrics.getWidthOffset(totalRenderCols);
+        const width = this.metrics.getWidthOffsetRelativeToPanel(totalRenderCols);
         this.topFreezeContainer.style.height = `${height}px`;
         this.topFreezeContainer.style.width = `${width-this.rowNumberWidth}px`;
 
@@ -2264,9 +2265,9 @@ export default class Sheet {
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = 0;
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - 1) / this.blockRows));
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - this.freeze.startRow - 1) / this.blockRows));
         const startBlockCol = 0;
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.endCol - 1) / this.blockCols));
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.endCol - this.freeze.startCol - 1) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2326,13 +2327,13 @@ export default class Sheet {
         let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1 - this.freeze.endRow) / this.blockRows));
         const startBlockCol = Math.max(0, Math.floor((visibleStartCol-this.freeze.endCol) / this.blockCols) - padding);
         let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1 - this.freeze.endCol) / this.blockCols));
-        
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
             for (let blockCol = startBlockCol; blockCol <= endBlockCol; blockCol++) {
                 neededBlocks.add(`${blockRow},${blockCol}`);
             }
         }
+        console.log('main needed', neededBlocks)
         // console.log('neededblocks', neededBlocks)
 
         // Remove blocks that are no longer needed

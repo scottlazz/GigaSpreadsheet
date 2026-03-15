@@ -127,6 +127,6 @@ export default class RowNumbers {
         // this.totalHeight = totalHeight;
         // const extra = (this.maxRows && this.totalRowBounds === this.maxRows-1) ? 0 : 20;
         const extra = 20;
-        this.rowNumberContainer.style.height = `${this.sheet.metrics.getHeightOffset(ve+1, true) + extra}px`; // extra pixels fixes slight alignment issue on scroll
+        this.rowNumberContainer.style.height = `${this.sheet.metrics.getHeightOffsetRelativeToPanel(ve+1, true) + extra}px`; // extra pixels fixes slight alignment issue on scroll
     }
 }

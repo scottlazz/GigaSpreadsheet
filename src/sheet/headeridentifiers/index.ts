@@ -137,6 +137,6 @@ export default class HeaderIdentifiers {
             headerHandle.setAttribute('data-col', col);
         };
         // const extra = (this.maxCols && this.totalColBounds === this.maxCols-1) ? 0 : 10;
-        this.headerContainer.style.width = `${this.sheet.metrics.getWidthOffset(ec+1) + extra}px`;
+        this.headerContainer.style.width = `${this.sheet.metrics.getWidthOffsetRelativeToPanel(ec+1) + extra}px`;
     }
 }
