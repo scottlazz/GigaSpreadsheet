@@ -4,7 +4,7 @@ import ExpressionParser from '../packages/expressionparser';
 import { launchFormatMenu } from './windows/format';
 import { createLineChart } from './graphs/linechart';
 import { dependencyTree, shiftDependenciesDown, shiftDependenciesRight, shiftDependenciesUp, shiftDependenciesLeft } from "../packages/dependencytracker";
-import { hasBorderStr, addBorder, isNumeric, debounce, getOverlappingRect } from "./utils";
+import { hasBorderStr, addBorder, isNumeric, debounce, getOverlappingRect, bsearch } from "./utils";
 import { shiftTextRefs, rowColToRef } from "./shiftops";
 import { Rect, GigaSheetTypeOptions } from './interfaces';
 import ContextMenu from './components/contextmenu';
@@ -103,7 +103,7 @@ export default class Sheet {
     metrics: GridMetrics;
     rowNumbers: RowNumbers;
     headerIdentifiers: HeaderIdentifiers;
-    freeze: any;
+    freeze: Rect;
     _selectionBoundRects: any;
     events: any;
     prevSelectionBoundRect: any;
@@ -121,6 +121,7 @@ export default class Sheet {
     mainContainer: any;
     panes: { main: any; leftpane: any; toppane: any; cornerpane: any; };
     programmaticCell: any;
+    mastadon: any;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = options.zoomLevel || 1;
         this.drawGridlinesOverBackground = options.drawGridlinesOverBackground || false;
@@ -221,8 +222,6 @@ export default class Sheet {
         if (typeof this.freeze !== 'object') {
             this.freeze = defaultFreeze;
         }
-        if (!this.freeze.hasOwnProperty('row')) this.freeze.row = 0;
-        if (!this.freeze.hasOwnProperty('col')) this.freeze.col = 0;
         if (!this.freeze.startRow) this.freeze.startRow = 0;
         if (!this.freeze.startCol) this.freeze.startCol = 0;
         if (!this.freeze.endRow) this.freeze.endRow = 0;
@@ -335,6 +334,33 @@ export default class Sheet {
 
             // })
             this.selectCell({ row: 0, col: 0 });
+        this.mastadon = document.createElement('div');
+        this.mastadon.style.width = '500px'
+        this.mastadon.style.height = '80px'
+        this.mastadon.style.position = 'fixed'
+        this.mastadon.style.right = '0'
+        this.mastadon.style.top = '0'
+        this.mastadon.style.background = 'black'
+        this.mastadon.style.zIndex = '999'
+        this.mastadon.style.color = 'white'
+        this.mastadon.style.whitespace = 'white'
+        this.mastadon.style.wordBreak = 'break-all'
+        this.mastadon.style.fontSize = '13px'
+        document.body.appendChild(this.mastadon);
+        const pretty = (tl: {row:number,col:number}, br: {row:number,col:number}) => {
+            return `${this.getColumnName(tl.col)}${tl.row+1}:${this.getColumnName(br.col)}${br.row+1}`
+        }
+        setInterval(()=> {
+            // const { row: visStartRow, col: visStartCol } = this.metrics.getTopLeftBounds();
+            // const { row: visEndRow, col: visEndCol } = this.metrics.getBottomRightBounds();
+            this.mastadon.innerHTML = `
+                <div>MAIN ${pretty(this.metrics.main.getTopLeftBounds(),this.metrics.main.getBottomRightBounds())}</div>
+                <div>LEFT ${pretty(this.metrics.left.getTopLeftBounds(),this.metrics.left.getBottomRightBounds())}</div>
+                <div>TOP&nbsp;&nbsp;&nbsp;${pretty(this.metrics.top.getTopLeftBounds(),this.metrics.top.getBottomRightBounds())}</div>
+                <div>COR&nbsp;&nbsp;${pretty(this.metrics.corner.getTopLeftBounds(),this.metrics.corner.getBottomRightBounds())}</div>
+                </div>
+            `
+        }, 1000)
     }
 
     applyTheme(theme) {
@@ -747,14 +773,10 @@ export default class Sheet {
         })
     }
     get leftFreezeWidth () {
-        // return this.metrics.getWidthOffset(this.freeze.col);
         return this.metrics.getWidthBetweenColumns(this.freeze.startCol, this.freeze.endCol);
     }
     get topFreezeHeight () {
-        // const height = this.metrics.getHeightOffset(this.freeze.row);
-        // return height;
-        const height = this.metrics.getHeightBetweenRows(this.freeze.startRow, this.freeze.endRow)
-        return height;
+        return this.metrics.getHeightBetweenRows(this.freeze.startRow, this.freeze.endRow);
     }
     setFreezeDimensions () {
         const width = this.leftFreezeWidth;
@@ -767,13 +789,16 @@ export default class Sheet {
     freezeCells() {
         if (!this.selectionBoundRect) return;
         const { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
-        let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this;
+        let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.main.getVisibleRange();
         // console.log('visrange', { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol})
-        this.freeze = {
-            row: startRow, col: startCol,
-            startRow: visibleStartRow, startCol: visibleStartCol,
-            endRow: startRow, endCol: startCol,
-        };
+        if (this.freeze.startRow || this.freeze.startCol || this.freeze.endRow || this.freeze.endCol) {
+            this.freeze = {startRow:0,startCol:0,endRow:0,endCol:0};
+        } else {
+            this.freeze = {
+                startRow: visibleStartRow, startCol: visibleStartCol,
+                endRow: startRow, endCol: startCol,
+            };
+        }
         console.log('FREEZE:', this.freeze)
         this.container.scrollLeft = 0;
         this.container.scrollTop = 0;
@@ -1622,12 +1647,12 @@ export default class Sheet {
             let scrollLeft = this.container.scrollLeft;
             let sc = this.selectionBoundRect.startCol, ec = this.selectionBoundRect.endCol;
             let sr = this.selectionBoundRect.startRow, er = this.selectionBoundRect.endRow;
-            if (scrollLeft && sc < this.freeze.col && ec >= this.freeze.col) {
+            if (scrollLeft && sc < this.freeze.endCol && ec >= this.freeze.endCol) {
                 this.container.scrollLeft = 0;
                 scrollLeft = 0;
             }
             let scrollTop = this.container.scrollTop;
-            if (scrollTop && sr < this.freeze.row && er >= this.freeze.row) {
+            if (scrollTop && sr < this.freeze.endRow && er >= this.freeze.endRow) {
                 this.container.scrollTop = 0;
                 scrollTop = 0;
             }
@@ -1756,9 +1781,7 @@ export default class Sheet {
         const rect = this.container.getBoundingClientRect();
         const scrollLeft = this.container.scrollLeft;
         const scrollTop = this.container.scrollTop;
-        // const woffset = this.metrics.getWidthOffset(this.freeze.col, true);
         const woffset = this.leftFreezeWidth+this.rowNumberWidth;
-        // const hoffset = this.metrics.getHeightOffset(this.freeze.row, true);
         const hoffset = this.topFreezeHeight+this.headerRowHeight;
 
         let x,y;
@@ -1797,8 +1820,8 @@ export default class Sheet {
             colOffset = this.metrics.getWidthOffset(this.freeze.startCol);
 
         }
-        let col = this.metrics.bsearch(this.widthAccum, x + this.rowNumberWidth + colOffset) - 1;
-        let row = this.metrics.bsearch(this.heightAccum, y + this.headerRowHeight + rowOffset) - 1;
+        let col = bsearch(this.widthAccum, x + this.rowNumberWidth + colOffset) - 1;
+        let row = bsearch(this.heightAccum, y + this.headerRowHeight + rowOffset) - 1;
         // console.log('SELECTED!', [row,col])
         return {
             row: Math.min(row, this.totalRowBounds),
@@ -1936,13 +1959,14 @@ export default class Sheet {
         if (!this.selectionBoundRect) return;
 
         let { startRow, startCol, endRow, endCol } = this.selectionBoundRect;
-
-        if (!fromKeyInput && (this.visibleEndRow < startRow || this.visibleEndCol < startCol)) {
+        // todo fix
+        const {visibleEndCol, visibleEndRow} = this.metrics.main.getVisibleRange();
+        if (!fromKeyInput && (visibleEndRow < startRow || visibleEndCol < startCol)) {
             this.activeSelection.hide();
         } else {
             this.activeSelection.show();
         }
-        endRow = Math.min(endRow, this.visibleEndRow);
+        endRow = Math.min(endRow, visibleEndRow);
         if (rebuild) {
             this.activeSelection.clear();
 
@@ -2031,7 +2055,7 @@ export default class Sheet {
         return this.widthAccum[this.widthAccum.length - 1];
     }
 
-    updateHeightAccum() {
+    updateHeightAccum(atLeastRow?: number) {
         let prevRowBounds = this.totalRowBounds;
         const oldHeight = this.heightAccum.length;
         this.heightAccum = [this.headerRowHeight];
@@ -2041,6 +2065,7 @@ export default class Sheet {
         for (
             let row = 0;
             row < oldHeight - 1 ||
+            row < atLeastRow ||
             row % this.blockRows !== 0 || // render full blocks
             row < this.totalRows || // render til bottom row that has data
             this.heightAccum[this.heightAccum.length - 1] < this.container.clientHeight + 150 || // render til bottom of visible area
@@ -2051,7 +2076,7 @@ export default class Sheet {
         }
     }
 
-    updateWidthAccum() {
+    updateWidthAccum(atLeastCol?: number) {
         let prevColBounds = this.totalColBounds;
         const oldWidth = this.widthAccum.length;
         this.widthAccum = [this.rowNumberWidth];
@@ -2059,6 +2084,7 @@ export default class Sheet {
         for (
             let col = 0;
             col < oldWidth - 1 ||
+            col < atLeastCol ||
             col % this.blockCols !== 0 ||
             col < this.totalCols ||
             this.widthAccum[this.widthAccum.length - 1] < this.container.clientWidth + 150 || // render til right of visible area
@@ -2119,15 +2145,15 @@ export default class Sheet {
 
     updateLeftFreeze(force = false, forceNew = false) {
         // this.metrics.calculateVisibleRange();
-        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.getVisibleRangeLeft();
+        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.left.getVisibleRange();
         // Determine which blocks we need to render
         const padding = this.padding;
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
-        const startBlockRow = Math.max(0, Math.floor(visibleStartRow / this.blockRows) - padding);
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1) / this.blockRows));
-        const startBlockCol = Math.max(0);
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.col - 1) / this.blockCols));
+        const startBlockRow = Math.max(0, Math.floor((visibleStartRow - this.freeze.endRow) / this.blockRows) - padding);
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1 - this.freeze.endRow) / this.blockRows));
+        const startBlockCol = 0;
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - this.freeze.endCol - 1) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2165,7 +2191,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeLeftPaneBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, this.freeze.col, null, this.leftFreezeContainer, this.activeLeftPaneBlocks, 'leftpane', this.freeze.endRow, this.freeze.startCol);
+                    const block = this.createBlock(blockRow, blockCol, this.freeze.endCol, null, this.leftFreezeContainer, this.activeLeftPaneBlocks, 'leftpane', this.freeze.endRow, this.freeze.startCol);
                 } else {
                     const block = this.activeLeftPaneBlocks.get(key);
                     block.positionBlock();
@@ -2175,15 +2201,15 @@ export default class Sheet {
     }
     updateTopFreeze(force = false, forceNew = false) {
 
-        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.getVisibleRangeTop();
+        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.top.getVisibleRange();
 
         const padding = this.padding;
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = 0;
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.row - 1) / this.blockRows));
-        const startBlockCol = Math.max(0, Math.floor(visibleStartCol / this.blockCols) - padding);
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1) / this.blockCols));
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - 1) / this.blockRows));
+        const startBlockCol = Math.max(0, Math.floor((visibleStartCol-this.freeze.endCol) / this.blockCols) - padding);
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1 - this.freeze.endCol) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2209,7 +2235,7 @@ export default class Sheet {
                 }
             }
         });
-        const totalRenderCols = this.visibleEndCol + this.blockCols-(this.visibleEndCol%this.blockCols);
+        const totalRenderCols = visibleEndCol + this.blockCols-(visibleEndCol%this.blockCols);
         const height = this.topFreezeHeight;
         const width = this.metrics.getWidthOffset(totalRenderCols);
         this.topFreezeContainer.style.height = `${height}px`;
@@ -2222,7 +2248,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeTopPaneBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, null, this.freeze.row, this.topFreezeContainer, this.activeTopPaneBlocks, 'toppane', this.freeze.startRow, this.freeze.endCol);
+                    const block = this.createBlock(blockRow, blockCol, null, this.freeze.endRow, this.topFreezeContainer, this.activeTopPaneBlocks, 'toppane', this.freeze.startRow, this.freeze.endCol);
                 } else {
                     const block = this.activeTopPaneBlocks.get(key);
                     block.positionBlock();
@@ -2232,15 +2258,15 @@ export default class Sheet {
     }
     updateCornerFreeze(force = false, forceNew = false) {
         // this.metrics.calculateVisibleRange();
-
+        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.corner.getVisibleRange();
         // Determine which blocks we need to render
         const padding = this.padding;
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
         const startBlockRow = 0;
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.row - 1) / this.blockRows));
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((this.freeze.endRow - 1) / this.blockRows));
         const startBlockCol = 0;
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.col - 1) / this.blockCols));
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((this.freeze.endCol - 1) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2272,7 +2298,7 @@ export default class Sheet {
             neededBlocks.forEach((key: any) => {
                 if (!this.activeCornerPaneBlocks.has(key)) {
                     const [blockRow, blockCol] = key.split(',').map(Number);
-                    const block = this.createBlock(blockRow, blockCol, this.freeze.col, this.freeze.row, this.cornerFreezeContainer, this.activeCornerPaneBlocks, 'cornerpane', this.freeze.startRow, this.freeze.startCol);
+                    const block = this.createBlock(blockRow, blockCol, this.freeze.endCol, this.freeze.endRow, this.cornerFreezeContainer, this.activeCornerPaneBlocks, 'cornerpane', this.freeze.startRow, this.freeze.startCol);
                 } else {
                     const block = this.activeCornerPaneBlocks.get(key);
                     block.positionBlock();
@@ -2290,16 +2316,16 @@ export default class Sheet {
         this.updateTopFreeze(force, forceNew);
         this.updateCornerFreeze(force, forceNew);
 
-        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.getVisibleRangeMain(); // main panel metrics
+        const { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.metrics.main.getVisibleRange();
         
         // Determine which blocks we need to render
         const padding = this.padding;
         const maxBlockRows = Math.floor(this.totalRowBounds / this.blockRows);
         const maxBlockCols = Math.floor(this.totalColBounds / this.blockCols);
-        const startBlockRow = Math.max(0, Math.floor(visibleStartRow / this.blockRows) - padding);
-        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1) / this.blockRows));
-        const startBlockCol = Math.max(0, Math.floor(visibleStartCol / this.blockCols) - padding);
-        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1) / this.blockCols));
+        const startBlockRow = Math.max(0, Math.floor((visibleStartRow-this.freeze.endRow) / this.blockRows) - padding);
+        let endBlockRow = Math.min(maxBlockRows, Math.floor((visibleEndRow - 1 - this.freeze.endRow) / this.blockRows));
+        const startBlockCol = Math.max(0, Math.floor((visibleStartCol-this.freeze.endCol) / this.blockCols) - padding);
+        let endBlockCol = Math.min(maxBlockCols, Math.floor((visibleEndCol - 1 - this.freeze.endCol) / this.blockCols));
         
         const neededBlocks = new Set();
         for (let blockRow = startBlockRow; blockRow <= endBlockRow; blockRow++) {
@@ -2307,6 +2333,7 @@ export default class Sheet {
                 neededBlocks.add(`${blockRow},${blockCol}`);
             }
         }
+        // console.log('neededblocks', neededBlocks)
 
         // Remove blocks that are no longer needed
         const toRemove: any = [];
@@ -2325,7 +2352,6 @@ export default class Sheet {
                 }
             }
         });
-
         toRemove.forEach((key: any) => this.activeBlocks.delete(key));
         if (toRemove.length > 0) {
             // this.renderHeaders();
@@ -2371,6 +2397,13 @@ export default class Sheet {
         let endCol = Math.min(startCol + this.blockCols);
         // if (maxCols) endCol = Math.min(endCol, maxCols);
         if (this.maxCols) endCol = Math.min(endCol, this.maxCols);
+
+        if (this.heightAccum[endRow] === undefined) {
+            this.updateHeightAccum(endRow);
+        }
+        if (this.widthAccum[endCol] === undefined) {
+            this.updateWidthAccum(endCol);
+        }
 
         const blockContainer = document.createElement('div');
         // blockContainer.id = `${blockRow},${blockCol}`;
@@ -2420,17 +2453,21 @@ export default class Sheet {
     }
 
     getBlock(row: number, col: number) {
-        let blockRow = Math.floor(row / this.blockRows);
-        let blockCol = Math.floor(col / this.blockCols);
+        let blockRow;
+        let blockCol;
         let key;
         if(col < this.freeze.endCol && row < this.freeze.endRow) {
+            blockRow = Math.floor((row-this.freeze.startRow) / this.blockRows);
+            blockCol = Math.floor((col-this.freeze.startCol) / this.blockCols);
             key = this.getKey(blockRow, blockCol);
             return this.activeCornerPaneBlocks.get(key);
-        } else if (col < this.freeze.endCol) {
+        } else if (col < this.freeze.endCol) { // left
             blockRow = Math.floor((row-this.freeze.endRow) / this.blockRows);
+            blockCol = Math.floor((col-this.freeze.startCol) / this.blockCols);
             key = this.getKey(blockRow, blockCol);
             return this.activeLeftPaneBlocks.get(key);
-        } else if (row < this.freeze.endRow) {
+        } else if (row < this.freeze.endRow) { // top
+            blockRow = Math.floor((row-this.freeze.startRow) / this.blockRows);
             blockCol = Math.floor((col-this.freeze.endCol) / this.blockCols);
             key = this.getKey(blockRow, blockCol);
             return this.activeTopPaneBlocks.get(key);
@@ -2449,17 +2486,17 @@ export default class Sheet {
             return parentBlock.subBlocks[0];
         }
         if (parentBlock.subBlocks.length === 2) {
-            let ncol = (col - this.freeze.col) % this.blockCols;
+            let ncol = (col - this.freeze.endCol) % this.blockCols;
             const subBlockCols = Math.floor(this.blockCols / 2);
             let idx = ncol >= subBlockCols ? 1 : 0;
             return parentBlock.subBlocks[idx];
         }
         if (parentBlock.subBlocks.length === 4) {
-            let ncol = (col - this.freeze.col) % this.blockCols;
+            let ncol = (col - this.freeze.endCol) % this.blockCols;
             const subBlockCols = Math.floor(this.blockCols / 2);
             let right = ncol >= subBlockCols;
 
-            let nrow = (row - this.freeze.row) % this.blockRows;
+            let nrow = (row - this.freeze.endRow) % this.blockRows;
             const subBlockRows = Math.floor(this.blockRows / 2);
             let bottom = nrow >= subBlockRows;
 
@@ -2664,11 +2701,11 @@ export default class Sheet {
     }
 
     getLayer(row: number,col:number) {
-        if (col < this.freeze.col && row < this.freeze.row) {
+        if (col < this.freeze.endCol && row < this.freeze.endRow) {
             return 'cornerpane';
-        } else if (col < this.freeze.col) {
+        } else if (col < this.freeze.endCol) {
             return 'leftpane';
-        } else if (row < this.freeze.row) {
+        } else if (row < this.freeze.endRow) {
             return 'toppane';
         } else {
             return 'main';

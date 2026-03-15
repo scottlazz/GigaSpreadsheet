@@ -58,11 +58,11 @@ export default class HeaderIdentifiers {
     }
     renderHeaders(force=true) {
         let totalWidth = 0;
-        const { visibleStartCol } = this.sheet.metrics.getVisibleRangeMain();
+        const { visibleStartCol, visibleEndCol } = this.sheet.metrics.top.getVisibleRange();
         let sc = Math.max(visibleStartCol, this.sheet.freeze.startCol);
         if (sc === this.curRange && !force) return;
         this.curRange = sc;
-        let ec = this.sheet.visibleEndCol;
+        let ec = visibleEndCol;
         // let diff = sc % this.sheet.blockCols;
         // sc = sc - diff;
         ec = ec + (this.sheet.blockCols - (ec % this.sheet.blockCols) - 1);
@@ -87,7 +87,7 @@ export default class HeaderIdentifiers {
         this.colHeadersCorner.innerHTML = '';
         const scc = this.sheet.freeze.startCol;
         let tw = 0;
-        for (let col = scc; col < this.sheet.freeze.col; col++) {
+        for (let col = scc; col < this.sheet.freeze.endCol; col++) {
             const width = this.sheet.metrics.getColWidth(col);
             tw += width;
             let headerCell;

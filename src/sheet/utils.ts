@@ -100,6 +100,23 @@ export function extractClassesFromStyle(styleElement: any) {
     return classes;
 }
 
+export function bsearch(arr: any, target: number) {
+    function condition(i: number) {
+        return target < arr[i];
+    }
+    let left = 0;
+    let right = arr.length - 1;
+
+    while (left < right) {
+        let mid = Math.floor(left + (right - left) / 2);
+        if (condition(mid)) {
+            right = mid
+        } else {
+            left = mid + 1;
+        }
+    }
+    return left
+}
 
 export function rgbToHex(rgbString: string) {
     if (!rgbString) return '';

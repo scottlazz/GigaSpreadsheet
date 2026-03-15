@@ -1,10 +1,19 @@
 import Sheet from "..";
+import { bsearch } from '../utils';
 import { CellCoordsRect } from "../interfaces";
 
 export default class Metrics {
     sheet: Sheet;
+    main: MainContainerMetrics;
+    left: LeftContainerMetrics;
+    top: TopContainerMetrics;
+    corner: CornerContainerMetrics;
     constructor(sheet: Sheet) {
         this.sheet = sheet;
+        this.main = new MainContainerMetrics(sheet);
+        this.left = new LeftContainerMetrics(sheet);
+        this.top = new TopContainerMetrics(sheet);
+        this.corner = new CornerContainerMetrics(sheet);
     }
     getWidthBetweenColumnsAccum(col1: number, col2: number) {
         let accumulatedWidth = 0;
@@ -91,7 +100,6 @@ export default class Metrics {
             return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.endRow];
         } else {
             return this.sheet.heightAccum[row] - this.sheet.heightAccum[this.sheet.freeze.startRow];
-            // return this.sheet.heightAccum[row] - (withStickyHeader ? 0 : this.sheet.headerRowHeight);
         }
     }
     getHeightOffsetRelativeToPanelName(row: number, panelName: string, withStickyHeader = false) {
@@ -280,12 +288,15 @@ export default class Metrics {
         y = scrollTop;
         if (x < 0 || y < 0) return { row: -1, col: -1 };
 
+        y = y + this.getHeightOffset(this.sheet.freeze.startRow);
+        x = x + this.getWidthOffset(this.sheet.freeze.startCol);
+
         // Find column
-        let col = this.bsearch(this.sheet.widthAccum, x + this.sheet.rowNumberWidth) - 1;
+        let col = bsearch(this.sheet.widthAccum, x + this.sheet.rowNumberWidth) - 1;
 
 
         // Find row
-        const row = this.bsearch(this.sheet.heightAccum, y + this.sheet.headerRowHeight) - 1;
+        const row = bsearch(this.sheet.heightAccum, y + this.sheet.headerRowHeight) - 1;
 
         return {
             row: Math.min(row, this.sheet.totalRowBounds - 1),
@@ -301,27 +312,33 @@ export default class Metrics {
     }
 
     calculateVisibleRange() {
-        const { row: visStartRow, col: visStartCol } = this.getTopLeftBounds();
-        const { row: visEndRow, col: visEndCol } = this.getBottomRightBounds();
-        this.sheet.visibleStartRow = visStartRow;
-        this.sheet.visibleStartCol = visStartCol;
-        this.sheet.visibleEndRow = visEndRow;
-        this.sheet.visibleEndCol = visEndCol;
+        this.main.calculateVisibleRange();
+        this.left.calculateVisibleRange();
+        this.top.calculateVisibleRange();
+        this.corner.calculateVisibleRange();
+        // const { row: visStartRow, col: visStartCol } = this.getTopLeftBounds();
+        // const { row: visEndRow, col: visEndCol } = this.getBottomRightBounds();
+        // this.sheet.visibleStartRow = visStartRow;
+        // this.sheet.visibleStartCol = visStartCol;
+        // this.sheet.visibleEndRow = visEndRow;
+        // this.sheet.visibleEndCol = visEndCol;
     }
     getVisibleRangeMain() {
         let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.sheet;
-        visibleStartRow = visibleStartRow+this.sheet.freeze.endRow;
-        visibleStartCol = visibleStartCol+this.sheet.freeze.endCol;
+        // visibleStartRow = visibleStartRow+this.sheet.freeze.endRow;
+        // visibleStartCol = visibleStartCol+this.sheet.freeze.endCol;
+        // this.getHeightBetweenRows(this.sheet.freeze.startRow, this.sheet.freeze.endRow)
+        
         return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
     }
     getVisibleRangeTop() {
         let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.sheet;
-        visibleStartCol = visibleStartCol+this.sheet.freeze.endCol;
+        // visibleStartCol = visibleStartCol+this.sheet.freeze.endCol;
         return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
     }
     getVisibleRangeLeft() {
         let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this.sheet;
-        visibleStartRow = visibleStartRow+this.sheet.freeze.endRow;
+        // visibleStartRow = visibleStartRow+this.sheet.freeze.endRow;
         return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
     }
 
@@ -330,16 +347,19 @@ export default class Metrics {
         const scrollLeft = this.sheet.container.scrollLeft;
         const scrollTop = this.sheet.container.scrollTop;
         // Adjust for header and row numbers
-        const x = rect.right - rect.left + scrollLeft - (this.sheet.rowNumberWidth + 8);
-        const y = rect.bottom - rect.top + scrollTop - this.sheet.headerRowHeight;
+        let x = rect.right - rect.left + scrollLeft - (this.sheet.rowNumberWidth + 8);
+        let y = rect.bottom - rect.top + scrollTop - this.sheet.headerRowHeight;
 
         if (x < 0 || y < 0) return { row: -1, col: -1 };
 
+        y = y + this.getHeightOffset(this.sheet.freeze.startRow);
+        x = x + this.getWidthOffset(this.sheet.freeze.startCol);
+
         // Find column
-        let col = this.bsearch(this.sheet.widthAccum, x + this.sheet.rowNumberWidth) - 1;
+        let col = bsearch(this.sheet.widthAccum, x + this.sheet.rowNumberWidth) - 1;
 
         // Find row
-        let row = this.bsearch(this.sheet.heightAccum, y + this.sheet.headerRowHeight) - 1;
+        let row = bsearch(this.sheet.heightAccum, y + this.sheet.headerRowHeight) - 1;
 
         row = Math.min(row+1, this.sheet.totalRowBounds);
         col = Math.min(col+1, this.sheet.totalColBounds);
@@ -349,22 +369,138 @@ export default class Metrics {
             col
         };
     }
+}
 
-    bsearch(arr: any, target: number) {
-        function condition(i: number) {
-            return target < arr[i];
-        }
-        let left = 0;
-        let right = arr.length - 1;
+export class ContainerMetrics {
+    visibleStartRow: number;
+    visibleStartCol: number;
+    visibleEndRow: number;
+    visibleEndCol: number;
+    sheet: Sheet;
+    constructor(sheet: Sheet) {
+        this.sheet = sheet;
+    }
+    calculateVisibleRange() {
+        const { row: visStartRow, col: visStartCol } = this.getTopLeftBounds('main');
+        const { row: visEndRow, col: visEndCol } = this.getBottomRightBounds('main');
+        this.visibleStartRow = visStartRow;
+        this.visibleStartCol = visStartCol;
+        this.visibleEndRow = visEndRow;
+        this.visibleEndCol = visEndCol;
+    }
+    getVisibleRange() {
+        let { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol} = this;
+        return { visibleStartRow, visibleStartCol, visibleEndRow, visibleEndCol};
+    }
+    getTopLeftBounds(pane) {
+        const rect = this.sheet.container.getBoundingClientRect();
+        const scrollLeft = this.sheet.container.scrollLeft;
+        const scrollTop = this.sheet.container.scrollTop;
+        // Adjust for header and row numbers
+        let x = Math.max(0, (this.sheet.rowNumberWidth + 8) - scrollLeft) - rect.left + scrollLeft - this.sheet.rowNumberWidth; // 50 for row numbers
+        let y = (this.sheet.headerRowHeight + 8) - rect.top + scrollTop - this.sheet.headerRowHeight;
+        x = scrollLeft;
+        y = scrollTop;
+        if (x < 0 || y < 0) return { row: -1, col: -1 };
 
-        while (left < right) {
-            let mid = Math.floor(left + (right - left) / 2);
-            if (condition(mid)) {
-                right = mid
-            } else {
-                left = mid + 1;
-            }
+        if (pane === 'main') {
+            y = y + this.sheet.metrics.getHeightOffset(this.sheet.freeze.endRow);
+            x = x + this.sheet.metrics.getWidthOffset(this.sheet.freeze.endCol);
+        } else if (pane === 'leftpane') {
+            y = y + this.sheet.metrics.getHeightOffset(this.sheet.freeze.endRow);
+            x = this.sheet.metrics.getWidthOffset(this.sheet.freeze.startCol);
+        } else if (pane === 'toppane') {
+            y = this.sheet.metrics.getHeightOffset(this.sheet.freeze.startRow);
+            x = x + this.sheet.metrics.getWidthOffset(this.sheet.freeze.endCol);
+        } else if (pane === 'cornerpane') {
+            y = this.sheet.metrics.getHeightOffset(this.sheet.freeze.startRow);
+            x = this.sheet.metrics.getWidthOffset(this.sheet.freeze.startCol);
         }
-        return left
+
+        // Find column
+        let col = bsearch(this.sheet.widthAccum, x + this.sheet.rowNumberWidth) - 1;
+
+
+        // Find row
+        const row = bsearch(this.sheet.heightAccum, y + this.sheet.headerRowHeight) - 1;
+
+        return {
+            row: Math.min(row, this.sheet.totalRowBounds - 1),
+            col: Math.min(col, this.sheet.totalColBounds - 1)
+        };
+    }
+    getBottomRightBounds(pane) {
+        const rect = this.sheet.container.getBoundingClientRect();
+        const scrollLeft = this.sheet.container.scrollLeft;
+        const scrollTop = this.sheet.container.scrollTop;
+        // Adjust for header and row numbers
+        let x = rect.right - rect.left + scrollLeft - (this.sheet.rowNumberWidth + 8);
+        let y = rect.bottom - rect.top + scrollTop - this.sheet.headerRowHeight;
+
+        if (x < 0 || y < 0) return { row: -1, col: -1 };
+
+        if (pane === 'main') {
+            y = y + this.sheet.metrics.getHeightOffset(this.sheet.freeze.startRow);
+            x = x + this.sheet.metrics.getWidthOffset(this.sheet.freeze.endCol);
+        } else if (pane === 'leftpane') {
+            y = y + this.sheet.metrics.getHeightOffset(this.sheet.freeze.endRow);
+            x = x + this.sheet.metrics.getWidthOffset(this.sheet.freeze.startCol);
+            x = Math.min(x, this.sheet.metrics.getWidthOffset(this.sheet.freeze.endCol));
+        } else if (pane === 'toppane') {
+            y = y + this.sheet.metrics.getHeightOffset(this.sheet.freeze.startRow);
+            x = x + this.sheet.metrics.getWidthOffset(this.sheet.freeze.endCol);
+            y = Math.min(y, this.sheet.metrics.getHeightOffset(this.sheet.freeze.endRow));
+        } else if (pane === 'cornerpane') {
+            y = y + this.sheet.metrics.getHeightOffset(this.sheet.freeze.startRow);
+            x = x + this.sheet.metrics.getWidthOffset(this.sheet.freeze.startCol);
+            x = Math.min(x, this.sheet.metrics.getWidthOffset(this.sheet.freeze.endCol));
+            y = Math.min(y, this.sheet.metrics.getHeightOffset(this.sheet.freeze.endRow));            
+        }
+
+        // Find column
+        let col = bsearch(this.sheet.widthAccum, x + this.sheet.rowNumberWidth) - 1;
+
+        // Find row
+        let row = bsearch(this.sheet.heightAccum, y + this.sheet.headerRowHeight) - 1;
+
+        row = Math.min(row+1, this.sheet.totalRowBounds);
+        col = Math.min(col+1, this.sheet.totalColBounds);
+
+        return {
+            row,
+            col
+        };
+    }
+}
+export class MainContainerMetrics extends ContainerMetrics {
+    getTopLeftBounds() {
+        return super.getTopLeftBounds('main');
+    }
+    getBottomRightBounds() {
+        return super.getBottomRightBounds('main');
+    }
+}
+export class LeftContainerMetrics extends ContainerMetrics {
+    getTopLeftBounds() {
+        return super.getTopLeftBounds('leftpane');
+    }
+    getBottomRightBounds() {
+        return super.getBottomRightBounds('leftpane');
+    }
+}
+export class TopContainerMetrics extends ContainerMetrics {
+    getTopLeftBounds() {
+        return super.getTopLeftBounds('toppane');
+    }
+    getBottomRightBounds() {
+        return super.getBottomRightBounds('toppane');
+    }
+}
+export class CornerContainerMetrics extends ContainerMetrics {
+    getTopLeftBounds() {
+        return super.getTopLeftBounds('cornerpane');
+    }
+    getBottomRightBounds() {
+        return super.getBottomRightBounds('cornerpane');
     }
 }

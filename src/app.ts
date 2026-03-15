@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 cellHeaders: true,
                 isEditable: true,
                 programmaticCell: (row,col) => {
-                    return {row,col,text: `${row+1}${sheet?.getColumnName(col)}`}
+                    return {row,col,text: `${sheet?.getColumnName(col)}${row+1}`}
                 },
                 // drawGridlinesOverBackground: true,
                 zoomLevel: 1,
@@ -45,9 +45,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 // gridlinesColor: 'rgba(255, 0, 0, 0.1)',
                 // gridlinesColor: 'red',
                 // freeze: {
-                //     row: 5, col: 2,
-                //     startRow: 0, startCol: 0,
-                //     endRow: 5, endCol: 2
+                //     startRow: 70, startCol: 50,
+                //     endRow: 70, endCol: 55
                 // },
                 defaultFontSize: 15,
                 defaultValign: 'middle',

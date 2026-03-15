@@ -272,12 +272,12 @@ html {
 .header-cell:hover, .row-number:hover {
   background-color: #1a73e81a;
 }
-:root {
-  /* --left-freeze-width: 200px;
-  --top-freeze-height: 150px; */
-  /* --header-height: 20px;
-  --header-width: 43px; */
-}
+/* :root {
+  --left-freeze-width: 200px;
+  --top-freeze-height: 150px;
+  --header-height: 20px;
+  --header-width: 43px;
+} */
 .corner-cell {
   position: sticky;
   top: 0;
