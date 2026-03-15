@@ -3246,14 +3246,14 @@ export default class Sheet {
         } else {
             if (valign === 'top') {
                 ctx.textBaseline = 'top';
-                if (cell.textRot) {
+                if (cell.textRot && cell._dims) {
                     yPos = top + ((cell._dims.height*this.zoomLevel)/2);
                 } else {
                     yPos = top + 2.5;
                 }
             } else if (valign === 'bottom') {
                 ctx.textBaseline = 'bottom';
-                if (cell.textRot) {
+                if (cell.textRot && cell._dims) {
                     yPos = (top + rowH) - ((cell._dims.height*this.zoomLevel)/2);
                 } else {
                     yPos = top + rowH - 2;
