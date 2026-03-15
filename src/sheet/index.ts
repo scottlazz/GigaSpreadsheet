@@ -2333,8 +2333,6 @@ export default class Sheet {
                 neededBlocks.add(`${blockRow},${blockCol}`);
             }
         }
-        console.log('main needed', neededBlocks)
-        // console.log('neededblocks', neededBlocks)
 
         // Remove blocks that are no longer needed
         const toRemove: any = [];
@@ -2486,18 +2484,34 @@ export default class Sheet {
         if (parentBlock.subBlocks.length === 1) {
             return parentBlock.subBlocks[0];
         }
+        const layer = this.getLayer(row,col);
+        let topOffset, leftOffset;
+        if (layer === 'toppane') {
+            topOffset = this.freeze.startRow;
+            leftOffset = this.freeze.endCol;
+        } else if (layer === 'cornerpane') {
+            topOffset = this.freeze.startRow;
+            leftOffset = this.freeze.startCol;
+        }else if (layer == 'leftpane') {
+            topOffset = this.freeze.endRow;
+            leftOffset = this.freeze.startCol;
+        } else if (layer === 'main') {
+            topOffset = this.freeze.endRow;
+            leftOffset = this.freeze.endCol;
+        }
         if (parentBlock.subBlocks.length === 2) {
-            let ncol = (col - this.freeze.endCol) % this.blockCols;
+            let ncol = (col - leftOffset) % this.blockCols;
             const subBlockCols = Math.floor(this.blockCols / 2);
             let idx = ncol >= subBlockCols ? 1 : 0;
             return parentBlock.subBlocks[idx];
         }
         if (parentBlock.subBlocks.length === 4) {
-            let ncol = (col - this.freeze.endCol) % this.blockCols;
+            let ncol = (col - leftOffset) % this.blockCols;
+
             const subBlockCols = Math.floor(this.blockCols / 2);
             let right = ncol >= subBlockCols;
 
-            let nrow = (row - this.freeze.endRow) % this.blockRows;
+            let nrow = (row - topOffset) % this.blockRows;
             const subBlockRows = Math.floor(this.blockRows / 2);
             let bottom = nrow >= subBlockRows;
 
@@ -2506,7 +2520,6 @@ export default class Sheet {
             else if (right && !bottom) i = 1;
             else if (!right && bottom) i = 2;
             else if (right && bottom) i = 3;
-
             return parentBlock.subBlocks[i];
         }
         return null;

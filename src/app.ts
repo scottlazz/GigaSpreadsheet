@@ -26,7 +26,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         Object.assign(
             {},
             // cells,
-            // demo,
+            demo,
             {
                 // initialCells: cells,
                 // gridlinesOn: false,
@@ -36,17 +36,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 formulaBar: true,
                 cellHeaders: true,
                 isEditable: true,
-                programmaticCell: (row,col) => {
-                    return {row,col,text: `${sheet?.getColumnName(col)}${row+1}`}
-                },
+                // programmaticCell: (row,col) => {
+                //     return {row,col,text: `${sheet?.getColumnName(col)}${row+1}`}
+                // },
                 // drawGridlinesOverBackground: true,
                 zoomLevel: 1,
                 gridlinesColor: '#dddddd',
                 // gridlinesColor: 'rgba(255, 0, 0, 0.1)',
                 // gridlinesColor: 'red',
                 // freeze: {
-                //     startRow: 70, startCol: 50,
-                //     endRow: 70, endCol: 55
+                //     startRow: 0, startCol: 0,
+                //     endRow: 26, endCol: 0
                 // },
                 defaultFontSize: 15,
                 defaultValign: 'middle',
