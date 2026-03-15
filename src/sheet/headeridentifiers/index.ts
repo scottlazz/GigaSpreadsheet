@@ -22,7 +22,7 @@ export default class HeaderIdentifiers {
         }
         if (this.sheet.options.cellHeaders !== false) {
             this.headerContainer.style.lineHeight = `${this.sheet.headerRowHeight}px`;
-            this.colHeadersCorner.style.lineHeight = `${this.sheet.headerRowHeight-1}px`;
+            this.colHeadersCorner.style.lineHeight = `${this.sheet.headerRowHeight}px`;
         }
 
         this.renderHeaderPadder = document.createElement('div');
@@ -87,6 +87,10 @@ export default class HeaderIdentifiers {
         //     return;
         // }
         this.colHeadersCorner.innerHTML = '';
+        const colhcornerEls = document.createElement('div');
+        this.colHeadersCorner.appendChild(colhcornerEls);
+        colhcornerEls.style.position = 'relative';
+        colhcornerEls.style.height = `${this.sheet.headerRowHeight}px`;
         const scc = this.sheet.freeze.startCol;
         let tw = 0;
         for (let col = scc; col < this.sheet.freeze.endCol; col++) {
@@ -98,7 +102,7 @@ export default class HeaderIdentifiers {
             headerCell.setAttribute('data-hccol', col);
             headerCell.textContent = this.sheet.getColumnName(col);
             headerCell.style.width = `${width}px`;
-            this.colHeadersCorner.appendChild(headerCell);
+            colhcornerEls.appendChild(headerCell);
             let headerHandle;
             headerHandle = document.createElement('div');
             headerHandle.className = 'header-handle';
@@ -106,7 +110,7 @@ export default class HeaderIdentifiers {
             headerHandle.style.height = `${this.sheet.headerRowHeight}px`;
             headerHandle.style.left = `${tw - 8}px`;
             headerHandle.setAttribute('data-col', col);
-            this.colHeadersCorner.appendChild(headerHandle);
+            colhcornerEls.appendChild(headerHandle);
         }
         this.renderHeaderElems.innerHTML = ``;
         for (let col: any = sc; col <= ec; col++) {
