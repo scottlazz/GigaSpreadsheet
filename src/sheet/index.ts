@@ -1664,8 +1664,8 @@ export default class Sheet {
             const rect = this.container.getBoundingClientRect();
             this.probe.style.right = `0px`;
             this.probe.style.bottom = `0px`;
-            this.probe.style.width = `${this.metrics.getCellWidth(col)+20}px`;
-            this.probe.style.height = `${this.metrics.getCellHeight(row)+20}px`;
+            this.probe.style.width = `${this.metrics.getCellWidth(col)+100+this.rowNumberWidth}px`;
+            this.probe.style.height = `${this.metrics.getCellHeight(row)+100+this.headerRowHeight}px`;
             const probeRect = this.probe.getBoundingClientRect();
             this.probe.style.left = `${scrollLeft + x - this.rowNumberWidth - (probeRect.width / 2)}px`;
             this.probe.style.top = `${scrollTop + e.clientY - this.headerRowHeight - rect.y - (probeRect.height / 2) - (this.options.cellHeaders === false ? this.topFreezeHeight : 0)}px`;
