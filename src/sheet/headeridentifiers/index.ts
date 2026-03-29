@@ -113,27 +113,19 @@ export default class HeaderIdentifiers {
             colhcornerEls.appendChild(headerHandle);
         }
         this.renderHeaderElems.innerHTML = ``;
-        for (let col: any = sc; col <= ec; col++) {
+        for (let col: any = sc; col <= ec && col < (this.sheet.maxCols || Infinity); col++) {
             const width = this.sheet.metrics.getColWidth(col);
             totalWidth += width;
 
             let headerCell: any;
-            // if (this.renderHeaderElems.children[(((col-sc)*2) + 1)]) {
-            //     headerCell = this.renderHeaderElems.children[(((col-sc)*2) + 1)];       
-            //     headerCell.classList.remove('col-selected');         
-            // } else {
                 headerCell = document.createElement('div');
                 this.renderHeaderElems.appendChild(headerCell);
                 headerCell.className = 'header-cell';
-            // }
             headerCell.setAttribute('data-hccol', col);
             headerCell.textContent = this.sheet.getColumnName(col);
             headerCell.style.width = `${width}px`;
 
             let headerHandle: any;
-            // if (this.renderHeaderElems.children[(((col-sc)*2) + 2)]) {
-            //     headerHandle = this.renderHeaderElems.children[(((col-sc)*2) + 2)];                
-            // } else {
                 headerHandle = document.createElement('div');
                 this.renderHeaderElems.appendChild(headerHandle);
                 headerHandle.className = 'header-handle';
@@ -142,7 +134,12 @@ export default class HeaderIdentifiers {
             headerHandle.style.left = `${totalWidth - 8}px`;
             headerHandle.setAttribute('data-col', col);
         };
-        // const extra = (this.maxCols && this.totalColBounds === this.maxCols-1) ? 0 : 10;
-        this.headerContainer.style.width = `${this.sheet.metrics.getWidthOffsetRelativeToPanel(ec+1) + extra}px`;
+        let maxWidth;
+        let containerWidth = this.sheet.metrics.getWidthOffsetRelativeToPanel(ec+1) + extra;
+        if (this.sheet.maxCols && this.sheet.metrics.getWidthOffsetRelativeToPanel(this.sheet.maxCols)) {
+            maxWidth = this.sheet.metrics.getWidthOffsetRelativeToPanel(this.sheet.maxCols);
+            containerWidth = Math.min(containerWidth, maxWidth);
+        }
+        this.headerContainer.style.width = `${containerWidth}px`;
     }
 }

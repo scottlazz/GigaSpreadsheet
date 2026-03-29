@@ -68,25 +68,11 @@ export default class RowNumbers {
         this.curRange = sr;
         let totalHeight = 0;
         let ve = visibleEndRow;
-        // let diff = sr % this.sheet.blockRows;
-        // sr = sr - diff;
-        // console.log('sr??', sr, ve, this.sheet.metrics.getHeightOffsetRelativeToPanel(sr))
         ve = ve + (this.sheet.blockRows - (ve % this.sheet.blockRows) - 1);
-        // console.log('sr?????', sr)
         this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffsetRelativeToPanel(sr)}px`;
         if (this.sheet.options.cellHeaders === false) {
-            // let totalHeight = 0;
-            // for (let row: any = 0; row <= this.sheet.totalRowBounds; row++) {
-                //     totalHeight += this.sheet.metrics.rowHeight(row);
-                // }
-                // // this.totalHeight = totalHeight;
-                // this.rowNumberContainer.style.height = `${totalHeight + 20}px`;
-                // this.rowNumberContainer.style.width = '1px';
-                // this.rowNumberContainer.style.position = 'absolute';
                 this.rowNumberContainer.style.background = 'transparent';
                 this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffsetRelativeToPanel(ve)}px`;
-            // this.renderRowNumberPadder.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;
-            // this.rowNumberContainer.style.height = `${this.sheet.metrics.getHeightOffset(sr)}px`;
             return;
         }
         this.rowHeadersCorner.innerHTML = '';
@@ -108,11 +94,9 @@ export default class RowNumbers {
             this.rowHeadersCorner.appendChild(rowNumberHandle);
         }
         this.renderRowNumberElems.innerHTML = '';
-        for (let row: any = sr; row <= ve; row++) {
-            // if (row >= this.totalRows) break;
+        for (let row: any = sr; row <= ve && row < (this.sheet.maxRows || Infinity); row++) {
 
             const rowNumberEl: any = this.createRowNumber(row + 1);
-            // rowNumberEl.textContent = row + 1;
             totalHeight += this.sheet.metrics.rowHeight(row);
             rowNumberEl.style.height = `${this.sheet.metrics.rowHeight(row)}px`;
             rowNumberEl.style.lineHeight = `${this.sheet.metrics.rowHeight(row)}px`;
@@ -125,9 +109,13 @@ export default class RowNumbers {
             rowNumberHandle.style.top = `${totalHeight - 5}px`;
             this.renderRowNumberElems.appendChild(rowNumberHandle);
         }
-        // this.totalHeight = totalHeight;
-        // const extra = (this.maxRows && this.totalRowBounds === this.maxRows-1) ? 0 : 20;
         const extra = 20;
-        this.rowNumberContainer.style.height = `${this.sheet.metrics.getHeightOffsetRelativeToPanel(ve+1, true) + extra}px`; // extra pixels fixes slight alignment issue on scroll
+        let maxHeight;
+        let containerHeight = this.sheet.metrics.getHeightOffsetRelativeToPanel(ve+1, true) + extra;
+        if (this.sheet.maxRows && this.sheet.metrics.getHeightOffsetRelativeToPanel(this.sheet.maxRows)) {
+            maxHeight = this.sheet.metrics.getHeightOffsetRelativeToPanel(this.sheet.maxRows);
+            containerHeight = Math.min(containerHeight, maxHeight);
+        }
+        this.rowNumberContainer.style.height = `${containerHeight}px`; // extra pixels fixes slight alignment issue on scroll
     }
 }

@@ -56,6 +56,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
         new Sheet(mount as any,
             Object.assign({}, fininit, {
+                autosizeHeight: true,
+                autosizeWidth: true,
                 // toolbar: false, cellHeaders: false, formulaBar: false
             })
         );

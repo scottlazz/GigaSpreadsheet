@@ -1,5 +1,6 @@
 import Sheet from "./sheet";
 import demo from "./demo";
+// import { fininit } from "./sampledata";
 import './style.css';
 
 document.addEventListener("DOMContentLoaded", (event) => {
@@ -26,6 +27,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
         Object.assign(
             {},
             // cells,
+            // fininit,
             demo,
             {
                 // initialCells: cells,
@@ -48,9 +50,11 @@ document.addEventListener("DOMContentLoaded", (event) => {
                 //     startRow: 0, startCol: 0,
                 //     endRow: 26, endCol: 0
                 // },
-                freeze: {
-                    endCol: 10, endRow: 5, startCol: 5, startRow: 1
-                },
+                // freeze: {
+                //     endCol: 10, endRow: 5, startCol: 5, startRow: 1
+                // },
+                maxRows: 100,
+                maxCols: 100,
                 defaultFontSize: 15,
                 defaultValign: 'middle',
                 defaultHorizAlign: 'center',

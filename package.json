@@ -6,25 +6,14 @@
   "types": "dist/index.d.ts",
   "module": "dist/index.js",
   "main": "dist/indexejs.js",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./sheet": {
-      "import": "./dist/sheet/index.js",
-      "require": "./dist/sheet/index.js",
-      "types": "./dist/sheet/index.d.ts"
-    }
-  },
   "scripts": {
-    "start": "parcel",
+    "start": "parcel --no-cache",
     "start:golden": "parcel src/golden.html",
     "clean": "rimraf dist",
-    "build": "npm run build:ts",
+    "copyfiles": "node ./copyfiles.js",
+    "build": "npm run build:ts && npm run copyfiles",
     "build:ts": "npm run clean && tsc -p tsconfig.json",
-    "dev": "tsc -p tsconfig.json -w --preserveWatchOutput",
+    "dev": "npm run copyfiles && tsc -p tsconfig.json --watch",
     "build:lib": "npm run build:ts",
     "prepare": "npm run build:ts",
     "predeploy": "npm run build",

@@ -122,6 +122,7 @@ export default class Sheet {
     panes: { main: any; leftpane: any; toppane: any; cornerpane: any; };
     programmaticCell: any;
     mastadon: any;
+    dirty: Set<string>;
     constructor(wrapper: HTMLElement, options: GigaSheetTypeOptions | any = {}) {
         this.zoomLevel = options.zoomLevel || 1;
         this.drawGridlinesOverBackground = options.drawGridlinesOverBackground || false;
@@ -141,6 +142,7 @@ export default class Sheet {
         this.lastCol = null;
         this.scheduledRenders = {};
         this.needDims = {};
+        this.dirty = new Set();
         this.scheduledOffBlockRenders = {};
         this.measureCanvas = document.createElement('canvas');
         this.wrapper = wrapper || document.createElement('div');
@@ -1332,8 +1334,16 @@ export default class Sheet {
         }
         this.updateDim(row,col);
     }
+    checkDirty(row: number, col: number, obj: any) {
+        const cell = this.getCell(row,col);
+        // border size reduced from >=2px
+        if (true) {
+            this.dirty.add(this.getKey(row,col))
+        }
+    }
     putCellObj(row: number, col: number, obj: any) {
         if (!obj) return;
+        // this.checkDirty(row,col,obj);
         this.data.set(row, col, obj);
         this.updateDim(row,col);
     }
@@ -2067,12 +2077,14 @@ export default class Sheet {
         // let heightSum = 0;
         for (
             let row = 0;
+            this.heightAccum.length <= (this.maxRows ? (this.maxRows+this.blockRows) : Infinity) &&
+            (
             row < oldHeight - 1 ||
             row < atLeastRow ||
             row % this.blockRows !== 0 || // render full blocks
             row < this.totalRows || // render til bottom row that has data
             this.heightAccum[this.heightAccum.length - 1] < this.container.clientHeight + 150 || // render til bottom of visible area
-            (this.updateVisHeight() && row < (prevRowBounds + this.blockRows)); // render extra block if near end
+            (this.updateVisHeight() && row < (prevRowBounds + this.blockRows))); // render extra block if near end
             row++
         ) {
             this.heightAccum.push(heightSum += this.metrics.getCellHeight(row));
@@ -2086,12 +2098,14 @@ export default class Sheet {
         let widthSum = this.rowNumberWidth;
         for (
             let col = 0;
+            this.widthAccum.length <= (this.maxCols ? (this.maxCols + this.blockCols) : Infinity) &&
+            (
             col < oldWidth - 1 ||
             col < atLeastCol ||
             col % this.blockCols !== 0 ||
             col < this.totalCols ||
             this.widthAccum[this.widthAccum.length - 1] < this.container.clientWidth + 150 || // render til right of visible area
-            (this.updateVisWidth() && col < (prevColBounds + this.blockCols));
+            (this.updateVisWidth() && col < (prevColBounds + this.blockCols)));
             col++
         ) {
             this.widthAccum.push(widthSum += this.metrics.getColWidth(col));
@@ -2182,7 +2196,8 @@ export default class Sheet {
                 }
             }
         });
-        const totalRenderRows = visibleEndRow + this.blockRows-(visibleEndRow%this.blockRows);
+        let totalRenderRows = visibleEndRow + this.blockRows-(visibleEndRow%this.blockRows);
+        if (this.maxRows) totalRenderRows = Math.min(totalRenderRows, this.maxRows);
         const height = this.metrics.getHeightOffsetRelativeToPanel(totalRenderRows);
         const width = this.leftFreezeWidth;
         this.leftFreezeContainer.style.width = `${width}px`;
@@ -2238,11 +2253,19 @@ export default class Sheet {
                 }
             }
         });
-        const totalRenderCols = visibleEndCol + this.blockCols-(visibleEndCol%this.blockCols);
+        let totalRenderCols = visibleEndCol + this.blockCols-(visibleEndCol%this.blockCols);
+        if (this.maxCols) totalRenderCols = Math.min(totalRenderCols, this.maxCols);
         const height = this.topFreezeHeight;
-        const width = this.metrics.getWidthOffsetRelativeToPanel(totalRenderCols);
+
+        let ec = visibleEndCol;
+        ec = ec + (this.blockCols - (ec % this.blockCols) - 1);
+        const extra = this.rowNumberWidth;
+        let containerWidth = this.metrics.getWidthOffsetRelativeToPanel(ec+1) + extra;
+        if (this.maxCols && this.metrics.getWidthOffsetRelativeToPanel(this.maxCols)) {
+            containerWidth = Math.min(containerWidth, this.metrics.getWidthOffsetRelativeToPanel(this.maxCols));
+        }
         this.topFreezeContainer.style.height = `${height}px`;
-        this.topFreezeContainer.style.width = `${width-this.rowNumberWidth}px`;
+        this.topFreezeContainer.style.width = `${containerWidth}px`;
 
         
         toRemove.forEach((key: any) => this.activeTopPaneBlocks.delete(key));
@@ -2557,8 +2580,22 @@ export default class Sheet {
         const b = Math.round((y + height) * dpr);
         return { l, t, w: Math.max(0, r - l), h: Math.max(0, b - t) };
     }
-    setBorStroke(ctx: any, borderColor?: string) {
-        ctx.strokeStyle = borderColor || 'black';
+    setBorStroke(ctx: any, borderObj?: any) {
+        ctx.strokeStyle = borderObj?.color || 'black';
+        const borStyle = borderObj.borStyle ? borderObj.borStyle.toUpperCase() : 'SOLID';
+        if (borStyle === 'SOLID') {
+            ctx.setLineDash([]);
+        } else if (borStyle === 'DASHED') {
+            ctx.setLineDash([5,5]);
+        } else if (borStyle === 'DOTTED') {
+            ctx.setLineDash([2,3]);
+        } else if (borStyle === 'DASHDOT') {
+            ctx.setLineDash([2,3,5,3]);
+        } else if (borStyle === 'DASHDOTDOT') {
+            ctx.setLineDash([2,3,2,3,5,3]);
+        }
+        const lineWidth = parseInt(borderObj.borWeight) || 1;
+        ctx.lineWidth = lineWidth;
     }
     setGridLineStroke(ctx: any) {
         ctx.strokeStyle = this.gridlinesColor;
@@ -2591,22 +2628,37 @@ export default class Sheet {
     }
     getBorder(cell, side: string = 'left') {
         const border = cell?.border;
+        let borStyle = cell.borStyle || 'solid';
+        let borWeight = cell.borWeight || 1;
         if (typeof border === 'string') {
             try {
                 const obj = JSON.parse(border);
-                return obj[side];
+                if (obj[side]) {
+                    try {
+                        borStyle = JSON.parse(borStyle)[side] || 'solid';
+                    } catch (e) {}
+                    try {
+                        borWeight = JSON.parse(borWeight)[side] || 1;
+                    } catch (e) {}
+                    return {color: obj[side], borStyle, borWeight}
+                }
             } catch (e) {
                 return null;
             }
         }
-        if (typeof border === 'number' && hasBorderStr(border, side)) {
+        else if (typeof border === 'number' && hasBorderStr(border, side)) {
             let borderColor = cell?.borderColor;
             if (typeof borderColor === 'string' && borderColor.startsWith('{')) {
-                try {return JSON.parse(borderColor)[side];} catch (e) {}
+                try {
+                    const color = JSON.parse(borderColor)[side];
+                    if (color) {
+                        return { color, borStyle, borWeight};
+                    }
+                } catch (e) {}
             } else if (typeof borderColor === 'string') {
-                return borderColor;
+                return {color: borderColor, borStyle, borWeight};
             }
-            return 'black';
+            return {color: 'black', borStyle, borWeight};
         }
     }
     // drawborders
@@ -2630,8 +2682,11 @@ export default class Sheet {
             if (this.getCellOrMerge(cell.row, cell.col-1)?.bc) {
 
             } else {
-                if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
-                this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
+                if (this.shouldDrawGridlines) {
+                    // this.setGridLineStroke(ctx);
+                    // this.strokeLine(ctx, rect.l, rect.t, rect.l, rect.t + rect.h);
+                }
+                // else { this.setClearStroke(ctx); }
             }
 
             // todo: improve this logic, instead of above, calc right borders on cells abutting to the left
@@ -2647,8 +2702,11 @@ export default class Sheet {
             if (this.getCellOrMerge(cell.row-1, cell.col)?.bc) {
 
             } else {
-                if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
-                this.strokeLine(ctx, rect.l, rect.t, rect.l + rect.w, rect.t);
+                if (this.shouldDrawGridlines) {
+                    // this.setGridLineStroke(ctx);
+                    // this.strokeLine(ctx, rect.l, rect.t, rect.l + rect.w, rect.t);
+                }
+                // else { this.setClearStroke(ctx); }
             }
 
             // calc bottom borders on cells abutting to the top
@@ -2665,8 +2723,11 @@ export default class Sheet {
             if (this.getCellOrMerge(cell.row, cell.col+1)?.bc) {
 
             } else {
-                if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
-                this.strokeLine(ctx, rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
+                if (this.shouldDrawGridlines) {
+                    // this.setGridLineStroke(ctx);
+                    // this.strokeLine(ctx, rect.l + rect.w, rect.t, rect.l + rect.w, rect.t + rect.h);
+                }
+                // else { this.setClearStroke(ctx); }
             }
 
             // calc left borders on cells abutting to the right
@@ -2683,8 +2744,11 @@ export default class Sheet {
             if (this.getCellOrMerge(cell.row+1, cell.col)?.bc) {
 
             } else {
-                if (this.shouldDrawGridlines) { this.setGridLineStroke(ctx); } else { this.setClearStroke(ctx); }
-                this.strokeLine(ctx, rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
+                if (this.shouldDrawGridlines) {
+                    // this.setGridLineStroke(ctx);
+                    // this.strokeLine(ctx, rect.l, rect.t + rect.h, rect.l + rect.w, rect.t + rect.h);
+                }
+                // else { this.setClearStroke(ctx); }
             }
 
             // calc top borders on cells abutting to the bottom
@@ -2949,9 +3013,24 @@ export default class Sheet {
         }
     }
 
+    getAdjacentCells(row:number,col:number) {
+        const cells = [];
+        if (row > 0) cells.push(this.getCellOrMerge(row-1, col));
+        if (row < (this.maxRows||Infinity)) cells.push(this.getCellOrMerge(row+1, col));
+        if (col > 0) cells.push(this.getCellOrMerge(row, col-1));
+        if (col < (this.maxCols||Infinity)) cells.push(this.getCellOrMerge(row, col+1));
+        return cells;
+    }
+
     renderCell(row: any, col: any, fromBlockRender?: boolean) {
         if (this.maxRows && row > this.maxRows || this.maxCols && col > this.maxCols) return;
         this.scheduledRenders[`${row},${col}`] = [row,col,fromBlockRender];
+        // if (this.dirty.has(this.getKey(row,col))) {
+        //     this.getAdjacentCells(row,col).forEach(cell => {
+        //         this.scheduledRenders[`${cell.row},${cell.col}`] = [cell.row,cell.col,fromBlockRender];
+        //     })
+        // }
+        // this.dirty.delete(this.getKey(row,col));
         const merge = this.getMerge(row,col);
         if (merge) {
             const startBlock = this.getSubBlock(merge.startRow,merge.startCol);

@@ -1,5 +1,4 @@
 html {
-  /* color-scheme: light dark; */
   font-family: system-ui;
   height: 100%;
 }
@@ -70,7 +69,6 @@ html {
 .context-menu ul li {
   padding: 8px 16px;
   cursor: pointer;
-  /* font-size: 14px; */
 }
 
 .context-menu ul li:hover {
@@ -85,14 +83,11 @@ html {
 
 .grid-container {
   font-family: Arial, sans-serif;
-  /* white-space: nowrap; */
+  outline: none;
   grid-template-columns: auto auto minmax(0, 1fr);
   grid-template-rows: auto auto minmax(0, 1fr);
-
   display: grid;
-  /* display: flex;
-  flex-direction: column;
-  flex: 1; */
+  flex-grow: 1;
 }
 
 .canvas-block-container {
@@ -102,14 +97,6 @@ html {
 
 .canvas-block {
   position: absolute;
-  /* border: 1px solid #eee; */
-
-  /* image-rendering: -moz-crisp-edges;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: pixelated;
-            image-rendering: optimize-contrast; */
-
-  /* box-sizing: border-box; */
 }
 
 .row-number-container {
@@ -123,9 +110,6 @@ html {
 }
 .left-freeze-container {
   position: sticky;
-  /* top: 0; */
-  /* float: left; */
-  /* background: #e6e6e6; */
   background: white;
   overflow: hidden;
   border-right: 1px solid rgb(153, 153, 153, 0.5);
@@ -153,10 +137,6 @@ html {
   grid-area: 2/2;
 }
 .top-freeze-container {
-  /* top: 0; */
-  /* float: left; */
-  /* left: 0; */
-  /* background: #e6e6e6; */
   background: white;
   overflow: hidden;
   border-bottom: 1px solid rgb(153, 153, 153, 0.5);
@@ -172,7 +152,6 @@ html {
 }
 .row-number {
   text-align: center;
-  /* box-sizing: border-box; */
   flex-shrink: 0;
   user-select: none;
   width: 100%;
@@ -187,7 +166,6 @@ html {
 .row-handle {
   cursor: ns-resize;
   position: absolute;
-  /* box-sizing: border-box; */
   height: 10px;
   z-index: 1;
   width: 100%;
@@ -255,7 +233,6 @@ html {
   text-align: center;
   user-select: none;
   display: inline-block;
-  /* box-sizing: border-box; */
   border-bottom: 1px solid rgb(153, 153, 153, 0.5);
 }
 
@@ -272,12 +249,6 @@ html {
 .header-cell:hover, .row-number:hover {
   background-color: #1a73e81a;
 }
-/* :root {
-  --left-freeze-width: 200px;
-  --top-freeze-height: 150px;
-  --header-height: 20px;
-  --header-width: 43px;
-} */
 .corner-cell {
   position: sticky;
   top: 0;
@@ -293,11 +264,6 @@ html {
   z-index: 16;
   background-color: #e6e6e6;
   font-size: 12px;
-  /* line-height: 20px; */
-  /* height: 20px; */
-}
-.col-headers-corner .header-cell {
-  /* height: calc(100% - 1px); */
 }
 .row-headers-corner {
   position: sticky;
@@ -331,8 +297,6 @@ html {
 
 .selection-layer {
   position: absolute;
-  /* pointer-events: none; */
-  /* z-index: 90; */
 }
 
 .dragg-border {
@@ -364,7 +328,6 @@ html {
   height: 3px;
   border-top: 1px solid white;
   border-left: 1px solid white;
-  /* box-sizing: border-box; */
   background-color: rgba(26, 115, 232, 1);
 }
 .dragg-top {
@@ -375,7 +338,6 @@ html {
 }
 
 .selected-cell {
-  /* pointer-events: none; */
   position: absolute;
   box-sizing: border-box;
   border: 1px solid #1a73e8;
@@ -391,20 +353,6 @@ html {
   position: absolute;
   width: 6px;
   height: 6px;
-  /* background-color: #1a73e8; */
-  /* z-index: 220; */
-  /* pointer-events: auto; */
-}
-
-/* .selection-handle.bottom-right {
-  right: -3px;
-  bottom: -3px;
-  cursor: nwse-resize;
-} */
-
-@keyframes placeholderAnimation {
-  /* 0% { background-position: 0 0; }
-            100% { backgroundPosition: 40px 40px; } */
 }
 
 .placeholder-layer {
@@ -435,7 +383,6 @@ body {
 
 .grid-wrapper {
   width: 100%;
-  /* height: 100vh; */
   height: 100%;
 }
 
@@ -477,7 +424,6 @@ body {
   float: left;
   line-height: 1.25em;
   padding: .785em 1em;
-  /* padding: 0; */
   margin: 0;
   vertical-align: middle;
   text-align: left;
@@ -509,11 +455,6 @@ body {
 .gigasheet-icon-img:hover {
   opacity: .85;
 }
-
-/* &.active {
-  background-color: #fff;
-  color: rgba(0, 0, 0, .65);
-} */
 
 .gigasheet-contextmenu {
   position: absolute;
@@ -606,10 +547,8 @@ body {
   background-color: #e6e6e6;
   padding: 7px 8px;
   font-family: sans-serif;
-  /* font-family: Aptos Narrow, Calibri, "sans-serif", Mongolian Baiti, Microsoft Yi Baiti, Javanese Text, Yu Gothic; */
 }
 .gigasheet-name-box {
-  /* background-color: #fff; */
   font-family: inherit;
   border-radius: 4px;
 }
@@ -630,7 +569,6 @@ body {
 }
 .gigasheet-formulabar button {
   width: 35px;
-  /* height: 24px; */
   box-sizing: border-box;
   line-height: 100%;
   border: 0;
@@ -720,10 +658,8 @@ body {
   font-family: inherit;
   position: fixed;
   padding: 5px 10px;
-  /* color: #fff; */
   border-radius: 1px;
   border: 1px solid rgb(153, 153, 153, 0.5);
-  /* background: rgba(0, 0, 0, 1); */
   background-color: #fff;
   font-size: 12px;
   z-index: 201;
@@ -740,7 +676,6 @@ body {
   -webkit-transform: rotate(45deg);
   transform: rotate(45deg);
   z-index: 1;
-  /* box-shadow: 1px 1px 3px -1px rgba(0, 0, 0, .3); */
   border-left: 1px solid rgb(153, 153, 153, 0.5);
   border-top: 1px solid rgb(153, 153, 153, 0.5);
 }
